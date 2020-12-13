@@ -1,0 +1,5 @@
+.phpunit.*
+.DS_Store
+
+vendor
+error_logs

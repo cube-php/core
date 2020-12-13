@@ -9,5 +9,14 @@
             "email": "damilola@cubephp.xyz"
         }
     ],
-    "require": {}
+    "autoload": {
+        "psr-4": {
+            "Cube\\": "src/"
+        }
+    },
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9.3.10",
+        "pestphp/pest": "^0.3.15"
+    }
 }
