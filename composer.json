@@ -1,0 +1,13 @@
+{
+    "name": "cube-php/core",
+    "description": "Cube PHP framework core components",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Damilola Ezekiel",
+            "email": "damilola@cubephp.xyz"
+        }
+    ],
+    "require": {}
+}
