@@ -12,7 +12,10 @@
     "autoload": {
         "psr-4": {
             "Cube\\": "src/"
-        }
+        },
+        "files": [
+            "src/Cube/functions/functions.php"
+        ]
     },
     "require": {},
     "require-dev": {
