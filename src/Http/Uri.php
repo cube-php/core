@@ -3,7 +3,7 @@
 namespace Cube\Http;
 
 use InvalidArgumentException;
-use Cube\App;
+use Cube\App\App;
 use Cube\Interfaces\UriInterface;
 
 class Uri implements UriInterface
@@ -241,7 +241,7 @@ class Uri implements UriInterface
             throw new InvalidArgumentException('Argument "$url" is not a valid url');
         }
 
-        $config = App::getConfigByName('app');
+        $config = App::getConfig('app');
         $directory = $config['directory'];
         $url_data = (object) parse_url($url);
 

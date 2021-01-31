@@ -2,6 +2,8 @@
 
 namespace Cube\Helpers\Cli;
 
+use Cube\App\App;
+
 class Cli
 {
     const COMMAND_MODEL      = 'make:model';
@@ -24,7 +26,7 @@ class Cli
     const OUTPUT_SUCCESS     = 'success';
     const OUTPUT_WARNING     = 'warning';
 
-    public function __construct()
+    public function __construct(App $app)
     {
     }
 

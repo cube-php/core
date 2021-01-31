@@ -1,7 +1,7 @@
 <?php
 
 use Cube\Http\Request;
-use Cube\App;
+use Cube\App\App;
 use Cube\Router\RouteCollection;
 
 /**

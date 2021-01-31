@@ -2,7 +2,8 @@
 
 namespace Cube\Helpers\Cli;
 
-use Cube\App;
+use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Misc\File;
 use Cube\Exceptions\FileSystemException;
 use Cube\Modules\System;
@@ -259,7 +260,7 @@ class CliActions
         $host = in_array('w', $keys) ? $get_local_ip() : '127.0.0.1';
         
         $url = "{$host}:{$port}";
-        $dir = APP_WEBROOT_PATH;
+        $dir = App::getPath(Directory::PATH_WEBROOT);
 
         Cli::respondSuccess("Hosting app on: http://{$url}");
         $exec = exec("php -S {$url} -t {$dir}");

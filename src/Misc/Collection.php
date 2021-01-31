@@ -20,9 +20,13 @@ abstract class Collection implements CollectionInterface
      * Class constructor
      * 
      */
-    public function __construct()
+    public function __construct(?array $data = null)
     {
-        
+        if($data) {
+           array_walk($data, function ($value, $index) {
+               $this->set($index, $index);
+           });
+        }
     }
 
     /**

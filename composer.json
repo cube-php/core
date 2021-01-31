@@ -1,6 +1,7 @@
 {
     "name": "brainex/php-cube-core",
     "description": "PHP Cube core utilities",
+    "version": "0.0.1",
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -12,7 +13,12 @@
     "autoload": {
         "psr-4": {
             "Cube\\": "src/"
-        }
+        },
+        "files": [
+            "src/utils/bootstrap.php"
+        ]
     },
-    "require": {}
+    "require": {
+        "twig/twig": "^3.2"
+    }
 }

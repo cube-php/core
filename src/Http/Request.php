@@ -13,7 +13,7 @@ use Cube\Http\Uri;
 use Cube\Misc\FilesParser;
 use Cube\Misc\Inputs;
 use Cube\Misc\Input;
-use Cube\App;
+use Cube\App\App;
 
 class Request implements RequestInterface
 {
@@ -182,7 +182,11 @@ class Request implements RequestInterface
      */
     public function getHeaders()
     {
-        static::$_headers ??= new Headers();
+        if(static::$_headers) {
+            return static::$_headers;
+        }
+
+        static::$_headers = new Headers();
         return static::$_headers;
     }
 
@@ -193,7 +197,11 @@ class Request implements RequestInterface
      */
     public function getServer()
     {
-        static::$_server ??= new Server();
+        if(static::$_server) {
+            return static::$_server;
+        }
+
+        static::$_server = new Server();
         return static::$_server;
     }
 
@@ -417,7 +425,7 @@ class Request implements RequestInterface
             return static::$_resolved_middlewares;
         }
 
-        $wares = App::getConfigByFile('middleware');
+        $wares = App::getRunningInstance()->getConfig('middleware');
         
         if(!$wares) {
             return false;

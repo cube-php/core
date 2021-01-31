@@ -6,7 +6,7 @@ use PDO;
 use PDOStatement;
 use PDOException;
 
-use Cube\App;
+use Cube\App\App;
 use Cube\Exceptions\DBException;
 
 class DBConnection
@@ -46,7 +46,7 @@ class DBConnection
      */
     private function __construct()
     {
-        $config = $this->config = App::getConfigByFile('database');
+        $config = $this->config = App::getConfig('database');
         
         $driver = $config['driver'] ?? '';
         $hostname = $config['hostname'] ?? '';

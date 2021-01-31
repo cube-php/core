@@ -2,6 +2,8 @@
 
 namespace Cube\Http;
 
+use Cube\App\App;
+use Cube\App\Directory;
 use InvalidArgumentException;
 use Cube\Interfaces\ResponseInterface;
 use Cube\Helpers\View;
@@ -206,7 +208,7 @@ class Response implements ResponseInterface
     private function __construct()
     {
         $this->_header = new Headers;
-        $this->_view = new View(VIEW_PATH);
+        $this->_view = new View(App::getPath(Directory::PATH_VIEWS));
     }
 
     /**

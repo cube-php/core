@@ -2,7 +2,7 @@
 
 namespace Cube\Router;
 
-use Cube\App;
+use Cube\App\App;
 use Closure;
 
 use InvalidArgumentException;
@@ -327,7 +327,7 @@ class Route
     public function initController(Request $request, Response $response)
     {
 
-        $embed_request = App::getConfigByFile('view')['embed_request'] ?? false;
+        $embed_request = App::getConfig('view', 'embed_request') ?? false;
         if($embed_request) {
             $response->req = $request;
         }

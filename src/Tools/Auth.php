@@ -5,7 +5,8 @@ namespace Cube\Tools;
 use ReflectionClass;
 use InvalidArgumentException;
 
-use Cube\App;
+use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Modules\DB;
 
 use Cube\Http\Session;
@@ -243,11 +244,13 @@ class Auth
     private static function getConfig($field = null)
     {
         if(!static::$_config) {
-            static::$_config = App::getConfigByName('auth');
+            static::$_config = App::getConfig('auth');
         }
 
+        $config_path = App::getPath(Directory::PATH_CONFIG);
+
         if(!static::$_config) {
-            throw new AuthException('Auth config not found in "' . CONFIG_PATH . '"');
+            throw new AuthException('Auth config not found in "' . $config_path . '"');
         }
 
         if($field) {

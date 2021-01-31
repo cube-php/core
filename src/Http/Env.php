@@ -2,6 +2,8 @@
 
 namespace Cube\Http;
 
+use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Misc\File;
 
 final class Env
@@ -61,7 +63,8 @@ final class Env
             return static::$_vars;
         }
 
-        $env_file = APP_PATH . DS . '.env';
+        $root = App::getPath(Directory::PATH_ROOT);
+        $env_file = $root . '/.env';
 
         if(!file_exists($env_file)) {
             $file = new File($env_file, true);

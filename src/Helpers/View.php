@@ -3,7 +3,7 @@
 namespace Cube\Helpers;
 
 use Cube\Http\Env;
-use Cube\App;
+use Cube\App\App;
 use Cube\Misc\EventManager;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -51,7 +51,7 @@ class View
      */
     public function __construct(string $path = '')
     {
-        $this->_config = App::getConfigByName('view');
+        $this->_config = App::getConfig('view');
         $this->setBasePath($path);
     }
 
