@@ -2,6 +2,8 @@
 
 namespace Cube\Misc;
 
+use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Misc\Folder;
 
 use Cube\Exceptions\FileSystemException;
@@ -19,7 +21,12 @@ class Storage
      */
     public static function createFolder($folder_path, $folder_mode = null)
     {
-        $create = Folder::create(APP_STORAGE, $folder_path, $folder_mode, true);
+        $create = Folder::create(
+            App::getPath(Directory::PATH_STORAGE),
+            $folder_path,
+            $folder_mode,
+            true
+        );
         return static::getPath(null, $folder_path);
     }
 
@@ -34,7 +41,7 @@ class Storage
     public static function getPath($folder, $filename = '')
     {
         $folder = $folder ?? '';
-        $folder_path = APP_STORAGE . $folder;
+        $folder_path = concat(App::getPath(Directory::PATH_STORAGE), $folder);
 
         if(!Folder::exists($folder_path)) {
             throw new FileSystemException('Path "' . $folder_path . '" not found in storage');
@@ -62,7 +69,7 @@ class Storage
         $action_name = $is_url ? 'copy' : 'move';
 
         #Set real target path
-        $real_target_path = APP_STORAGE . $target_path;
+        $real_target_path = concat(App::getPath(Directory::PATH_STORAGE), $target_path);
 
         #Move file, We don't want PHP to throw errors on error
         $save = @$method_name($path, $real_target_path);

@@ -62,7 +62,6 @@ class Directory
             self::PATH_LOGS => concat($root, $ds, 'logs'),
             self::PATH_CONFIG => concat($root, $ds, 'config'),
             self::PATH_STORAGE => concat($webroot, $ds, 'assets'),
-            self::PATH_HELPERS => concat($app_path, $ds, 'helpers')
         );
     }
 }

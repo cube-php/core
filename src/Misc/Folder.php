@@ -19,7 +19,7 @@ class Folder
      */
     public static function create($dir, $name, $chmod = 0775, $silent = false){
 
-        $folder_path = $dir . DS . $name;
+        $folder_path = $dir . DIRECTORY_SEPARATOR . $name;
         $exists = static::exists($folder_path);
 
         if($exists && !$silent) {

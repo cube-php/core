@@ -2,6 +2,8 @@
 
 namespace Cube\Modules;
 
+use Cube\App\App;
+use Cube\App\Directory;
 use Exception;
 use Cube\Tools\Auth;
 use Cube\Helpers\Cli\Cli;
@@ -29,7 +31,7 @@ class System
     public function __construct()
     {
         $this->_session = new SessionManager();
-        $this->_system_file_path = APP_PATH . DS . 'core' . DS . 'system.php';
+        $this->_system_file_path = concat(App::getPath(Directory::PATH_ROOT), DIRECTORY_SEPARATOR, 'core', DIRECTORY_SEPARATOR, 'app.php');
     }
 
     /**

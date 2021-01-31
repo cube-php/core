@@ -20,6 +20,12 @@ class CliActions
 
         return static::buildAsset($options['t'], $name);
     }
+
+    public static function generateModulePath(string $namespace, string $filename)
+    {
+        $path = concat(App::getPath(Directory::PATH_APP), '/', $namespace);
+        return concat($path, DIRECTORY_SEPARATOR, $filename);
+    }
     
     public static function buildController($options)
     {
@@ -29,18 +35,20 @@ class CliActions
             Cli::respondError('No name specified for controller', true);
         }
 
+        $space = 'Controllers';
         $name = self::getSyntaxedName($name, 'Controller');
 
         $filename = self::addExt($name);
         $template = self::getReservedTemplate('controller');
-        $model_path = APP_CONTROLLERS_PATH . DS . $filename;
+
+        $fpath = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{className}' => self::getClassName($name),
             '{subNamespace}' => self::getClassNamespace($name)
         ]);
 
         try {
-            $file = new File($model_path, true, true);
+            $file = new File($fpath, true, true);
             $file->write($refined_template);
             Cli::respond('created controller: ' . $filename);
         }
@@ -58,11 +66,12 @@ class CliActions
             Cli::respondError('No name specified for exception', true);
         }
 
+        $space = 'Exceptions';
         $name = self::getSyntaxedName($name, 'Exception');
 
         $filename = self::addExt($name);
         $template = self::getReservedTemplate('exception');
-        $exception_path = APP_EXCEPTIONS_PATH . DS . $filename;
+        $exception_path = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{className}' => self::getClassName($name),
             '{subNamespace}' => self::getClassNamespace($name)
@@ -94,10 +103,10 @@ class CliActions
         }
 
         $name = strtolower($raw_name);
-
         $filename = self::addExt($name, false);
+
         $template = self::getReservedTemplate('helper');
-        $helpers_path = APP_HELPERS_PATH . DS . $filename;
+        $helpers_path = self::generateModulePath('path', $filename);
         $refined_template = strtr($template, ['{fn}' => $name]);
 
         try {
@@ -120,11 +129,12 @@ class CliActions
             Cli::respondError('No name specified for middleware', true);
         }
 
+        $space = 'Middlewares';
         $name = self::getSyntaxedName($name, 'Middleware');
 
         $filename = self::addExt($name);
         $template = self::getReservedTemplate('middleware');
-        $middleware_path = APP_MIDDLEWARES_PATH . DS . $filename;
+        $middleware_path = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{className}' => self::getClassName($name),
             '{subNamespace}' => self::getClassNamespace($name)
@@ -150,11 +160,12 @@ class CliActions
             Cli::respondError('No name specified for model', true);
         }
 
+        $space = 'Models';
         $name = self::getSyntaxedName($name, 'Model');
 
         $filename = self::addExt($name);
         $template = self::getReservedTemplate('model');
-        $model_path = APP_MODELS_PATH . DS . $filename;
+        $model_path = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{tableName}' => $table_name,
             '{className}' => self::getClassName($name),
@@ -174,8 +185,6 @@ class CliActions
 
     public static function buildProvider($options)
     {
-
-        $name = $options['n'];
         Cli::respondWarning('Do not use providers');
     }
 
@@ -188,11 +197,12 @@ class CliActions
             Cli::respondError('No name specified for event', true);
         }
 
+        $space = 'Events';
         $name = self::getSyntaxedName($name, 'Event');
 
         $filename = static::addExt($name);
         $template = static::getReservedTemplate('event');
-        $model_path = APP_EVENTS_PATH . DS . $filename;
+        $model_path = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{className}' => static::getClassName($name),
             '{subNamespace}' => static::getClassNamespace($name)
@@ -222,7 +232,7 @@ class CliActions
 
         $filename = static::addExt($name);
         $template = static::getReservedTemplate('migration');
-        $model_path = APP_MIGRATIONS_PATH . DS . $filename;
+        $model_path = self::generateModulePath('Migrations', $filename);
         $refined_template = strtr($template, [
             '{className}' => static::getClassName($name),
             '{name}' => strtolower($main_name)
@@ -301,7 +311,7 @@ class CliActions
         $migration_name = isset($command['n']) ? strtolower($command['n']) . '.php' : null;
 
         $namespace = 'App\Migrations\\';
-        $path = APP_MIGRATIONS_PATH;
+        $path = concat(App::getPath(Directory::PATH_APP), 'Migrations');
 
         $actions = array(
             'r' =>  'up',
@@ -327,7 +337,7 @@ class CliActions
 
         foreach($trackable_files as $filename) {
 
-            $filepath = $path . DS . $filename;
+            $filepath = $path . DIRECTORY_SEPARATOR . $filename;
 
             $usable_filename = strtolower($filename);
 
@@ -382,13 +392,13 @@ class CliActions
 
         $filename = "{$name}.{$type}";
         $template = self::getReservedTemplate('asset');
-        $base_path = APP_STORAGE . DS . $type;
+        $base_path = concat(App::getPath(Directory::PATH_STORAGE), DIRECTORY_SEPARATOR, $type);
 
         if(!is_dir($base_path)) {
             mkdir($base_path, 0755);
         }
 
-        $model_path = $base_path . DS . $filename;
+        $model_path = $base_path . DIRECTORY_SEPARATOR . $filename;
         $refined_template = strtr($template, [
             '{name}' => $name,
             '{type}' => $type,
@@ -438,7 +448,7 @@ class CliActions
 
     private static function getReservedTemplate($name)
     {
-        $path = __DIR__ . DS . '.cli-reserved' . DS . "{$name}.tpl";
+        $path = __DIR__ . DIRECTORY_SEPARATOR . '.cli-reserved' . DIRECTORY_SEPARATOR . "{$name}.tpl";
         
         try {
             $file = new File($path);

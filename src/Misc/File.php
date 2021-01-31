@@ -41,7 +41,7 @@ class File
         if(!$exists && $create_new) {
             $dir_vars = explode('/', $path);
             $dir_name_vars = array_slice($dir_vars, 0, count($dir_vars) - 1);
-            $dir_name = implode(DS, $dir_name_vars);
+            $dir_name = implode(DIRECTORY_SEPARATOR, $dir_name_vars);
             Folder::create($dir_name, '', 0775, true);
         }
 
@@ -153,7 +153,7 @@ class File
      */
     public static function joinPath(...$args)
     {
-        return implode(DS, $args);
+        return implode(DIRECTORY_SEPARATOR, $args);
     }
 
     /**
