@@ -7,7 +7,6 @@ use Cube\Interfaces\RequestInterface;
 
 use Cube\Http\Server;
 use Cube\Http\Headers;
-use Cube\Http\Session;
 use Cube\Http\Uri;
 
 use Cube\Misc\FilesParser;
@@ -17,8 +16,17 @@ use Cube\App\App;
 
 class Request implements RequestInterface
 {
+    /**
+     * Request completed event
+     * 
+     * @var string
+     */
+    public const EVENT_COMPLETED = 'onRequestCompleted';
 
-    const MIDDLEWARE_ARGS_DELIMETER = ':';
+    /**
+     * Middleware delimeter
+     */
+    public const MIDDLEWARE_ARGS_DELIMETER = ':';
 
     /**
      * Request parameters

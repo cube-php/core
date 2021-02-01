@@ -61,10 +61,11 @@ class RouteCollection
         $raw_current_url = (string) $this->_request->url()->getPath();
         $current_url = $this->trimPath($raw_current_url);
 
-        foreach(static::$_attached_routes as $route)
-        {
+        foreach(static::$_attached_routes as $route) {
             
-            if($path_match_found) return true;
+            if($path_match_found) {
+                break;
+            }
 
             #Get route regex path
             $regex_path = $route->path()->regexp();
@@ -91,8 +92,11 @@ class RouteCollection
                     $this->_request->setAttribute($name, $value);
                 });
 
-                #Do any other events when route is matched
-                EventManager::dispatchEvent(App::EVENT_ROUTE_MATCH_FOUND, $this->_request);
+                //Dispatch event when route is found
+                EventManager::dispatchEvent(
+                    App::EVENT_ROUTE_MATCH_FOUND,
+                    $this->_request
+                );
                 
                 #Get parsed response
                 $response = $route->parseResponse(Response::getInstance());
@@ -104,8 +108,14 @@ class RouteCollection
                     return true;
                 }
 
-                #Instantiate route controller
+                //Initialize controller
                 $route->initController($request, $response);
+
+                //Dispatch event when request is completed
+                EventManager::dispatchEvent(
+                    Request::EVENT_COMPLETED,
+                    $this->_request
+                );
                 
                 return true;
             }
