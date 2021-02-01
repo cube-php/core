@@ -101,7 +101,10 @@ class App
 
     public function __destruct()
     {
-        
+        EventManager::dispatchEvent(
+            self::EVENT_RUNNING,
+            $this
+        );
     }
 
     /**
