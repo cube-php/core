@@ -87,7 +87,7 @@ if(!function_exists('every')) {
      * @param callable $func
      * @return array
      */
-    function every(iterable $arr, callable $func): array {
+    function every(array $arr, callable $func): array {
         $result = [];
 
         array_walk($arr, function($value, $index) use (&$result, $func) {
