@@ -2,7 +2,7 @@
 
 namespace Cube\Router;
 
-use Cube\App;
+use Cube\App\App;
 
 use Cube\Router\Route;
 use Cube\Http\Request;
