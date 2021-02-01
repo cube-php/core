@@ -3,6 +3,9 @@
 namespace Cube\Helpers\Cli;
 
 use Cube\App\App;
+use Cube\Commands\ModelCommand;
+use Cube\Commands\ServerCommand;
+use Symfony\Component\Console\Application;
 
 class Cli
 {
@@ -26,14 +29,30 @@ class Cli
     const OUTPUT_SUCCESS     = 'success';
     const OUTPUT_WARNING     = 'warning';
 
+    private $app;
+
+    protected $commands = array(
+        ServerCommand::class,
+        ModelCommand::class
+    );
+
     public function __construct(App $app)
     {
+        $this->app = $app;
     }
 
     public function listen()
     {
-        $options = getopt(self::shortOpts(), self::longOpts());
-        return $this->runCommand($options);
+        $application = new Application();
+
+        array_walk($this->commands, function ($class) use ($application) {
+            $application->add(new $class($this->app));
+        });
+
+        $application->run();
+
+        //$options = getopt(self::shortOpts(), self::longOpts());
+        //return $this->runCommand($options);
     }
 
     /**

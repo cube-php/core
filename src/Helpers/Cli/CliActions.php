@@ -419,7 +419,7 @@ class CliActions
         return true;
     }
 
-    private static function getClassName($name)
+    public static function getClassName($name)
     {
         $name_vars = explode('/', $name);
         $vars_count = count($name_vars);
@@ -428,7 +428,7 @@ class CliActions
         return ucfirst($main_name);
     }
 
-    private static function getClassNamespace($name)
+    public static function getClassNamespace($name)
     {
         $name_vars = explode('/', $name);
         $name_capitalized = array_map('ucfirst', $name_vars);
@@ -438,15 +438,13 @@ class CliActions
             return '';
         }
 
-        echo $vars_count;
-
         $main_vars = array_slice($name_capitalized, 0, $vars_count - 1);
         $child_namespace = implode('\\', $main_vars);
 
         return '\\' . $child_namespace;
     }
 
-    private static function getReservedTemplate($name)
+    public static function getReservedTemplate($name)
     {
         $path = __DIR__ . DIRECTORY_SEPARATOR . '.cli-reserved' . DIRECTORY_SEPARATOR . "{$name}.tpl";
         
@@ -461,7 +459,7 @@ class CliActions
         }
     }
 
-    private static function getSyntaxedName($name, $syntax = '')
+    public static function getSyntaxedName($name, $syntax = '')
     {
         $name = ucfirst($name);
 
