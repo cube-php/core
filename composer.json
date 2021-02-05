@@ -19,6 +19,8 @@
         ]
     },
     "require": {
-        "twig/twig": "^3.2"
+        "twig/twig": "^3.2",
+        "symfony/console": "^5.2",
+        "symfony/process": "^5.2"
     }
 }
