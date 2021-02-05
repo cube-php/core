@@ -4,6 +4,7 @@ namespace Cube\Helpers\Cli;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Cube\Commands\EventDispatcherCommand;
 use Cube\Commands\MakeControllerCommand;
 use Cube\Commands\MakeEventCommand;
 use Cube\Commands\MakeAssetCommand;
@@ -31,7 +32,8 @@ class Cli
         MakeMigrationCommand::class,
         MakeControllerCommand::class,
         MakeExceptionCommand::class,
-        MigrateCommand::class
+        MigrateCommand::class,
+        EventDispatcherCommand::class
     );
 
     /**
