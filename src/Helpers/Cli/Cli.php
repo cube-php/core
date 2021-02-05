@@ -4,6 +4,7 @@ namespace Cube\Helpers\Cli;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Cube\Commands\ConsoleCommand;
 use Cube\Commands\EventDispatcherCommand;
 use Cube\Commands\MakeControllerCommand;
 use Cube\Commands\MakeEventCommand;
@@ -33,7 +34,8 @@ class Cli
         MakeControllerCommand::class,
         MakeExceptionCommand::class,
         MigrateCommand::class,
-        EventDispatcherCommand::class
+        EventDispatcherCommand::class,
+        ConsoleCommand::class
     );
 
     /**
@@ -78,7 +80,7 @@ class Cli
         $command = is_array($command) ? implode(' ', $command) : $command;
 
         if(!file_exists($bin_file)) {
-            throw new CubeCliException('Cube executable fine not detected');
+            throw new CubeCliException('Cube executable file not found');
         }
 
         $output = [];
