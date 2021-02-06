@@ -18,6 +18,7 @@ class CliActions
     public const RESOURCE_TYPE_EXCEPTION = 'Exception';
     public const RESOURCE_TYPE_MIDDLEWARE = 'Middleware';
     public const RESOURCE_TYPE_EVENT = 'Event';
+    public const RESOURCE_TYPE_COMMANDS = 'Command';
     
     /**
      * Build & generate resouce
