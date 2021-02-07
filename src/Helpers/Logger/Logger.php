@@ -2,6 +2,8 @@
 
 namespace Cube\Helpers\Logger;
 
+use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Interfaces\LoggerInterface;
 use Cube\Misc\File;
 
@@ -20,7 +22,12 @@ class Logger implements LoggerInterface
     public function __construct()
     {
         $curdate = date('d_m_Y');
-        $filename = File::joinPath(APP_LOGS_PATH, "{$curdate}.log");
+        $path = concat(
+            App::getRunningInstance()->getPath(Directory::PATH_ROOT),
+            '/logs'
+        );
+
+        $filename = File::joinPath($path, "{$curdate}.log");
         $this->_file = new File($filename, true);
     }
 
