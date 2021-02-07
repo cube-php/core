@@ -10,11 +10,10 @@ use Cube\Helpers\Cli\Cli;
  * @param boolean $run_in_background
  * @return string|bool
  */
-function cube($command, bool $run_in_background = false, bool $should_wait = false) {
+function cube($command, bool $run_in_background = false) {
     return Cli::run(
         $command,
-        $run_in_background,
-        $should_wait
+        $run_in_background
     );
 }
 
@@ -23,10 +22,10 @@ function cube($command, bool $run_in_background = false, bool $should_wait = fal
  *
  * @param string $command_name
  * @param array|null $args
- * @param boolean $should_wait
+ * @param boolean $run_in_background
  * @return string|bool
  */
-function console_command(string $command_name, ?array $args = [], bool $should_wait = false) {
+function console_command(string $command_name, ?array $args = [], bool $run_in_background = false) {
     $command = array(
         'run:console-command',
         $command_name,
@@ -37,6 +36,6 @@ function console_command(string $command_name, ?array $args = [], bool $should_w
     return cube(
         $command,
         true,
-        $should_wait
+        $run_in_background
     );
 }

@@ -9,6 +9,7 @@ use Cube\Commands\EventDispatcherCommand;
 use Cube\Commands\MakeControllerCommand;
 use Cube\Commands\MakeEventCommand;
 use Cube\Commands\MakeAssetCommand;
+use Cube\Commands\MakeConsoleCommand;
 use Cube\Commands\MakeExceptionCommand;
 use Cube\Commands\MakeMiddlewareCommand;
 use Cube\Commands\MakeMigrationCommand;
@@ -35,7 +36,8 @@ class Cli
         MakeExceptionCommand::class,
         MigrateCommand::class,
         EventDispatcherCommand::class,
-        ConsoleCommand::class
+        ConsoleCommand::class,
+        MakeConsoleCommand::class
     );
 
     /**
@@ -74,7 +76,7 @@ class Cli
      * 
      * @return string|bool
      */
-    public static function run($command, bool $in_background = false, bool $should_wait = false)
+    public static function run($command, bool $in_background = false)
     {
         $bin_file = concat(App::getPath(Directory::PATH_ROOT), '/cube');
         $command = is_array($command) ? implode(' ', $command) : $command;
@@ -84,41 +86,32 @@ class Cli
         }
 
         $output = [];
-
-        $process = Process::fromShellCommandline(
-            concat($bin_file, ' ', $command)
+        $commands = array(
+            $bin_file,
+            $command,
+            $in_background ? '> /dev/null &' : ''
         );
 
+        $executable_command = implode(' ', $commands);
+
         if($in_background) {
-            $process->start();
-
-            if(!$should_wait) {
-                return true;
-            }
-
-            $process->wait(function ($type, $buffer) use (&$output) {
-                $output[] = $buffer;
-            });
-
-            $content = implode(PHP_EOL, $output);
-
-            if(!$process->isSuccessful()) {
-                throw new CubeCliException($content);
-            }
-
-            return $content;
+            $output = exec($executable_command);
+            return true;
         }
 
-        try {
-            
-            $process->mustRun(function ($type, $buffer) use (&$output) {
-                $output[] = $buffer;
-            });
+        $process = Process::fromShellCommandline($executable_command);
+        $process->start();
 
-        } catch(ProcessFailedException $e) {
-            throw new CubeCliException($e->getProcess()->getOutput());
+        $process->wait(function ($type, $buffer) use (&$output) {
+            $output[] = $buffer;
+        });
+
+        $content = implode(PHP_EOL, $output);
+
+        if(!$process->isSuccessful()) {
+            throw new CubeCliException($content);
         }
 
-        return implode(PHP_EOL, $output);
+        return $content;
     }
 }
