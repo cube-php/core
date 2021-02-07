@@ -257,7 +257,7 @@ class DBSelect extends DBQueryBuilder
         if($wrapper && is_array($fetched_data)) {
 
             return array_map(function ($item) use ($wrapper) {
-                return new $wrapper($item);
+                return $wrapper::fromData($item);
             }, $fetched_data);
         }
 

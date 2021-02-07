@@ -25,6 +25,8 @@ interface ModelInterface
     public static function findByPrimaryKeyAndRemove($primary_key);
     
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update);
+
+    public static function fromData(object $data);
     
     public static function getCount();
     
@@ -38,7 +40,7 @@ interface ModelInterface
     
     public static function query(): DBTable;
     
-    public static function select(): DBSelect;
+    public static function select(...$args): DBSelect;
     
     public static function search($field, $keyword, $limit = null, $offset = null);
 

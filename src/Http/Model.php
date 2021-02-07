@@ -10,6 +10,7 @@ use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
 use InvalidArgumentException;
 use ReflectionClass;
+use stdClass;
 
 class Model implements ModelInterface
 {
@@ -47,7 +48,7 @@ class Model implements ModelInterface
      *
      * @var object
      */
-    private $_data;
+    private array $_data = array();
 
     /**
      * Model updates
@@ -64,16 +65,6 @@ class Model implements ModelInterface
     private $_relations = array();
 
     /**
-     * Model constructor
-     *
-     * @param object $id
-     */
-    public function __construct(object $data)
-    {
-        $this->_data = $data;
-    }
-
-    /**
      * Getter
      *
      * @param string $name
@@ -81,8 +72,8 @@ class Model implements ModelInterface
      */
     public function __get($name)
     {
-        if(isset($this->_data->{$name})) {
-            return $this->_data->{$name};
+        if(isset($this->_data[$name])) {
+            return $this->_data[$name];
         }
 
         if(method_exists($this, $name)) {
@@ -100,7 +91,7 @@ class Model implements ModelInterface
      */
     public function __isset($name): bool
     {
-        return property_exists($this->_data, $name);
+        return !!property_exists($this->_data, $name);
     }
 
     /**
@@ -111,17 +102,32 @@ class Model implements ModelInterface
      */
     public function __set($name, $value)
     {
+        $has_key = $this->_data && in_array(self::$primary_key, $this->_data);
+
+        if(!$has_key) {
+            $this->_data[$name] = $value;
+        }
+
         $this->_updates[$name] = $value;
     }
 
     /**
      * Save updates
      *
-     * @return bool
+     * @return int|bool
      */
     public function save(): bool
     {
         $key = self::getPrimaryKey();
+        $key_exists = in_array($key, $this->_data);
+
+        if(!$key_exists) {
+            $id = static::createEntry($this->_data);
+            $this->{$key} = $id;
+            $this->_updates = [];
+            return true;
+        }
+
         $saved = !!static::update($this->_updates)
                     ->where($key, $this->{$key})
                     ->fulfil();
@@ -348,11 +354,25 @@ class Model implements ModelInterface
      * Fetch
      *
      * @param integer $count
-     * @return self[]
+     * @return $this[]
      */
     public static function fetch(int $count)
     {
         return static::select()->fetch($count);
+    }
+
+    /**
+     * Instance from data
+     *
+     * @param object $data
+     * @return $this
+     */
+    public static function fromData(object $data)
+    {
+        $instance = new self();
+        $instance->_data = (array) $data;
+
+        return $instance;
     }
 
     /**
@@ -496,14 +516,14 @@ class Model implements ModelInterface
 
     /**
      * Run custom queries on model's schema
-     *
+     * @var array ...$args
      * @return DBSelect
      */
-    public static function select(): DBSelect
+    public static function select(...$args): DBSelect
     {
         $select = new DBSelect(
             static::$schema,
-            self::fields(),
+            count($args) ? $args : self::fields(),
             get_called_class()
         );
 
