@@ -81,6 +81,19 @@ class DBOrWhere
     }
 
     /**
+     * Like keyword
+     *
+     * @param string[] ...$args
+     * @return self
+     */
+    public function like(...$args)
+    {
+        $arg = $this->_builder->parseArgs($args);
+        $this->pushArgs($arg->field, 'LIKE', $arg->value);
+        return $this;
+    }
+
+    /**
      * Push arguments to statement
      * 
      * @param string $field Field name
