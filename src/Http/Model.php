@@ -205,9 +205,9 @@ class Model implements ModelInterface
     /**
      * Model content
      *
-     * @return object
+     * @return array
      */
-    public function data(): object
+    public function data(): array
     {
         return $this->_data;
     }
@@ -562,6 +562,17 @@ class Model implements ModelInterface
     {
         return self::query()
                 ->select(["SUM(${field}) total"]);
+    }
+
+    /**
+     * Model where statement
+     *
+     * @param string[] ...$args
+     * @return DBSelect
+     */
+    public static function where(...$args)
+    {
+        return self::select()->where(...$args);
     }
 
     /**
