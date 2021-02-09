@@ -26,7 +26,7 @@ interface ModelInterface
     
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update);
 
-    public static function fromData(object $data);
+    public static function fromData(string $classname, object $data);
     
     public static function getCount();
     

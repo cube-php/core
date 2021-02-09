@@ -3,6 +3,7 @@
 namespace Cube\Modules\Db;
 
 use Cube\Exceptions\ModelException;
+use Cube\Http\Model;
 use Cube\Interfaces\ModelInterface;
 use InvalidArgumentException;
 
@@ -257,7 +258,7 @@ class DBSelect extends DBQueryBuilder
         if($wrapper && is_array($fetched_data)) {
 
             return array_map(function ($item) use ($wrapper) {
-                return $wrapper::fromData($item);
+                return Model::fromData($wrapper, $item);
             }, $fetched_data);
         }
 
