@@ -367,9 +367,9 @@ class Model implements ModelInterface
      * @param object $data
      * @return $this
      */
-    public static function fromData(object $data)
+    public static function fromData(string $classname, object $data)
     {
-        $instance = new self();
+        $instance = new $classname();
         $instance->_data = (array) $data;
 
         return $instance;
