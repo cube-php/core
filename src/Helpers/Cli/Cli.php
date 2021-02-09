@@ -11,6 +11,7 @@ use Cube\Commands\MakeEventCommand;
 use Cube\Commands\MakeAssetCommand;
 use Cube\Commands\MakeConsoleCommand;
 use Cube\Commands\MakeExceptionCommand;
+use Cube\Commands\MakeHelperCommand;
 use Cube\Commands\MakeMiddlewareCommand;
 use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
@@ -18,7 +19,6 @@ use Cube\Commands\MigrateCommand;
 use Cube\Commands\ServerCommand;
 use Cube\Exceptions\CubeCliException;
 use Symfony\Component\Console\Application;
-use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 class Cli
@@ -37,7 +37,8 @@ class Cli
         MigrateCommand::class,
         EventDispatcherCommand::class,
         ConsoleCommand::class,
-        MakeConsoleCommand::class
+        MakeConsoleCommand::class,
+        MakeHelperCommand::class
     );
 
     /**
