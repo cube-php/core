@@ -19,24 +19,27 @@ class CliActions
     public const RESOURCE_TYPE_MIDDLEWARE = 'Middleware';
     public const RESOURCE_TYPE_EVENT = 'Event';
     public const RESOURCE_TYPE_COMMANDS = 'Command';
+    public const RESOURCE_TYPE_HELPER = 'helper';
     
     /**
      * Build & generate resouce
      *
      * @param string $raw_name
      * @param string $type
+     * @param bool $add_type Add type to name
      * @return bool
      */
-    public static function buildResource(string $raw_name, string $type)
+    public static function buildResource(string $raw_name, string $type, bool $add_type = true)
     {
         $space = concat($type, 's');
-        $name = self::getSyntaxedName($raw_name, $type);
+        $name = self::getSyntaxedName($raw_name, $add_type ? $type : '');
 
-        $filename = self::addExt($name);
+        $filename = self::addExt($name, $add_type);
         $template = self::getReservedTemplate(strtolower($type));
 
         $fpath = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
+            '{fn}' => $name,
             '{name}' => $raw_name,
             '{className}' => self::getClassName($name),
             '{subNamespace}' => self::getClassNamespace($name)
@@ -202,7 +205,7 @@ class CliActions
         $new_name = implode('', $formatted_name_vars);
 
         if(!$syntax) {
-            return $new_name;
+            return strtolower($new_name);
         }
 
         $syntax_length = strlen($syntax);
