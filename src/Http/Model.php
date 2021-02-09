@@ -10,7 +10,6 @@ use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
 use InvalidArgumentException;
 use ReflectionClass;
-use stdClass;
 
 class Model implements ModelInterface
 {
@@ -59,6 +58,13 @@ class Model implements ModelInterface
 
     /**
      * Relations
+     *
+     * @var array
+     */
+    private $_relation = array();
+    
+    /**
+     * Relations[]
      *
      * @var array
      */
@@ -163,14 +169,19 @@ class Model implements ModelInterface
         }
 
         $field_name = $name ?: self::$primary_key;
+        $key = md5(
+            concat($model, '->', $field_name)
+        );
 
-        if(isset($this->_relations[$field_name])) {
-            return $this->_relations[$field_name];
+        if(isset($this->_relation[$key])) {
+            return $this->_relation[$key];
         }
 
-        $result = $name ? $model::findBy($field_name, $this->{$field}) : $model::find($this->{$field});
+        $result = $name
+            ? $model::findBy($field_name, $this->{$field})
+            : $model::find($this->{$field});
         
-        $this->_relations[$field_name] = $result;
+        $this->_relation[$key] = $result;
         return $result;
     }
 
@@ -191,14 +202,17 @@ class Model implements ModelInterface
         }
 
         $field_name = $name ?: self::$primary_key;
+        $key = md5(
+            concat($model, '->', $field_name)
+        );
 
-        if(isset($this->_relations[$field_name])) {
-            return $this->_relations[$field_name];
+        if(isset($this->_relations[$key])) {
+            return $this->_relations[$key];
         }
 
         $result = $model::findAllBy($field_name, $this->{$field});
 
-        $this->_relations[$field_name] = $result;
+        $this->_relations[$key] = $result;
         return $result;
     }
 
