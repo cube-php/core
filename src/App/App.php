@@ -99,6 +99,9 @@ class App
         $this->init();
     }
 
+    /**
+     * Destruct
+     */
     public function __destruct()
     {
         EventManager::dispatchEvent(
@@ -116,6 +119,7 @@ class App
     {
         $this->loadConfig();
         $this->setTimezone();
+        $this->initHelpers();
         $this->initSessions();
         $this->loadComponent();
         $this->loadEvents();
@@ -237,6 +241,21 @@ class App
         if($timezone) {
             date_default_timezone_set($timezone);
         }
+    }
+
+    /**
+     * Initialize helpers
+     *
+     * @return bool
+     */
+    public function initHelpers()
+    {
+        $custom_helpers_dir = concat(
+            $this->getPath(Directory::PATH_APP),
+            '/helpers'
+        );
+
+        $this->requireDirectoryFiles($custom_helpers_dir);
     }
 
     /**
