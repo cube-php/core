@@ -91,7 +91,7 @@ class Model implements ModelInterface
      */
     public function __isset($name): bool
     {
-        return !!property_exists($this->_data, $name);
+        return isset($this->_data[$name]);
     }
 
     /**
