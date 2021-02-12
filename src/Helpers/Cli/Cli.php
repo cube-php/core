@@ -48,6 +48,7 @@ class Cli
      */
     public function __construct(App $app)
     {
+        $app->isRunningViaTerminal(true);
         $this->app = $app;
     }
 
