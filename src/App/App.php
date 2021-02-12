@@ -215,7 +215,7 @@ class App
                 return;
             }
 
-            $dirname_vars = explode('/', $dirname);
+            $dirname_vars = explode(DIRECTORY_SEPARATOR, $dirname);
             $cache_name = array_pop($dirname_vars);
 
             $name_vars = explode('.', $name);
