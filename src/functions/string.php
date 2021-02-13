@@ -44,3 +44,15 @@ if(!function_exists('str_ends_with')) {
         return substr($haystack, -1, 1) === $needle;
     }
 }
+
+if(!function_exists('is_email')) {
+    /**
+     * Check if str is an email
+     *
+     * @param string $email
+     * @return boolean
+     */
+    function is_email(string $email) {
+        return filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+}
