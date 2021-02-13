@@ -79,6 +79,14 @@ class Auth
             throw new AuthException('Authentication fields not specified');
         }
 
+        $auth_fields_names = array_keys($auth_fields);
+
+        if(!$field) {
+            throw new AuthException(
+                concat('Enter ', implode('or ', $auth_fields_names), ' to login')
+            );
+        }
+
         $auth_field_name = null;
         $default_field_name = null;
 
@@ -103,7 +111,7 @@ class Auth
                     ->fetchOne();
 
         if(!$query) {
-            throw new AuthException('Account not found for ' . $field .  ' using ' . $auth_field_name);
+            throw new AuthException('Account not found for ' . $field);
         }
 
         $raw_server_secret = $query->{$secret_key_name};
@@ -311,21 +319,9 @@ class Auth
      */
     private static function validateAuthCookieToken($token)
     {
+        static::up();
 
         $cookie_table = DB::table(static::$_cookie_token_dbname);
-
-        #Check if cookie table exists
-        #If not create the table with it's fields
-        if(!DB::hasTable(static::$_cookie_token_dbname)) {
-            $cookie_table
-                ->create(function ($table) {
-                    $table->field('user_id')->varchar()->primary();
-                    $table->field('token')->text();
-                    $table->field('expires')->datetime();
-                }); 
-        }
-
-        $schema_primary_key = static::getConfig('primary_key');
         $is_valid = $cookie_table
                         ->select(['user_id', 'token'])
                         ->where('token', $token)
@@ -336,7 +332,7 @@ class Auth
         }
 
         #Update user's token to a new hash
-        $new_token = static::setUserCookieToken($is_valid->user_id);
+        static::setUserCookieToken($is_valid->user_id);
 
         #Set user
         return $is_valid->user_id;
