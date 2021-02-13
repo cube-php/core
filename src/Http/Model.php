@@ -45,7 +45,7 @@ class Model implements ModelInterface
     /**
      * Model data
      *
-     * @var object
+     * @var array
      */
     private array $_data = array();
 

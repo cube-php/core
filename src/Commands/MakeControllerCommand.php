@@ -42,7 +42,7 @@ class MakeControllerCommand extends BaseCommand
         }
 
         $output->writeln(
-            concat('<info>controller', $name ,' created successfully</info>')
+            concat('<info>controller ', $name ,' created successfully</info>')
         );
         
         return Command::SUCCESS;

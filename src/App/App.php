@@ -6,7 +6,6 @@ use Cube\Http\Session;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
 use Cube\Router\RouteCollection;
-use InvalidArgumentException;
 
 class App
 {
@@ -87,6 +86,13 @@ class App
     private static $caches = array();
 
     /**
+     * Check if app is running via cli
+     * 
+     * @var boolean
+     */
+    private bool $is_terminal = false;
+
+    /**
      * Class constructor
      *
      * @param string $dir
@@ -104,6 +110,10 @@ class App
      */
     public function __destruct()
     {
+        if($this->is_terminal) {
+            return;
+        }
+        
         EventManager::dispatchEvent(
             self::EVENT_RUNNING,
             $this
@@ -256,6 +266,17 @@ class App
         );
 
         $this->requireDirectoryFiles($custom_helpers_dir);
+    }
+
+    /**
+     * Set if app is running via terminal
+     *
+     * @param boolean $status
+     * @return boolean
+     */
+    public function isRunningViaTerminal(bool $status = true)
+    {
+        $this->is_terminal = $status;
     }
 
     /**

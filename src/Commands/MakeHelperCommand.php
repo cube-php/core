@@ -43,7 +43,7 @@ class MakeHelperCommand extends BaseCommand
         }
 
         $output->writeln(
-            concat('<info>controller', $name ,' created successfully</info>')
+            concat('<info>helper ', $name ,' created successfully</info>')
         );
         
         return self::SUCCESS;
