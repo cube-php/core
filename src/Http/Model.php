@@ -146,7 +146,7 @@ class Model implements ModelInterface
                 $old_data[$field] = $value;
             });
 
-            $this->_data = (object) $old_data;
+            $this->_data = $old_data;
         }
 
         $this->_updates = [];
