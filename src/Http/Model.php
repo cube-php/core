@@ -78,7 +78,7 @@ class Model implements ModelInterface
      */
     public function __get($name)
     {
-        if(isset($this->_data[$name])) {
+        if(in_array($name, array_keys($this->_data))) {
             return $this->_data[$name];
         }
 
@@ -97,7 +97,8 @@ class Model implements ModelInterface
      */
     public function __isset($name): bool
     {
-        return isset($this->_data[$name]);
+        $keys = array_keys($this->_data);
+        return in_array($name, $keys) || method_exists($this, $name);
     }
 
     /**
