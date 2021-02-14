@@ -71,6 +71,13 @@ class Model implements ModelInterface
     private $_relations = array();
 
     /**
+     * Check if is new data
+     *
+     * @var boolean
+     */
+    private $_is_new = true;
+
+    /**
      * Getter
      *
      * @param string $name
@@ -126,9 +133,8 @@ class Model implements ModelInterface
     public function save(): bool
     {
         $key = self::getPrimaryKey();
-        $key_exists = in_array($key, $this->_data);
 
-        if(!$key_exists) {
+        if(!$this->_is_new) {
             $id = static::createEntry($this->_data);
             $this->{$key} = $id;
             $this->_updates = [];
@@ -225,6 +231,16 @@ class Model implements ModelInterface
     public function data(): array
     {
         return $this->_data;
+    }
+
+    /**
+     * Check if is new
+     *
+     * @return boolean
+     */
+    private function isNewInsance($status)
+    {
+        $this->is_new = $status;
     }
 
     /**
@@ -384,7 +400,9 @@ class Model implements ModelInterface
      */
     public static function fromData(string $classname, object $data)
     {
+        /** @var $this */
         $instance = new $classname();
+        $instance->isNewInsance(false);
         $instance->_data = (array) $data;
 
         return $instance;
