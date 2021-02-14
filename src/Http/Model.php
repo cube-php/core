@@ -134,7 +134,7 @@ class Model implements ModelInterface
     {
         $key = self::getPrimaryKey();
 
-        if(!$this->_is_new) {
+        if($this->_is_new) {
             $id = static::createEntry($this->_data);
             $this->{$key} = $id;
             $this->_updates = [];
@@ -240,7 +240,7 @@ class Model implements ModelInterface
      */
     private function isNewInsance($status)
     {
-        $this->is_new = $status;
+        $this->_is_new = $status;
     }
 
     /**
