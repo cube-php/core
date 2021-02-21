@@ -22,18 +22,18 @@ class Model implements ModelInterface
     protected static $schema;
 
     /**
-     * Model provider
-     *
-     * @var string|null
-     */
-    protected static $provider = null;
-
-    /**
      * Selectable fields from specified $schema
      * 
      * @var array
      */
     protected static $fields = array();
+
+    /**
+     * Private select fields
+     *
+     * @var array
+     */
+    protected static $private_fields = array();
 
     /**
      * Primary key field name
@@ -48,6 +48,13 @@ class Model implements ModelInterface
      * @var array
      */
     private array $_data = array();
+
+    /**
+     * Private model data
+     * 
+     * @var array
+     */
+    private array $_data_private = array();
 
     /**
      * Model updates
@@ -87,6 +94,10 @@ class Model implements ModelInterface
     {
         if(in_array($name, array_keys($this->_data))) {
             return $this->_data[$name];
+        }
+
+        if(in_array($name, array_keys($this->_data_private))) {
+            return $this->_data_private[$name];
         }
 
         if(method_exists($this, $name)) {
@@ -403,7 +414,21 @@ class Model implements ModelInterface
         /** @var $this */
         $instance = new $classname();
         $instance->isNewInsance(false);
-        $instance->_data = (array) $data;
+
+        $fields = (array) $data;
+        $data = array();
+        $private_data = array();
+
+        array_walk($fields, function ($value, $key) use ($classname, &$data, &$private_data) {
+            if(in_array($key, $classname::$private_fields)) {
+                return $private_data[$key] = $value;
+            }
+
+            $data[$key] = $value;
+        });
+
+        $instance->_data = $data;
+        $instance->_data_private = $private_data;
 
         return $instance;
     }
@@ -616,9 +641,14 @@ class Model implements ModelInterface
     private static function fields()
     {
         $fields = static::$fields;
+        $private_fields = static::$private_fields;
         $primary_key = static::$primary_key;
 
-        $rows = [$primary_key, ...$fields];
+        $rows = array_unique([
+            $primary_key,
+            ...$fields,
+            ...$private_fields
+        ]);
 
         if(!count($rows)) {
             return ['*'];
