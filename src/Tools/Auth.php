@@ -281,7 +281,8 @@ class Auth
         $cookie_table->replace([
             'user_id' => $user_id,
             'token' => $token,
-            'expires' => gettime(time() + (30 * 24 * 60 * 60))
+            'expires' => gettime(time() + (30 * 24 * 60 * 60)),
+            'created_at' => getnow()
         ]);
 
         Cookie::set(static::$_auth_name, $token);

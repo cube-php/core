@@ -85,10 +85,11 @@ class DB
         $results = $query->fetchAll();
         $data = array();
 
-        foreach($results as $fetched_table)
-        {
-            $data[] = $fetched_table->table_name;
-        }
+        array_walk($results, function ($fetched_table) use (&$data) {
+            $fetched_table = (array) $fetched_table;
+            $table_data = array_change_key_case($fetched_table, CASE_LOWER);
+            $data[] = $table_data['table_name'];
+        });
 
         return $data;
     }
