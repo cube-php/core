@@ -2,8 +2,6 @@
 
 namespace Cube\Modules\Db;
 
-use InvalidArgumentException;
-
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBQueryBuilder;
 

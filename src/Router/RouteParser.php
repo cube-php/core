@@ -3,9 +3,7 @@
 namespace Cube\Router;
 
 use InvalidArgumentException;
-
 use Cube\Router\Route;
-use Cube\Router\RouteCollection;
 
 class RouteParser
 {

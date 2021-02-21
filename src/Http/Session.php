@@ -2,8 +2,6 @@
 
 namespace Cube\Http;
 
-use Cube\Http\Cookie;
-use Cube\Misc\Collection;
 use Cube\Modules\SessionManager;
 
 class Session

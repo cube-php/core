@@ -104,13 +104,12 @@ class View
     public function setBasePath(string $path)
     {
         $loader = new FilesystemLoader($path);
-
         $view_options = array(
             'strict_variables' => App::isDevelopment(),
         );
 
         if(isset($this->_config['cache']) && $this->_config['cache']) {
-            $view_options['cache'] = VIEW_PATH . DS . '.cache';
+            $view_options['cache'] = $path . DIRECTORY_SEPARATOR . '.cache';
         }
 
         $this->_twig = new Environment($loader, $view_options);

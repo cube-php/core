@@ -7,7 +7,6 @@ use Cube\App\Directory;
 use Cube\Exceptions\CliActionException;
 use Cube\Misc\File;
 use Cube\Exceptions\FileSystemException;
-use Cube\Modules\System;
 
 class CliActions
 {
