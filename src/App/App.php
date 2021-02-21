@@ -28,6 +28,15 @@ class App
     const EVENT_RUNNING = 'onAppRunning';
 
     /**
+     * App event
+     * 
+     * On app initialization
+     * 
+     * @var string
+     */
+    const EVENT_INITIALIZED = 'onAppInit';
+
+    /**
      * On route match found event
      * 
      * Events when route match is found
@@ -133,6 +142,8 @@ class App
         $this->initSessions();
         $this->loadComponent();
         $this->loadEvents();
+
+        EventManager::dispatchEvent(self::EVENT_INITIALIZED, $this);
     }
 
     /**
