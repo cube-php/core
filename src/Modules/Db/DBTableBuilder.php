@@ -7,8 +7,6 @@ use Cube\Modules\Db\DBSchemaBuilder;
 
 class DBTableBuilder
 {
-    
-
     /**
      * Table name
      * 

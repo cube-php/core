@@ -3,7 +3,6 @@
 namespace Cube\Http;
 
 use Cube\Misc\Collection;
-
 use Cube\Interfaces\ServerInterface;
 
 class Server extends Collection implements ServerInterface

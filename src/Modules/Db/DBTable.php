@@ -2,10 +2,8 @@
 
 namespace Cube\Modules\Db;
 
-use InvalidArgumentException;
 
 use Cube\Modules\DB;
-
 use Cube\Modules\Db\DBDelete;
 use Cube\Modules\Db\DBInsert;
 use Cube\Modules\Db\DBReplace;

@@ -1,6 +1,5 @@
 <?php
 
-use Cube\Exceptions\CubeCliException;
 use Cube\Helpers\Cli\Cli;
 
 /**

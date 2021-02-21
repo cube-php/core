@@ -3,7 +3,6 @@
 namespace Cube\Misc;
 
 use InvalidArgumentException;
-
 use Cube\Interfaces\CollectionInterface;
 
 abstract class Collection implements CollectionInterface

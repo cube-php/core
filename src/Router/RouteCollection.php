@@ -3,7 +3,6 @@
 namespace Cube\Router;
 
 use Cube\App\App;
-
 use Cube\Router\Route;
 use Cube\Http\Request;
 use Cube\Http\Response;
