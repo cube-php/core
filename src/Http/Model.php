@@ -152,8 +152,9 @@ class Model implements ModelInterface
             return true;
         }
 
+        $entry_id = $this->{$key};
         $saved = !!static::update($this->_updates)
-                    ->where($key, $this->{$key})
+                    ->where($key, $entry_id)
                     ->fulfil();
 
                             
@@ -164,6 +165,7 @@ class Model implements ModelInterface
             });
 
             $this->_data = $old_data;
+            static::onUpdate($entry_id);
         }
 
         $this->_updates = [];
@@ -245,6 +247,28 @@ class Model implements ModelInterface
     }
 
     /**
+     * Delete this model
+     *
+     * @return bool
+     */
+    public function remove()
+    {
+        $primary_key = static::getPrimaryKey();
+        $entry_id = $this->{$primary_key};
+
+        $deleted = static::delete()
+            ->where($primary_key, $entry_id)
+            ->fulfil();
+
+        if(!$deleted) {
+            return false;
+        }
+
+        static::onDelete($entry_id);
+        return true;
+    }
+
+    /**
      * Check if is new
      *
      * @return boolean
@@ -282,7 +306,10 @@ class Model implements ModelInterface
      */
     public static function createEntry(array $entry)
     {
-        return DB::table(static::$schema)->insert($entry);
+        $entry_id = DB::table(static::$schema)->insert($entry);
+        static::onCreate($entry_id);
+        
+        return $entry_id;
     }
 
     /**
@@ -631,6 +658,39 @@ class Model implements ModelInterface
     public static function where(...$args)
     {
         return self::select()->where(...$args);
+    }
+
+    /**
+     * Method gets called when a new entry is created
+     *
+     * @param mixed $id
+     * @return mixed
+     */
+    protected static function onCreate($id)
+    {
+        return $id;
+    }
+
+    /**
+     * Method gets called when entry is deleted
+     *
+     * @param mixed $id
+     * @return mixed
+     */
+    protected static function onDelete($id)
+    {
+        return $id;
+    }
+
+    /**
+     * Method gets called when an entry is updated
+     *
+     * @param mixed $id
+     * @return mixed
+     */
+    protected static function onUpdate($id)
+    {
+        return $id;
     }
 
     /**
