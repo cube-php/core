@@ -241,6 +241,10 @@ class DBTable
      */
     public function removeField($name)
     {
+        if(!$this->hasField($name)) {
+            return $this->fields();
+        }
+
         DB::statement(
             DBWordConstruct::alterTableRemove(
                 $this->name,

@@ -14,14 +14,20 @@ class DBTableBuilder
      */
     private $table;
 
+    private ?int $query_position = null;
+
+    private ?string $query_position_row_name = null;
+
     /**
      * DBTableBuilder constructor
      * 
      * @param DBTable $table
      */
-    public function __construct(DBTable $table)
+    public function __construct(DBTable $table, ?int $query_position = null, ?string $query_position_row_name = null)
     {
         $this->table = $table;
+        $this->query_position = $query_position;
+        $this->query_position_row_name = $query_position_row_name;
     }
 
     /**
@@ -31,7 +37,48 @@ class DBTableBuilder
      */
     public function field($name)
     {
-        return new DBSchemaBuilder($this->table, $name);
+        $builder = new DBSchemaBuilder($this->table, $name);
+        $builder->setPosition($this->query_position, $this->query_position_row_name);
+
+        return $builder;
+    }
+
+    /**
+     * Add field to table after row
+     *
+     * @param string $row_name
+     * @param callable $callback
+     * @return void
+     */
+    public function after(string $row_name, callable $callback)
+    {
+        $this->setQueryPosition(DBSchemaBuilder::POSITION_AFTER, $row_name);
+        $callback($this);
+        $this->setQueryPosition();
+    }
+
+    /**
+     * Add field to the beginning of the table
+     *
+     * @param callable $callback
+     * @return void
+     */
+    public function first(callable $callback)
+    {
+        $this->setQueryPosition(DBSchemaBuilder::POSITION_BEFORE);
+        $callback($this);
+        $this->setQueryPosition();
+    }
+
+    /**
+     * Remove field
+     *
+     * @param string $row_name
+     * @return void
+     */
+    public function remove(string $row_name)
+    {
+        $this->table->removeField($row_name);
     }
 
     /**
@@ -43,5 +90,11 @@ class DBTableBuilder
     {
         $this->field('created_at')->datetime();
         $this->field('updated_at')->datetime()->nullable();
+    }
+
+    private function setQueryPosition(?int $position = null, ?string $row_name = null)
+    {
+        $this->query_position = $position;
+        $this->query_position_row_name = $row_name;
     }
 }
