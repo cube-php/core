@@ -47,6 +47,11 @@ class Model implements ModelInterface
      */
     protected static $primary_key = 'id';
 
+    /**
+     * Property type cast
+     * 
+     * @var array
+     */
     protected array $cast = array();
 
     /**
