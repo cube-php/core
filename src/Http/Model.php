@@ -55,6 +55,13 @@ class Model implements ModelInterface
     protected array $cast = array();
 
     /**
+     * Methods to return with data
+     * 
+     * @var array
+     */
+    protected array $with_data = array();
+
+    /**
      * Model data
      *
      * @var array
@@ -255,7 +262,35 @@ class Model implements ModelInterface
      */
     public function data(): array
     {
-        return $this->_data;
+        $data = $this->_data;
+
+        every($this->with_data, function ($val, $index) use (&$data) {
+
+            $cls = get_called_class();
+            
+
+            if(!is_callable(concat($cls, '::', $val))) {
+                throw new ModelException(
+                    concat('Property "', $val ,'" not defined in "', $cls, '"')
+                );
+            }
+
+            $value = $this->{$val}();
+            $key = !is_numeric($index) ? $index : $val;
+
+            if(is_object($value)) {
+                
+                $ref_class = new ReflectionClass($value);
+
+                if($ref_class->implementsInterface(ModelInterface::class)) {
+                    return $data[$key] = $value->data();
+                }
+            }
+            
+            return $data[$key] = $value;
+        });
+
+        return $data;
     }
 
     /**
