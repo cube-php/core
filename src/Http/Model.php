@@ -2,6 +2,7 @@
 
 namespace Cube\Http;
 
+use Cube\Exceptions\ModelException;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
@@ -13,6 +14,10 @@ use ReflectionClass;
 
 class Model implements ModelInterface
 {
+    protected const CAST_TYPE_INT = 1;
+    protected const CAST_TYPE_STRING = 2;
+    protected const CAST_TYPE_FLOAT = 3;
+    protected const CAST_TYPE_BOOLEAN = 4;
 
     /**
      * Model database table name
@@ -41,6 +46,8 @@ class Model implements ModelInterface
      * @var string
      */
     protected static $primary_key = 'id';
+
+    protected array $cast = array();
 
     /**
      * Model data
@@ -446,12 +453,17 @@ class Model implements ModelInterface
         $data = array();
         $private_data = array();
 
-        array_walk($fields, function ($value, $key) use ($classname, &$data, &$private_data) {
+        array_walk($fields, function ($_, $key) use ($classname, &$instance, &$fields, &$data, &$private_data) {
+
+            $casted_value = $instance->checkCast(
+                $fields, $key
+            );
+
             if(in_array($key, $classname::$private_fields)) {
-                return $private_data[$key] = $value;
+                return $private_data[$key] = $casted_value;
             }
 
-            $data[$key] = $value;
+            $data[$key] = $casted_value;
         });
 
         $instance->_data = $data;
@@ -691,6 +703,47 @@ class Model implements ModelInterface
     protected static function onUpdate($id)
     {
         return $id;
+    }
+
+    /**
+     * Check data type cast
+     *
+     * @param array $params
+     * @param string $field
+     * @return mixed
+     */
+    private function checkCast($params, $field)
+    {
+        $allowed_casts = array(
+            self::CAST_TYPE_BOOLEAN,
+            self::CAST_TYPE_STRING,
+            self::CAST_TYPE_FLOAT,
+            self::CAST_TYPE_INT
+        );
+
+        $cast = $this->cast;
+        $value = $params[$field];
+
+        $selected_cast_type = $cast[$field] ?? null;
+
+        if(!$selected_cast_type) {
+            return $value;
+        }
+
+        if(!in_array($selected_cast_type, $allowed_casts)) {
+            throw new ModelException(
+                concat('Data type "', $selected_cast_type ,'" is not specified')
+            );
+        }
+
+        $casts = array(
+            self::CAST_TYPE_INT => (int) $value,
+            self::CAST_TYPE_FLOAT => (float) $value,
+            self::CAST_TYPE_STRING => (string) $value,
+            self::CAST_TYPE_BOOLEAN => (bool) $value
+        );
+
+        return $casts[$selected_cast_type];
     }
 
     /**
