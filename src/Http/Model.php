@@ -2,6 +2,7 @@
 
 namespace Cube\Http;
 
+use Cube\Exceptions\ModelException;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
@@ -13,6 +14,10 @@ use ReflectionClass;
 
 class Model implements ModelInterface
 {
+    protected const CAST_TYPE_INT = 1;
+    protected const CAST_TYPE_STRING = 2;
+    protected const CAST_TYPE_FLOAT = 3;
+    protected const CAST_TYPE_BOOLEAN = 4;
 
     /**
      * Model database table name
@@ -41,6 +46,20 @@ class Model implements ModelInterface
      * @var string
      */
     protected static $primary_key = 'id';
+
+    /**
+     * Property type cast
+     * 
+     * @var array
+     */
+    protected array $cast = array();
+
+    /**
+     * Methods to return with data
+     * 
+     * @var array
+     */
+    protected array $with_data = array();
 
     /**
      * Model data
@@ -243,7 +262,35 @@ class Model implements ModelInterface
      */
     public function data(): array
     {
-        return $this->_data;
+        $data = $this->_data;
+
+        every($this->with_data, function ($val, $index) use (&$data) {
+
+            $cls = get_called_class();
+            
+
+            if(!is_callable(concat($cls, '::', $val))) {
+                throw new ModelException(
+                    concat('Property "', $val ,'" not defined in "', $cls, '"')
+                );
+            }
+
+            $value = $this->{$val}();
+            $key = !is_numeric($index) ? $index : $val;
+
+            if(is_object($value)) {
+                
+                $ref_class = new ReflectionClass($value);
+
+                if($ref_class->implementsInterface(ModelInterface::class)) {
+                    return $data[$key] = $value->data();
+                }
+            }
+            
+            return $data[$key] = $value;
+        });
+
+        return $data;
     }
 
     /**
@@ -446,12 +493,17 @@ class Model implements ModelInterface
         $data = array();
         $private_data = array();
 
-        array_walk($fields, function ($value, $key) use ($classname, &$data, &$private_data) {
+        array_walk($fields, function ($_, $key) use ($classname, &$instance, &$fields, &$data, &$private_data) {
+
+            $casted_value = $instance->checkCast(
+                $fields, $key
+            );
+
             if(in_array($key, $classname::$private_fields)) {
-                return $private_data[$key] = $value;
+                return $private_data[$key] = $casted_value;
             }
 
-            $data[$key] = $value;
+            $data[$key] = $casted_value;
         });
 
         $instance->_data = $data;
@@ -691,6 +743,66 @@ class Model implements ModelInterface
     protected static function onUpdate($id)
     {
         return $id;
+    }
+
+    /**
+     * Check data type cast
+     *
+     * @param array $params
+     * @param string $field
+     * @return mixed
+     */
+    private function checkCast($params, $field)
+    {
+        $cast = $this->cast;
+        $value = isset($params[$field]) ? $params[$field] : null;
+
+        if(!count($cast)) {
+            return $value;
+        }
+
+        $allowed_casts = array(
+            self::CAST_TYPE_BOOLEAN,
+            self::CAST_TYPE_STRING,
+            self::CAST_TYPE_FLOAT,
+            self::CAST_TYPE_INT
+        );
+        
+        $masked_cast = array_find_all($cast, function ($value, $key) {
+            return is_numeric($key);
+        });
+
+        if($masked_cast) {
+            every($masked_cast, function ($fields_list, $type) use (&$cast) {
+                unset($cast[$type]);
+                $fields = explode('|', $fields_list);
+
+                every($fields, function ($field) use (&$cast, $type) {
+                    $cast[$field] = $type;
+                });
+            });
+        }
+        
+        $selected_cast_type = $cast[$field] ?? null;
+
+        if(!$selected_cast_type) {
+            return $value;
+        }
+
+        if(!in_array($selected_cast_type, $allowed_casts)) {
+            throw new ModelException(
+                concat('Data type "', $selected_cast_type ,'" is not specified')
+            );
+        }
+
+        $casts = array(
+            self::CAST_TYPE_INT => (int) $value,
+            self::CAST_TYPE_FLOAT => (float) $value,
+            self::CAST_TYPE_STRING => (string) $value,
+            self::CAST_TYPE_BOOLEAN => (bool) $value
+        );
+
+        return $casts[$selected_cast_type];
     }
 
     /**
