@@ -754,16 +754,35 @@ class Model implements ModelInterface
      */
     private function checkCast($params, $field)
     {
+        $cast = $this->cast;
+        $value = isset($params[$field]) ? $params[$field] : null;
+
+        if(!count($cast)) {
+            return $value;
+        }
+
         $allowed_casts = array(
             self::CAST_TYPE_BOOLEAN,
             self::CAST_TYPE_STRING,
             self::CAST_TYPE_FLOAT,
             self::CAST_TYPE_INT
         );
+        
+        $masked_cast = array_find_all($cast, function ($value, $key) {
+            return is_numeric($key);
+        });
 
-        $cast = $this->cast;
-        $value = $params[$field];
+        if($masked_cast) {
+            every($masked_cast, function ($fields_list, $type) use (&$cast) {
+                unset($cast[$type]);
+                $fields = explode('|', $fields_list);
 
+                every($fields, function ($field) use (&$cast, $type) {
+                    $cast[$field] = $type;
+                });
+            });
+        }
+        
         $selected_cast_type = $cast[$field] ?? null;
 
         if(!$selected_cast_type) {
