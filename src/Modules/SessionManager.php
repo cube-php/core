@@ -7,6 +7,8 @@ use Cube\Modules\Db\DBConnection;
 
 class SessionManager
 {
+    protected const TABLE_NAME = 'sessions';
+
     /**
      * Set if other session manager activities can proceed
      *
@@ -44,7 +46,7 @@ class SessionManager
      */
     public function destroy($session_id)
     {
-        DB::table('sessions')
+        DB::table(self::TABLE_NAME)
             ->delete()
             ->where('sess_id', $session_id)
             ->fulfil();
@@ -62,7 +64,7 @@ class SessionManager
     {
         $old = time() - $maxlifetime;
 
-        DB::table('sessions')
+        DB::table(self::TABLE_NAME)
             ->delete()
             ->where('UNIX_TIMESTAMP(last_update)', '<', $old)
             ->fulfil();
@@ -112,12 +114,13 @@ class SessionManager
      */
     public function write($session_id, $session_data)
     {
-        $query = DB::table('sessions')
-                    ->replace([
-                        'sess_id' => $session_id,
-                        'last_update' => date('Y-m-d H:i:s'),
-                        'sess_data' => $session_data
-                    ]);
+        DB::table('sessions')
+                ->replace([
+                    'sess_id' => $session_id,
+                    'last_update' => date('Y-m-d H:i:s'),
+                    'sess_data' => $session_data,
+                    'created_at' => getnow()
+                ]);
 
         return true;
     }
@@ -154,7 +157,7 @@ class SessionManager
             return false;
         }
     
-        DB::table('sessions')->create(function($table) {
+        DB::table(self::TABLE_NAME)->create(function($table) {
             $table->field('sess_id')->varchar()->primary();
             $table->field('sess_data')->text();
             $table->field('last_update')->datetime();

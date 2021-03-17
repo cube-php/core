@@ -4,6 +4,7 @@ namespace Cube\Modules;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Cube\Exceptions\AppException;
 use Exception;
 use Cube\Tools\Auth;
 use Cube\Helpers\Cli\Cli;
@@ -31,7 +32,13 @@ class System
     public function __construct()
     {
         $this->_session = new SessionManager();
-        $this->_system_file_path = concat(App::getPath(Directory::PATH_ROOT), DIRECTORY_SEPARATOR, 'core', DIRECTORY_SEPARATOR, 'app.php');
+        $this->_system_file_path = concat(
+            App::getPath(Directory::PATH_ROOT),
+            DIRECTORY_SEPARATOR,
+            'core',
+            DIRECTORY_SEPARATOR,
+            'app.php'
+        );
     }
 
     /**
@@ -42,15 +49,11 @@ class System
     public function init()
     {
         try {
-            Cli::respond('Executing system logic');
             $this->initSystemsUtilities();
-            Cli::respondSuccess('System login completed');
-            Cli::respond('Executing custom logic');
             $this->initCustomCommands();
-            Cli::respondSuccess('Custom logic completed');
         } catch (Exception $e) {
 
-            Cli::respondError("Unable to intialize system \n" . $e->getMessage(), true);
+            throw new AppException("Unable to intialize system \n" . $e->getMessage(), true);
         }
             
     }
@@ -62,17 +65,7 @@ class System
      */
     public function schemas()
     {
-        $tables = DB::tables();
-        if(!$tables) {
-            Cli::respond('No schemas created yet', true);
-        }
-
-        Cli::respond('FETCHING DATABASE SCHEMAS...');
-        Cli::respond('');
-
-        foreach($tables as $table) {
-            Cli::respond($table);
-        }
+        return DB::tables();
     }
 
     /**
@@ -83,9 +76,7 @@ class System
      */
     public function schemaDropTable($name)
     {
-        Cli::respond('Dropping table -> ' . $name);
         DB::table($name)->drop();
-        Cli::respondSuccess('Table "' . $name . '" dropped successfully');
     }
 
     /**

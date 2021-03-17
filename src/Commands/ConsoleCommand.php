@@ -51,7 +51,9 @@ class ConsoleCommand extends BaseCommand
         $reflection = new ReflectionClass($console);
 
         if(!$reflection->implementsInterface(ConsoleInterface::class)) {
-            $output->writeln('<fg=red>', $name, 'does not implement console class</>');
+            $output->writeln(
+                concat('<fg=red>', $name, 'does not implement console class</>')
+            );
             return Command::FAILURE;
         }
 

@@ -4,6 +4,7 @@ namespace Cube\Helpers\Cli;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Cube\Commands\AppSetupCommand;
 use Cube\Commands\ConsoleCommand;
 use Cube\Commands\EventDispatcherCommand;
 use Cube\Commands\MakeControllerCommand;
@@ -38,7 +39,8 @@ class Cli
         EventDispatcherCommand::class,
         ConsoleCommand::class,
         MakeConsoleCommand::class,
-        MakeHelperCommand::class
+        MakeHelperCommand::class,
+        AppSetupCommand::class
     );
 
     /**

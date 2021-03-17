@@ -320,8 +320,6 @@ class Auth
      */
     private static function validateAuthCookieToken($token)
     {
-        static::up();
-
         $cookie_table = DB::table(static::$_cookie_token_dbname);
         $is_valid = $cookie_table
                         ->select(['user_id', 'token'])
