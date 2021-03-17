@@ -9,6 +9,8 @@ use Cube\Modules\Db\DBTable;
 
 class DBSchemaBuilder
 {
+    public const POSITION_BEFORE = 1;
+    public const POSITION_AFTER  = 2;
 
     /**
      * Schema data types
@@ -143,6 +145,10 @@ class DBSchemaBuilder
      */
     private $default = null;
 
+    private $position = null;
+
+    private $position_row_name = null;
+
     /**
      * Class constructor
      * 
@@ -160,6 +166,14 @@ class DBSchemaBuilder
         if(!$this->table->exists() && $this->add_field) {
             throw new InvalidArgumentException($this->table->getName() . ' Not found');
         }
+    }
+
+    public function setPosition(?int $position = null, ?string $row_name = null)
+    {
+        $this->position = $position;
+        $this->position_row_name = $row_name;
+        
+        return $this;
     }
 
     /**
@@ -296,6 +310,17 @@ class DBSchemaBuilder
     }
 
     /**
+     * String content
+     *
+     * @return self
+     */
+    public function string()
+    {
+        $this->varchar();
+        return $this;
+    }
+
+    /**
      * Set schema attribute to unsigned
      * 
      * @return self
@@ -326,27 +351,33 @@ class DBSchemaBuilder
     public function getStructure()
     {
 
-        $structure = "{$this->name} {$this->type}";
+        $structure = [$this->name, $this->type];
 
         #Add length structure
-        if($this->length) $structure .= "($this->length)";
+        if($this->length) $structure[] = concat('(', $this->length, ')');
 
         #Let's check for attributes
-        if($this->attribute) $structure .= ' ' . $this->attribute;
+        if($this->attribute) $structure[] = $this->attribute;
 
         #Check if field is nullable
-        $structure .= ($this->nullable) ? ' null' : ' not null';
+        $structure[] .= ($this->nullable) ? 'null' : 'not null';
 
         #Check for default value
-        if($this->default) $structure .= " default {$this->default}";
+        if($this->default) $structure[] .= 'default ' . $this->default;
 
         #Check if primary key
-        if($this->primary) $structure .= ' primary key';
+        if($this->primary) $structure[] .= 'primary key';
 
         #Check for auto increment
-        if($this->increment) $structure .= ' auto_increment';
+        if($this->increment) $structure[] .= 'auto_increment';
 
-        return $structure;
+        if($this->position) {
+            $is_before = $this->position === self::POSITION_BEFORE;
+            $structure[] = $is_before ? 'FIRST' : 'AFTER';
+            $structure[] = $is_before ? '' : $this->position_row_name;
+        }
+
+        return implode(' ', $structure);
     }
 
     /**
