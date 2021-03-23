@@ -351,7 +351,7 @@ class Route
 
         $controller = new $class;
 
-        if(!is_callable([$class, $method])) {
+        if(!is_callable([$controller, $method])) {
             throw new InvalidArgumentException
                 ("{$class}::{$method}() on route \"{$this->getPath()}\" is not a valid callable method");
         }
