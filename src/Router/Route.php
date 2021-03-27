@@ -107,6 +107,8 @@ class Route
      */
     private $_enable_cors = true;
 
+    private $_params_list = [];
+
     /**
      * Class constructor
      * 
@@ -149,6 +151,11 @@ class Route
         }
 
         return $controller;
+    }
+
+    public function getParams()
+    {
+        return $this->_params_list;
     }
 
     /**
@@ -206,6 +213,16 @@ class Route
      */
     public function setPath($path)
     {
+        preg_match_all('/(\{(.*?)\})/i', $path, $matches);
+        [$params_list] = $matches;
+
+        every($params_list, function ($param) {
+            $raw_param = str_replace(['{', '}'], '', $param);
+            $name = str_contains($param, ':') ? explode(':', $raw_param)[1] : $raw_param;
+
+            $this->_params_list[$param] = $name;
+        });
+
         $this->_path = $path;
         return $this;
     }

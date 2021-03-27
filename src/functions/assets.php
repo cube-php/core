@@ -2,6 +2,7 @@
 
 use Cube\Http\Request;
 use Cube\App\App;
+use Cube\Exceptions\RouteException;
 use Cube\Router\RouteCollection;
 
 /**
@@ -11,26 +12,27 @@ use Cube\Router\RouteCollection;
  * @param array|null $params
  * @return string|null
  */
-function route(string $name, ?array $params = null) {
+function route(string $name, ?array $params = null, ?array $query = null) {
     $route = RouteCollection::getRouteFromName($name);
 
     if(!$route) {
         return null;
     }
 
-    $path = $route->getPath();
+    $new_params = [];
+    every($route->getParams(), function ($value, $key) use ($params, &$new_params, $route) {
 
-    if(!$params) {
-        return $path;
-    }
+        if(!isset($params[$value])) {
+            throw new RouteException(
+                concat('Parameter "', $value ,'" not specified for route ', $route->getName())
+            );
+        }
 
-    $new_params = []; 
-
-    array_walk($params, function ($value, $name) use (&$new_params) {
-        $new_params['{'. $name .'}'] = $value;
+        $new_params[$key] = $params[$value] ?? $value;
     });
 
-    return strtr($path, $new_params);
+    $uri = strtr($route->getPath(), $new_params);
+    return url($uri, $query);
 }
 
 /**
