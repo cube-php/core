@@ -2,6 +2,7 @@
 
 namespace Cube\Commands;
 
+use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;

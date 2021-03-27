@@ -24,6 +24,8 @@ use Symfony\Component\Process\Process;
 
 class Cli
 {
+    public const CONFIG_SUFFIX = 'suffix';
+
     private $app;
 
     protected $commands = array(
