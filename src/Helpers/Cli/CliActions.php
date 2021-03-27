@@ -39,7 +39,7 @@ class CliActions
         $fpath = self::generateModulePath($space, $filename);
         $refined_template = strtr($template, [
             '{fn}' => $name,
-            '{name}' => $raw_name,
+            '{name}' => str_replace('-', '_', $raw_name),
             '{className}' => self::getClassName($name),
             '{subNamespace}' => self::getClassNamespace($name)
         ]);
@@ -199,12 +199,38 @@ class CliActions
      */
     public static function getSyntaxedName($name, $syntax = '')
     {
+        $config = App::getRunningInstance()->getConfig('cli');
+        $config_keys = $config ? array_keys($config) : [];
+
+        $should_add_suffix = function () use ($config_keys, $config, $syntax) {
+
+            $suffix_config_name = Cli::CONFIG_SUFFIX;
+
+            if(!in_array($suffix_config_name, $config_keys)) {
+                return true;
+            }
+
+            $suffix_list = $config[$suffix_config_name];
+            $suffixes = array_keys($suffix_list);
+            $type_name = strtolower($syntax);
+
+            if(!in_array($type_name, $suffixes)) {
+                return true;
+            }
+
+            return $suffix_list[$type_name];
+        };
+
         $name_vars = preg_split('/\-|\_/', $name);
         $formatted_name_vars = array_map('ucfirst', $name_vars);
         $new_name = implode('', $formatted_name_vars);
 
         if(!$syntax) {
             return strtolower($new_name);
+        }
+
+        if(!$should_add_suffix()) {
+            return $new_name;
         }
 
         $syntax_length = strlen($syntax);

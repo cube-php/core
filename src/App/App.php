@@ -344,6 +344,10 @@ class App
         }
 
         $data = $config[$name];
+        
+        if(!is_array($data)) {
+            return null;
+        }
 
         if($value && !isset($data[$value])) {
             return null;

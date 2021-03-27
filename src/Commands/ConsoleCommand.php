@@ -44,7 +44,9 @@ class ConsoleCommand extends BaseCommand
         $console = $config[$name] ?? null;
 
         if(!$console) {
-            $output->writeln('<fg=red>', $name, 'console command is unregistered</>');
+            $output->writeln(
+                concat('<fg=red>', $name, 'console command is unregistered</>')
+            );
             return Command::FAILURE;
         }
 
