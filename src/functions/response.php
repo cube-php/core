@@ -43,3 +43,14 @@ function response($new_instance = false) {
 function view($tpl, $context = [], $run_render = true, $new_instance = false) {
     return response($new_instance)->view($tpl, $context, $run_render);
 }
+
+/**
+ * Load view as string
+ *
+ * @param string $tpl
+ * @param array $context
+ * @return Response
+ */
+function load_view($tpl, array $context = []): Response {
+    return view($tpl, $context, false, true);
+}
