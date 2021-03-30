@@ -471,7 +471,7 @@ class DBQueryBuilder
      */
     protected function null($key, $field)
     {
-        $this->where($field, '=', null);
+        $this->{$key}($field, 'IS', '@NULL');
         return $this;
     }
     
@@ -500,7 +500,7 @@ class DBQueryBuilder
      */
     protected function notNull($key, $field)
     {
-        $this->{$key}($field, '!=', null);
+        $this->{$key}($field, 'IS NOT', '@NULL');
         return $this;
     }
 
