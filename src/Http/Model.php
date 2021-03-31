@@ -9,11 +9,14 @@ use Cube\Modules\Db\DBSelect;
 use Cube\Interfaces\ModelInterface;
 use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
+use Cube\Traits\Onceable;
 use InvalidArgumentException;
 use ReflectionClass;
 
 class Model implements ModelInterface
 {
+    use Onceable;
+
     protected const CAST_TYPE_INT = 1;
     protected const CAST_TYPE_STRING = 2;
     protected const CAST_TYPE_FLOAT = 3;
