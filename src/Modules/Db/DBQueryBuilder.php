@@ -46,7 +46,7 @@ class DBQueryBuilder
      *
      * @var string
      */
-    protected $_value_prefix = '@';
+    protected $_value_prefix;
     
     /**
      * Class to string
@@ -546,10 +546,13 @@ class DBQueryBuilder
      */
     protected function addParam($value)
     {
-        $is_field = substr($value, 0, 1) == $this->_value_prefix;
+        $prefix = $this->loadValuePrefix();
+        $prefix_count = strlen($prefix);
+
+        $is_field = substr($value, 0, $prefix_count) == $prefix;
 
         if($is_field) {
-            return substr($value, 1);
+            return substr($value, $prefix_count);
         }
         
         $this->parameters[] = $value;
@@ -652,5 +655,10 @@ class DBQueryBuilder
         }
         
         return $this;
+    }
+
+    private function loadValuePrefix()
+    {
+        return $this->_value_prefix ??= env('DB_VALUE_PREFIX', '@');
     }
 }
