@@ -187,7 +187,7 @@ class Model implements ModelInterface
             });
 
             $this->_data = $old_data;
-            static::onUpdate($entry_id);
+            static::onUpdate($this);
         }
 
         $this->_updates = [];
@@ -305,6 +305,8 @@ class Model implements ModelInterface
     {
         $primary_key = static::getPrimaryKey();
         $entry_id = $this->{$primary_key};
+        
+        static::onBeforeDelete($this);
 
         $deleted = static::delete()
             ->where($primary_key, $entry_id)
@@ -722,6 +724,17 @@ class Model implements ModelInterface
      * @return mixed
      */
     protected static function onCreate($id)
+    {
+        return $id;
+    }
+
+    /**
+     * Method gets called before item is deleted
+     *
+     * @param mixed $id
+     * @return mixed
+     */
+    protected static function onBeforeDelete($id)
     {
         return $id;
     }
