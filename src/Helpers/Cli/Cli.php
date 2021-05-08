@@ -19,6 +19,7 @@ use Cube\Commands\MakeModelCommand;
 use Cube\Commands\MigrateCommand;
 use Cube\Commands\ServerCommand;
 use Cube\Exceptions\CubeCliException;
+use Cube\Http\Env;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Process\Process;
 
@@ -84,6 +85,7 @@ class Cli
      */
     public static function run($command, bool $in_background = false)
     {
+        $php_path = Env::get('CLI_PHP_PATH');
         $bin_file = concat(App::getPath(Directory::PATH_ROOT), '/cube');
         $command = is_array($command) ? implode(' ', $command) : $command;
 
@@ -92,11 +94,17 @@ class Cli
         }
 
         $output = [];
-        $commands = array(
+        $commands_list = [];
+
+        if($php_path) {
+            $commands_list[] = $php_path;
+        }
+
+        $commands = array_merge($commands_list, [
             $bin_file,
             $command,
             $in_background ? '> /dev/null &' : ''
-        );
+        ]);
 
         $executable_command = implode(' ', $commands);
 

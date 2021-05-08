@@ -29,12 +29,8 @@ function console_command(string $command_name, ?array $args = [], bool $run_in_b
         'run:console-command',
         $command_name,
         '-a',
-        implode(' ', $args)
+        $args ? implode(' ', $args) : null
     );
 
-    return cube(
-        $command,
-        true,
-        $run_in_background
-    );
+    return cube($command, $run_in_background);
 }
