@@ -108,8 +108,14 @@ class View
             'strict_variables' => App::isDevelopment(),
         );
 
-        if(isset($this->_config['cache']) && $this->_config['cache']) {
-            $view_options['cache'] = $path . DIRECTORY_SEPARATOR . '.cache';
+        $cache_path = $this->_config['cache_dir'] ?? null;
+
+        if($cache_path && !is_dir($cache_path)) {
+            mkdir($cache_path, 0775, true);
+        }
+
+        if($cache_path) {
+            $view_options['cache'] = $cache_path;
         }
 
         $this->_twig = new Environment($loader, $view_options);

@@ -18,6 +18,7 @@ use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
 use Cube\Commands\MigrateCommand;
 use Cube\Commands\ServerCommand;
+use Cube\Commands\ViewClearCacheCommand;
 use Cube\Exceptions\CubeCliException;
 use Cube\Http\Env;
 use Symfony\Component\Console\Application;
@@ -43,7 +44,8 @@ class Cli
         ConsoleCommand::class,
         MakeConsoleCommand::class,
         MakeHelperCommand::class,
-        AppSetupCommand::class
+        AppSetupCommand::class,
+        ViewClearCacheCommand::class
     );
 
     /**
