@@ -49,3 +49,36 @@ function get_called_class_method(): ?string {
 
     return $caller['function'] ?? null;
 }
+
+/**
+ * Recursively delete files in a directory
+ *
+ * @param string $dir
+ * @return integer
+ */
+function unlink_dir_files(string $dir): int {
+    $files = scandir($dir);
+    $dot_files = array('.', '..');
+    $count = 0;
+
+    every($files, function ($file) use ($dot_files, $dir, &$count) {
+
+        if(in_array($file, $dot_files)) {
+            return;
+        }
+
+        $file_path = concat($dir, DIRECTORY_SEPARATOR, $file);
+
+        if(is_dir($file_path)) {
+            unlink_dir_files($file_path);
+            rmdir($file_path);
+            return $count++;
+        }
+
+        if(unlink($file_path)) {
+            $count++;
+        }
+    });
+
+    return $count;
+}
