@@ -2,7 +2,8 @@
 
 namespace Cube\Modules\Db;
 
-
+use Cube\App\App;
+use Cube\Http\Env;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBDelete;
 use Cube\Modules\Db\DBInsert;
@@ -346,6 +347,8 @@ class DBTable
     {
         if($this->exists()) return;
 
+        $charset = Env::get('DB_CHARSET');
+
         #Create temporary structure
         $builder = new DBSchemaBuilder($this, $this->temp_field_name, false);
         $structure = $builder->int()->getStructure();
@@ -356,7 +359,8 @@ class DBTable
         DB::statement(
             DBWordConstruct::createTable(
                 $this->name,
-                $structure
+                $structure,
+                $charset
             )
         );
     }

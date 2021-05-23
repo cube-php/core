@@ -52,9 +52,19 @@ class DBWordConstruct
      * 
      * @return string
      */
-    public static function createTable($table_name, $structure)
+    public static function createTable($table_name, $structure, $charset = 'utf8', $engine = 'INNODB')
     {
-        return 'CREATE TABLE ' . $table_name . '(' . $structure . ')';
+        return concat(
+            'CREATE TABLE ',
+            $table_name,
+            '(',
+            $structure,
+            ') ',
+            'ENGINE=',
+            $engine,
+            ' DEFAULT CHARSET=',
+            "'{$charset}'"
+        );
     }
 
     /**
