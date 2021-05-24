@@ -2,7 +2,8 @@
 
 namespace Cube\Modules\Db;
 
-
+use PDOStatement;
+use Cube\Http\Env;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBDelete;
 use Cube\Modules\Db\DBInsert;
@@ -141,6 +142,27 @@ class DBTable
         }
 
         DB::statement(DBWordConstruct::dropTable($this->name));
+    }
+
+    /**
+     * Drop foreign key
+     *
+     * @param string $name
+     * @return PDOStatement
+     */
+    public function dropConstraint(string $name)
+    {
+        $constraint_name = concat($this->name, '_', $name);
+        if(!DB::constraintExists($constraint_name)) {
+            return;
+        }
+
+        return DB::statement(
+            DBWordConstruct::dropConstraint(
+                $this->name,
+                $constraint_name
+            )
+        );
     }
 
     /**
@@ -346,6 +368,8 @@ class DBTable
     {
         if($this->exists()) return;
 
+        $charset = Env::get('DB_CHARSET');
+
         #Create temporary structure
         $builder = new DBSchemaBuilder($this, $this->temp_field_name, false);
         $structure = $builder->int()->getStructure();
@@ -356,7 +380,8 @@ class DBTable
         DB::statement(
             DBWordConstruct::createTable(
                 $this->name,
-                $structure
+                $structure,
+                $charset
             )
         );
     }

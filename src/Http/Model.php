@@ -590,6 +590,16 @@ class Model implements ModelInterface
     }
 
     /**
+     * Get model's schema name
+     *
+     * @return string
+     */
+    public static function getSchemaName(): string
+    {
+        return static::$schema;
+    }
+
+    /**
      * Schema's primary key
      *
      * @return string

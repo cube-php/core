@@ -18,8 +18,8 @@ class {className} implements MigrationInterface
     public static function up()
     {
         DB::table(self::NAME)
-            ->create(function (DBTableBuilder $table) {
-                $table->field('id')->int()->increment();
+            ->create(function (DBTableBuilder $builder) {
+                $builder->field('id')->int()->increment();
             });
     }
 

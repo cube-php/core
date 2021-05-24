@@ -52,9 +52,19 @@ class DBWordConstruct
      * 
      * @return string
      */
-    public static function createTable($table_name, $structure)
+    public static function createTable($table_name, $structure, $charset = 'utf8', $engine = 'INNODB')
     {
-        return 'CREATE TABLE ' . $table_name . '(' . $structure . ')';
+        return concat(
+            'CREATE TABLE ',
+            $table_name,
+            '(',
+            $structure,
+            ') ',
+            'ENGINE=',
+            $engine,
+            ' DEFAULT CHARSET=',
+            "'{$charset}'"
+        );
     }
 
     /**
@@ -67,6 +77,21 @@ class DBWordConstruct
     public static function describe($table_name)
     {
         return 'DESCRIBE ' . $table_name;
+    }
+
+    /**
+     * Construct drop constraint statement
+     *
+     * @param string $table_name
+     * @param string $name
+     * @return string
+     */
+    public static function dropConstraint(string $table_name, string $name)
+    {
+        return concat(
+            'ALTER TABLE ', $table_name,
+            ' DROP FOREIGN KEY ', $name
+        );
     }
 
     /**
