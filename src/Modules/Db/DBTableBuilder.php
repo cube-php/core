@@ -82,6 +82,27 @@ class DBTableBuilder
     }
 
     /**
+     * Assign a foreign key
+     *
+     * @param string $field_name
+     * @return DBTableForeignKey
+     */
+    public function foreignKey(string $field_name): DBTableForeignKey
+    {
+        return new DBTableForeignKey($this->table, $field_name);
+    }
+
+    /**
+     * Get table builder is building for
+     *
+     * @return DBTable
+     */
+    public function getTable(): DBTable
+    {
+        return $this->table;
+    }
+
+    /**
      * Moved the creation of extra fields to end of action
      * 
      * @return void

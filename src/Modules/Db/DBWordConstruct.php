@@ -80,6 +80,21 @@ class DBWordConstruct
     }
 
     /**
+     * Construct drop constraint statement
+     *
+     * @param string $table_name
+     * @param string $name
+     * @return string
+     */
+    public static function dropConstraint(string $table_name, string $name)
+    {
+        return concat(
+            'ALTER TABLE ', $table_name,
+            ' DROP CONSTRAINT ', $name
+        );
+    }
+
+    /**
      * Drop index
      *
      * @param string $table_name Table name

@@ -2,7 +2,7 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\App\App;
+use PDOStatement;
 use Cube\Http\Env;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBDelete;
@@ -142,6 +142,27 @@ class DBTable
         }
 
         DB::statement(DBWordConstruct::dropTable($this->name));
+    }
+
+    /**
+     * Drop foreign key
+     *
+     * @param string $name
+     * @return PDOStatement
+     */
+    public function dropConstraint(string $name)
+    {
+        $constraint_name = concat($this->name, '_', $name);
+        if(!DB::constraintExists($constraint_name)) {
+            return;
+        }
+
+        return DB::statement(
+            DBWordConstruct::dropConstraint(
+                $this->name,
+                $constraint_name
+            )
+        );
     }
 
     /**

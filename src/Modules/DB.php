@@ -24,6 +24,22 @@ class DB
     }
 
     /**
+     * Check if constraint exists
+     *
+     * @param string $constraint_name
+     * @return boolean
+     */
+    public static function constraintExists(string $constraint_name): bool
+    {
+        $query = DB::statement(
+            'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?',
+            [$constraint_name]
+        )->fetch();
+        
+        return !!$query->tcount;
+    }
+
+    /**
      * Escape injection characters
      * 
      * @param string $string String to escaped
