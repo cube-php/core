@@ -125,7 +125,7 @@ class DBTableForeignKey
             throw new DBException('No model referenced for foreign key');
         }
 
-        $constraint_name = concat($this->table->getName(), '_s', $this->field_name);
+        $constraint_name = concat($this->table->getName(), '_', $this->field_name);
         $query = DB::statement(
             'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?',
             [$constraint_name]
