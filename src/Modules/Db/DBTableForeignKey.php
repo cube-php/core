@@ -126,12 +126,8 @@ class DBTableForeignKey
         }
 
         $constraint_name = concat($this->table->getName(), '_', $this->field_name);
-        $query = DB::statement(
-            'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?',
-            [$constraint_name]
-        )->fetch();
 
-        if($query->tcount) {
+        if(DB::constraintExists($constraint_name)) {
             return null;
         }
 

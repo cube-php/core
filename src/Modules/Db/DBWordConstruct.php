@@ -90,7 +90,7 @@ class DBWordConstruct
     {
         return concat(
             'ALTER TABLE ', $table_name,
-            ' DROP CONSTRAINT ', $name
+            ' DROP FOREIGN KEY ', $name
         );
     }
 
