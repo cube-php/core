@@ -263,6 +263,17 @@ class Request implements RequestInterface
     }
 
     /**
+     * Check if a custom method exists on request
+     *
+     * @param string $name
+     * @return boolean
+     */
+    public function hasCustomMethod(string $name): bool
+    {
+        return in_array($name, $this->_wares);
+    }
+
+    /**
      * Check if input field exists
      *
      * @param string $name Input name
