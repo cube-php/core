@@ -108,13 +108,14 @@ class View
             'strict_variables' => App::isDevelopment(),
         );
 
+        $should_cache = $this->_config['cache'] ?? false;
         $cache_path = $this->_config['cache_dir'] ?? null;
 
         if($cache_path && !is_dir($cache_path)) {
             mkdir($cache_path, 0775, true);
         }
 
-        if($cache_path) {
+        if($cache_path && $should_cache) {
             $view_options['cache'] = $cache_path;
         }
 
