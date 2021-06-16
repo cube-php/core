@@ -18,9 +18,38 @@ use Cube\Interfaces\ModelInterface;
 
 class Auth
 {
+    /**
+     * Error message when authentication fails
+     */
+    public const CONFIG_ERROR_MSG = 'error_msg';
+    
+    /**
+     * Table name for users
+     */
+    public const CONFIG_SCHEMA = 'schema';
 
-    const EVENT_ON_AUTHENTICATED = 'authenticated';
-    const EVENT_ON_LOGGED_OUT    = 'loggedout';
+    /**
+     * Password hash method
+     */
+    public const CONFIG_HASH_METHOD = 'hash_method';
+
+    /**
+     * Authenticaton attempt combination
+     */
+    public const CONFIG_COMBINATION = 'combination';
+
+    /**
+     * Table primary key Id
+     */
+    public const CONFIG_PRIMARY_KEY = 'primary_key';
+
+    /**
+     * Users model class
+     */
+    public const CONFIG_MODEL = 'instance';
+
+    public const EVENT_ON_AUTHENTICATED = 'authenticated';
+    public const EVENT_ON_LOGGED_OUT    = 'loggedout';
 
     /**
      * Authentication configuration
@@ -63,6 +92,7 @@ class Auth
     {
         #Load the auth configuaration
         $config = static::getConfig();
+        $error_msg = $config[self::CONFIG_ERROR_MSG] ?? 'Invalid Account Credentials';
 
         $hash_method = $config['hash_method'] ?? 'password_verify';
         $primary_key = $config['primary_key'] ?? null;
@@ -111,14 +141,14 @@ class Auth
                     ->fetchOne();
 
         if(!$query) {
-            throw new AuthException('Account not found for ' . $field);
+            throw new AuthException($error_msg);
         }
 
         $raw_server_secret = $query->{$secret_key_name};
         $secret_is_valid = $hash_method($secret, $raw_server_secret);
 
         if(!$secret_is_valid) {
-            throw new AuthException('Invalid account credentials');
+            throw new AuthException($error_msg);
         }
 
         $schema_primary_key = $query->{$primary_key};
@@ -140,26 +170,22 @@ class Auth
      *
      * @param string $field Field name
      * @param string $value Field value
-     * @param string $model Model to retrieve data
+     * @param bool $remember Keep user logged in
      * @return bool
      */
-    public static function byField($field, $value, $model)
+    public static function byField($field, $value, bool $remember = false)
     {
+        static::logout();
+
         $config = static::getConfig();
-        $primary_key = $config['primary_key'] ?? null;
-        $instance = $config['instance'] ?? null;
+        $primary_key = $config[self::CONFIG_PRIMARY_KEY] ?? null;
+        $instance = $config[self::CONFIG_MODEL] ?? null;
 
         if(!$primary_key) {
             throw new InvalidArgumentException('Auth config "Primary key" not assigned');
         }
 
-        $model_class = new ReflectionClass($model);
-
-        if(!$model_class->implementsInterface(ModelInterface::class)) {
-            throw new InvalidArgumentException('Auth config instance not specified');
-        }
-
-        $data = $model::findBy($field, $value);
+        $data = $instance::findBy($field, $value);
 
         if(!$data) {
             throw new AuthException('Authentication data not found');
@@ -168,9 +194,17 @@ class Auth
         $schema_primary_key = $data->{$primary_key};
 
         #Dispatch logged in event
-        EventManager::dispatchEvent(self::EVENT_ON_AUTHENTICATED, $schema_primary_key);
-
+        EventManager::dispatchEvent(
+            self::EVENT_ON_AUTHENTICATED,
+            $schema_primary_key
+        );
+        
         Session::set(static::$_auth_name, $schema_primary_key);
+        
+        if($remember) {
+            Cookie::set(static::$_auth_name, $schema_primary_key);
+        }
+
         return true;
     }
 
@@ -204,7 +238,7 @@ class Auth
 
         #Check for authenticated session
         $auth_id = Session::get(static::$_auth_name);
-        $instance = static::getConfig('model');
+        $instance = static::getConfig(self::CONFIG_MODEL);
 
         if(!$instance) {
             throw new AuthException('Model not specified');
@@ -233,10 +267,10 @@ class Auth
 
         if(!$user_id) {
             static::logout();
-            return false;
+            return null;
         }
 
-        static::$_auth_user = $instance::find($auth_id);
+        static::$_auth_user = $instance::find($user_id);
         #update cookie
         static::setUserCookieToken($user_id);
         return static::$_auth_user;
