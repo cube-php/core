@@ -24,9 +24,51 @@ class Cookie
      * 
      * @return void
      */
-    public static function set($name, $value, $expires = (7*24*60*60), $path = '/') {
+    public static function set($name, $value, $expires = null, $path = '/'): bool {
+        $expires = $expires ?? getdays(7);
         setcookie($name, $value, (time() + $expires), $path);
         return true;
+    }
+
+    /**
+     * Set cookie if it does not exist
+     *
+     * @param string $name
+     * @param string $value
+     * @param int $expires
+     * @param string $path
+     * @return bool
+     */
+    public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool {
+        if(static::has($name)) {
+            return true;
+        }
+
+        $expires = $expires ?? getdays(7);
+        return static::set($name, $value, $expires, $path);
+    }
+
+    /**
+     * Get cookie if it exists or set new cooke via callable $fn
+     *
+     * @param string $name
+     * @param callable $fn
+     * @param int|null $expires
+     * @param string $path
+     * @return mixed
+     */
+    public static function getOrSet($name, callable $fn, $expires = null, $path = '/')
+    {
+        $data = Cookie::get($name);
+
+        if($data) {
+            return $data;
+        }
+
+        $data = $fn();
+        static::set($name, $data, $expires, $path);
+
+        return $data;
     }
 
     /**

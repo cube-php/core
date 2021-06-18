@@ -15,6 +15,7 @@ use Cube\Http\Cookie;
 use Cube\Misc\EventManager;
 use Cube\Exceptions\AuthException;
 use Cube\Interfaces\ModelInterface;
+use Cube\Modules\Db\DBTable;
 
 class Auth
 {
@@ -48,6 +49,11 @@ class Auth
      */
     public const CONFIG_MODEL = 'instance';
 
+    /**
+     * No. of days it will take an auth token to expire
+     */
+    public const CONFIG_COOKIE_EXPIRY_DAYS = 'cookie_expiry_days';
+
     public const EVENT_ON_AUTHENTICATED = 'authenticated';
     public const EVENT_ON_LOGGED_OUT    = 'loggedout';
 
@@ -66,6 +72,13 @@ class Auth
     private static $_auth_name = 'session_auth';
 
     /**
+     * Auth cookie device name
+     *
+     * @var string
+     */
+    private static $_device_name = 'session_auth_device_id';
+
+    /**
      * Cube cookie token dbname
      *
      * @var string
@@ -78,7 +91,6 @@ class Auth
      * @var object
      */
     private static $_auth_user;
-    
 
     /**
      * Attempt authentication
@@ -216,9 +228,17 @@ class Auth
     public static function logout()
     {
         $id = Session::get(static::$_auth_name);
+        $token = Cookie::get(static::$_auth_name);
+        $device_id = static::getDeviceId();
 
         Session::remove(static::$_auth_name);
         Cookie::remove(static::$_auth_name);
+
+        static::getDbTable()->delete()
+            ->where('user_id', $id)
+            ->and('token', $token)
+            ->and('device_id', $device_id)
+            ->fulfil();
 
         #Dispatch loggedout event
         EventManager::dispatchEvent(self::EVENT_ON_LOGGED_OUT, $id);
@@ -271,8 +291,8 @@ class Auth
         }
 
         static::$_auth_user = $instance::find($user_id);
-        #update cookie
-        static::setUserCookieToken($user_id);
+        Session::set(static::$_auth_name, $user_id);
+
         return static::$_auth_user;
     }
 
@@ -281,7 +301,7 @@ class Auth
      * 
      * @param string|null $field
      * 
-     * @return array|object|null
+     * @return array|object|string|null
      */
     private static function getConfig($field = null)
     {
@@ -309,14 +329,18 @@ class Auth
      */
     private static function setUserCookieToken($user_id)
     {
-        $cookie_table = DB::table(static::$_cookie_token_dbname);
-        $token = generate_token(32);
+        $days = static::getConfig(
+            static::CONFIG_COOKIE_EXPIRY_DAYS
+        );
 
-        $cookie_table->replace([
+        $token = generate_token(32);
+        $expires_at = gettime(time() + getdays($days));
+
+        static::getDbTable()->insert([
             'user_id' => $user_id,
+            'device_id' => static::getDeviceId(),
             'token' => $token,
-            'expires' => gettime(time() + (30 * 24 * 60 * 60)),
-            'created_at' => getnow()
+            'expires_at' => $expires_at
         ]);
 
         Cookie::set(static::$_auth_name, $token);
@@ -329,17 +353,17 @@ class Auth
      * @return boolean
      */
     public static function up()
-    {
-        $cookie_table = DB::table(static::$_cookie_token_dbname);
-
+    {   
         #Check if cookie table exists
         #If not create the table with it's fields
         if(!DB::hasTable(static::$_cookie_token_dbname)) {
-            $cookie_table
+            static::getDbTable()
                 ->create(function ($table) {
-                    $table->field('user_id')->varchar()->primary();
+                    $table->field('id')->int()->increment();
+                    $table->field('user_id')->varchar();
+                    $table->field('device_id')->varchar();
                     $table->field('token')->text();
-                    $table->field('expires')->datetime();
+                    $table->field('expires_at')->datetime();
                 }); 
         }
         
@@ -364,10 +388,29 @@ class Auth
             return false;
         }
 
-        #Update user's token to a new hash
-        static::setUserCookieToken($is_valid->user_id);
-
         #Set user
         return $is_valid->user_id;
+    }
+
+    /**
+     * Get auth tokens table
+     *
+     * @return DBTable
+     */
+    private static function getDbTable(): DBTable
+    {
+        return DB::table(static::$_cookie_token_dbname);
+    }
+
+    /**
+     * Get auth device id
+     *
+     * @return string
+     */
+    private static function getDeviceId(): ?string
+    {
+        return Cookie::getOrSet(static::$_device_name, function () {
+            return generate_token(20);
+        });
     }
 }
