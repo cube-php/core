@@ -27,3 +27,13 @@ function gettime($time = null) {
     $the_time = $time ?? time();
     return date('Y-m-d H:i:s', $the_time);
 }
+
+/**
+ * get days in seconds
+ *
+ * @param string $days
+ * @return integer
+ */
+function getdays(string $days): int {
+    return ($days * 24 * 60 * 60);
+}
