@@ -46,7 +46,7 @@ class DBQueryBuilder
      *
      * @var string
      */
-    protected $_value_prefix;
+    protected $_value_prefix = '@';
     
     /**
      * Class to string
@@ -170,7 +170,7 @@ class DBQueryBuilder
      * @return DBUpdate|DBSelect|DBDelete
      */
     public function having(...$args)
-    {   
+    { 
         $args = $this->parseArgs($args);
         return $this->joinSql(null, 'HAVING', $args->field, $args->operator, $args->value);
     }
@@ -398,7 +398,7 @@ class DBQueryBuilder
      * 
      * @param string $key Key
      * @param string $field Field
-     * @param string $values
+     * @param array $values
      * @return DBUpdate|DBSelect|DBDelete
      */
     protected function between($key, $field, $values)
@@ -471,7 +471,7 @@ class DBQueryBuilder
      */
     protected function null($key, $field)
     {
-        $this->{$key}($field, 'IS', '@NULL');
+        $this->{$key}(concat($this->_value_prefix, $field), 'IS', 'NULL');
         return $this;
     }
     
@@ -546,15 +546,6 @@ class DBQueryBuilder
      */
     protected function addParam($value)
     {
-        $prefix = $this->loadValuePrefix();
-        $prefix_count = strlen($prefix);
-
-        $is_field = substr($value, 0, $prefix_count) == $prefix;
-
-        if($is_field) {
-            return substr($value, $prefix_count);
-        }
-        
         $this->parameters[] = $value;
         return '?';
     }
@@ -622,15 +613,22 @@ class DBQueryBuilder
         }
 
         $has_operator = $num_args == 3;
+        $raw_field = $args[0];
 
-        $field = $args[0];
         $operator = $has_operator ? $args[1] : '=';
         $value = $has_operator ? $args[2] : $args[1];
+
+        $value_prefix = $this->_value_prefix;
+        $value_prefix_length = strlen($value_prefix);
+
+        $is_raw = substr($raw_field, 0, $value_prefix_length) === $value_prefix;
+        $param_value = $is_raw ? $value : $this->addParam($value);
+        $field = $is_raw ? substr($raw_field, $value_prefix_length) : $raw_field;
 
         return (object) array(
             'operator' => $operator,
             'field' => $field,
-            'value' => $this->addParam($value)
+            'value' => $param_value
         );
     }
 
@@ -655,10 +653,5 @@ class DBQueryBuilder
         }
         
         return $this;
-    }
-
-    private function loadValuePrefix()
-    {
-        return $this->_value_prefix ??= env('DB_VALUE_PREFIX', '@');
     }
 }
