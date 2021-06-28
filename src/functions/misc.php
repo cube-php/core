@@ -21,13 +21,35 @@ function generate_token($length) {
 /**
  * Die Dump
  *
- * @param mixed $data
- * @param boolean $should_die
+ * @param mixed ...$data
  * @return void
  */
-function dd($data, bool $should_die = true) {
-    var_dump($data);
-    if($should_die) die();
+function dd(...$data) {
+    $backtrace = debug_backtrace();
+    $exact_location = $backtrace[0]['file'];
+    $exact_line = $backtrace[0]['line'];
+
+    $styles_list = array(
+        'color' => 'red',
+        'font-size' => '12px',
+        'font-weight' => 'bold',
+        'border' => '1px solid red',
+        'padding' => '8px'
+    );
+
+    $styles = every($styles_list, function ($value, $attr) {
+        return concat($attr, ':', $value);
+    });
+
+    $header_content = concat($exact_location, ' on line ', $exact_line);
+    $header = h('div', ['style' => implode(';', $styles)], $header_content);
+
+    every($data, function ($pdata) use ($header) {
+        echo $header;
+        var_dump($pdata);
+    });
+
+    die();
 }
 
 /**

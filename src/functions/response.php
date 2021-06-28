@@ -51,6 +51,6 @@ function view($tpl, $context = [], $run_render = true, $new_instance = false) {
  * @param array $context
  * @return Response
  */
-function load_view($tpl, array $context = []): Response {
+function load_view($tpl, array $context = []): string {
     return view($tpl, $context, false, true);
 }
