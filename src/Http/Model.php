@@ -272,7 +272,7 @@ class Model implements ModelInterface
             $cls = get_called_class();
             
 
-            if(!is_callable(concat($cls, '::', $val))) {
+            if(!method_exists($cls, $val)) {
                 throw new ModelException(
                     concat('Property "', $val ,'" not defined in "', $cls, '"')
                 );
