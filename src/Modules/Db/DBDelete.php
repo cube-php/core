@@ -3,7 +3,7 @@
 namespace Cube\Modules\Db;
 
 use Cube\Modules\DB;
-use Cube\Modules\Db\DbQueryBuilder;
+use Cube\Modules\Db\DBQueryBuilder;
 
 class DBDelete extends DBQueryBuilder
 {
