@@ -65,6 +65,13 @@ class Model implements ModelInterface
     protected array $with_data = array();
 
     /**
+     * Properties to not return with data
+     * 
+     * @var array
+     */
+    protected array $without_data = array();
+
+    /**
      * Model data
      *
      * @var array
@@ -265,35 +272,44 @@ class Model implements ModelInterface
      */
     public function data(): array
     {
-        $data = $this->_data;
+        return $this->once(function () {
+            $data = $this->_data;
+            every($this->with_data, function ($val, $index) use (&$data) {
 
-        every($this->with_data, function ($val, $index) use (&$data) {
+                $cls = get_called_class();
 
-            $cls = get_called_class();
-            
-
-            if(!method_exists($cls, $val)) {
-                throw new ModelException(
-                    concat('Property "', $val ,'" not defined in "', $cls, '"')
-                );
-            }
-
-            $value = $this->{$val}();
-            $key = !is_numeric($index) ? $index : $val;
-
-            if(is_object($value)) {
-                
-                $ref_class = new ReflectionClass($value);
-
-                if($ref_class->implementsInterface(ModelInterface::class)) {
-                    return $data[$key] = $value->data();
+                if(!method_exists($cls, $val)) {
+                    throw new ModelException(
+                        concat('Property "', $val ,'" not defined in "', $cls, '"')
+                    );
                 }
-            }
-            
-            return $data[$key] = $value;
-        });
 
-        return $data;
+                $value = $this->{$val}();
+                $key = !is_numeric($index) ? $index : $val;
+
+                if(is_object($value)) {
+                    
+                    $ref_class = new ReflectionClass($value);
+
+                    if($ref_class->implementsInterface(ModelInterface::class)) {
+                        return $data[$key] = $value->data();
+                    }
+                }
+                
+                return $data[$key] = $value;
+            });
+
+            every($this->without_data, function ($val) use (&$data) {
+                if(!isset($data[$val])) {
+                    throw new ModelException(
+                        concat('Property"', $val,'" is undefined for ', get_called_class())
+                    );
+                }
+                unset($data[$val]);
+            });
+
+            return $data;
+        });
     }
 
     /**
