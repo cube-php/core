@@ -6,6 +6,7 @@ use Cube\Http\Session;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
 use Cube\Router\RouteCollection;
+use Throwable;
 
 class App
 {
@@ -163,7 +164,15 @@ class App
      */
     public function run()
     {
-        $this->initRoutes();
+        try {
+            $this->initRoutes();
+        } catch(Throwable $e) {
+            if(App::isDevelopment()) {
+                throw $e;
+            }
+
+            EventManager::dispatchEvent(self::EVENT_APP_ON_CRASH, $e);
+        }
     }
 
     /**
