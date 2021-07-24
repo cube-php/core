@@ -380,13 +380,31 @@ class DBQueryBuilder
     }
 
     /**
+     * Raw statement with WHERE/AND prefix
+     *
+     * @param string $statement
+     * @param array $params
+     * @return DBUpdate|DBSelect|DBDelete
+     */
+    public function whereRaw($statement, array $params = [])
+    {
+        $prefix = $this->has_called_where ? 'AND' : 'WHERE';
+        $this->has_called_where = true;
+        
+        return $this->raw(
+            concat($prefix, ' ', $statement),
+            $params
+        );
+    }
+
+    /**
      * Raw statement
      * 
      * @param string    $statement Query
      * @param array     $params Parameters
      * @return DBUpdate|DBSelect|DBDelete
      */
-    public function raw($statement, $params = [])
+    public function raw($statement, array $params = [])
     {
         $this->joinSql(null, $statement);
         $this->bindParam($params);
