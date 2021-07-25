@@ -37,3 +37,13 @@ function gettime($time = null) {
 function getdays(string $days): int {
     return ($days * 24 * 60 * 60);
 }
+
+/**
+ * get minutes in seconds
+ *
+ * @param float $mins
+ * @return float
+ */
+function getmins(float $mins): float {
+    return ($mins * 60);
+}
