@@ -518,7 +518,7 @@ class DBQueryBuilder
      */
     protected function notNull($key, $field)
     {
-        $this->{$key}($field, 'IS NOT', '@NULL');
+        $this->{$key}(concat($this->_value_prefix, $field), 'IS NOT', 'NULL');
         return $this;
     }
 
