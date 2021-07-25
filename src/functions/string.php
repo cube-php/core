@@ -7,6 +7,8 @@
  * =============================================================
  */
 
+use Cube\Tools\Str;
+
 if(!function_exists('concat')) {
     /**
      * Concatenate string
@@ -54,5 +56,17 @@ if(!function_exists('is_email')) {
      */
     function is_email(string $email) {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
+    }
+}
+
+if(!function_exists('str')) {
+    /**
+     * Str class
+     *
+     * @param string $string
+     * @return mixed
+     */
+    function str($string) {
+        return new Str($string);
     }
 }
