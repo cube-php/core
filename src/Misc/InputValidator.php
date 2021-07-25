@@ -57,7 +57,8 @@ class InputValidator
         'required' => '{input} is required',
         'equals' => '{input} must be equal to {value}',
         'greater_than' => '{input} must be greater than {value}',
-        'lesser_than' => '{input} must be lesser than {value}'
+        'lesser_than' => '{input} must be lesser than {value}',
+        'amount' => '{input} is not a valid amount'
     );
 
     /**
@@ -221,6 +222,25 @@ class InputValidator
     private static function getMessage($field, $msg)
     {
         return $msg ? $msg : static::$_messages[$field];
+    }
+
+    /**
+     * Check if input is a valid amount
+     *
+     * @param mixed $value
+     * @param string $msg
+     * @return self
+     */
+    public function amount($msg = null)
+    {
+        $value = $this->getValue();
+        $message = static::getMessage('amount', $msg);
+        
+        if(!is_numeric($value) || $value < 0) {
+            $this->attachError($message);
+        }
+
+        return $this;
     }
     
     /**
