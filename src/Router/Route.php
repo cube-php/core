@@ -12,6 +12,8 @@ use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
 use Cube\Http\Model;
+use Cube\Tools\Str;
+use Stringable;
 
 class Route
 {
@@ -471,7 +473,7 @@ class Route
             return $response->json($result->data());
         }
 
-        if(is_string($result)) {
+        if(is_string($result) || $result instanceof Stringable) {
             return $response->write($result);
         }
 
