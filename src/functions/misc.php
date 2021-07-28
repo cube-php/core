@@ -8,6 +8,8 @@
  * =============================================================
  */
 
+use Cube\Interfaces\ModelInterface;
+
 /**
  * Generate random string token
  *
@@ -103,4 +105,16 @@ function unlink_dir_files(string $dir): int {
     });
 
     return $count;
+}
+
+/**
+ * Return array of model as array of model data
+ *
+ * @param array $data
+ * @return array
+ */
+function model2array(array $data): array {
+    return every($data, function (ModelInterface $item) {
+        return $item->data();
+    });
 }

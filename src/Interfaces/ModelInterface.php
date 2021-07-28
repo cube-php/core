@@ -45,4 +45,14 @@ interface ModelInterface
     public static function search($field, $keyword, $limit = null, $offset = null);
 
     public static function sum(string $field);
+
+    public function save(): bool;
+
+    public function relation(string $model, string $field, ?string $name = null);
+
+    public function relations(string $model, string $field, ?string $name = null);
+
+    public function data(): array;
+
+    public function remove();
 }
