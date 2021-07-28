@@ -58,6 +58,16 @@ class Model implements ModelInterface
     protected array $cast = array();
 
     /**
+     * Auto save model components
+     * 
+     * Calling the save method on a model will not be required if this is true
+     * [Not recommended]
+     * 
+     * @var bool
+     */
+    protected bool $autosave = false;
+
+    /**
      * Methods to return with data
      * 
      * @var array
@@ -163,6 +173,12 @@ class Model implements ModelInterface
         }
 
         $this->_updates[$name] = $value;
+
+        if(!$this->autosave) {
+            return;
+        }
+
+        $this->save();
     }
 
     /**
