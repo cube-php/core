@@ -227,27 +227,20 @@ class Model implements ModelInterface
      */
     public function relation(string $model, string $field, ?string $name = null)
     {
-        $class = new ReflectionClass($model);
-
-        if(!$class->implementsInterface(ModelInterface::class)) {
-            throw new InvalidArgumentException('Invalid model class');
-        }
-
-        $field_name = $name ?: self::$primary_key;
-        $key = md5(
-            concat($model, '->', $field_name)
-        );
-
-        if(isset($this->_relation[$key])) {
-            return $this->_relation[$key];
-        }
-
-        $result = $name
-            ? $model::findBy($field_name, $this->{$field})
-            : $model::find($this->{$field});
-        
-        $this->_relation[$key] = $result;
-        return $result;
+        $cname = concat('relation$$', $model, '$$', $field, '$$', $name);
+        return $this->once(function () use ($model, $name, $field) {
+            
+            $field_name = $name ?: self::$primary_key;
+            $class = new ReflectionClass($model);
+    
+            if(!$class->implementsInterface(ModelInterface::class)) {
+                throw new InvalidArgumentException('Invalid model class');
+            }
+    
+            return $name
+                    ? $model::findBy($field_name, $this->{$field})
+                    : $model::find($this->{$field});
+        }, $cname);
     }
 
     /**
@@ -260,25 +253,19 @@ class Model implements ModelInterface
      */
     public function relations(string $model, string $field, ?string $name = null)
     {
-        $class = new ReflectionClass($model);
-        
-        if(!$class->implementsInterface(ModelInterface::class)) {
-            throw new InvalidArgumentException('Invalid model class');
-        }
+        $cname = concat('relations$$', $model, '$$', $field, '$$', $name);
+        return $this->once(function () use ($name, $model, $field) {
+            
+            $class = new ReflectionClass($model);
+            
+            if(!$class->implementsInterface(ModelInterface::class)) {
+                throw new InvalidArgumentException('Invalid model class');
+            }
 
-        $field_name = $name ?: self::$primary_key;
-        $key = md5(
-            concat($model, '->', $field_name)
-        );
-
-        if(isset($this->_relations[$key])) {
-            return $this->_relations[$key];
-        }
-
-        $result = $model::findAllBy($field_name, $this->{$field});
-
-        $this->_relations[$key] = $result;
-        return $result;
+            $field_name = $name ?: self::$primary_key;
+            $result = $model::findAllBy($field_name, $this->{$field});
+            return $result;
+        }, $cname);
     }
 
     /**
@@ -507,11 +494,12 @@ class Model implements ModelInterface
      * Fetch
      *
      * @param integer $count
+     * @param integer $offset
      * @return $this[]
      */
-    public static function fetch(int $count)
+    public static function fetch(int $count, int $offset = 0)
     {
-        return static::select()->fetch($count);
+        return static::select()->fetch($offset, $count);
     }
 
     /**

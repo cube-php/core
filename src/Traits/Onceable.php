@@ -10,12 +10,13 @@ trait Onceable
      * Call and cache $callable
      *
      * @param callable $callable
+     * @param string $name Key name
      * @return mixed
      */
-    public function once($callable)
+    public function once($callable, ?string $name = null)
     {
         $class = get_called_class();
-        $method_name = get_called_class_method();
+        $method_name = $name ?: get_called_class_method();
         $key = concat($class, '::', $method_name);
 
         if(isset($this->onceable_caches[$key])) {
