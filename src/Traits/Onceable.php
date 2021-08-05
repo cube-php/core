@@ -10,7 +10,7 @@ trait Onceable
      * Call and cache $callable
      *
      * @param callable $callable
-     * @param string $name Key name
+     * @param string|null $name Key name
      * @return mixed
      */
     public function once($callable, ?string $name = null)
