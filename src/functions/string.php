@@ -64,7 +64,7 @@ if(!function_exists('str')) {
      * Str class
      *
      * @param string $string
-     * @return mixed
+     * @return Str
      */
     function str($string) {
         return new Str($string);
