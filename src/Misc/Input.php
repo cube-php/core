@@ -2,12 +2,19 @@
 
 namespace Cube\Misc;
 
+use Cube\Exceptions\InputException;
 use InvalidArgumentException;
 use Cube\Misc\InputValidator;
 use Cube\Interfaces\InputInterface;
 
 class Input implements InputInterface
 {
+    /**
+     * Assigned filters
+     *
+     * @var array
+     */
+    protected static $filters = array();
 
     /**
      * Key holder
@@ -43,6 +50,28 @@ class Input implements InputInterface
     public function __toString()
     {
         return (string) $this->getValue();
+    }
+
+    /**
+     * Call filter
+     *
+     * @param string $name
+     * @param array $arguments
+     * @return mixed
+     */
+    public function __call($name, $arguments)
+    {
+        $filters = self::$filters;
+        $filter_keys = array_keys($filters);
+
+        if(!in_array($name, $filter_keys)) {
+            throw new InputException(
+                concat('Undefined Input filter: "', $name, '"')
+            );
+        }
+
+        $fn = $filters[$name];
+        return call_user_func_array($fn, [$this->_value, ...$arguments]);
     }
 
     /**
@@ -211,5 +240,18 @@ class Input implements InputInterface
     public function value()
     {
         return $this->getValue();
+    }
+
+    /**
+     * Add an input filter
+     *
+     * @param string $name
+     * @param callable $function
+     * @return bool
+     */
+    public static function addFilter(string $name, callable $function): bool
+    {
+        static::$filters[$name] = $function;
+        return true;
     }
 }

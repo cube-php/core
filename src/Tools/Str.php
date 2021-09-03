@@ -79,13 +79,15 @@ class Str implements Stringable
     public function camel(): string
     {
         $words = array_map('strtolower', $this->words());
-        $first_word = $words[0];
-        $subsequent_words = array_slice($words, 1);
+        $new_words = every($words, function ($word) {
+            $the_word = str_split($word);
+            $first_word = strtoupper($the_word[0]);
+            $subsequent_words = array_slice($the_word, 1);
+            $new_words = array_merge([$first_word], $subsequent_words);
+            return implode('', $new_words);
+        });
 
-        $camel_words = array_map('ucfirst', $subsequent_words);
-        $new_words = array_merge([$first_word], $camel_words);
-
-        return implode('', $new_words);
+        return implode($new_words);
     }
 
     /**
