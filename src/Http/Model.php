@@ -277,6 +277,8 @@ class Model implements ModelInterface
     {
         return $this->once(function () {
             $data = $this->_data;
+            $data_keys = array_keys($data);
+            
             every($this->with_data, function ($val, $index) use (&$data) {
 
                 $cls = get_called_class();
@@ -302,8 +304,8 @@ class Model implements ModelInterface
                 return $data[$key] = $value;
             });
 
-            every($this->without_data, function ($val) use (&$data) {
-                if(!isset($data[$val])) {
+            every($this->without_data, function ($val) use (&$data, $data_keys) {
+                if(!in_array($val, $data_keys)) {
                     throw new ModelException(
                         concat('Property"', $val,'" is undefined for ', get_called_class())
                     );
