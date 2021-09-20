@@ -493,6 +493,49 @@ class Model implements ModelInterface
     }
 
     /**
+     * Find or fail
+     * 
+     * callable $failed will be executed if $primary_key is not found
+     *
+     * @param mixed $primary_key
+     * @param callable $failed
+     * @return self|null
+     */
+    public static function findOrFail($primary_key, callable $failed): ?self
+    {
+        $data = self::find($primary_key);
+        
+        if(!$data) {
+            $failed($primary_key);
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Find by or failed
+     * 
+     * callable $failed will be executed if there is no field <> value match
+     *
+     * @param string $field
+     * @param mixed $value
+     * @param callable $failed
+     * @return self|null
+     */
+    public static function findByOrFail(string $field, $value, callable $failed): ?self
+    {
+        $data = self::findBy($field, $value);
+
+        if(!$data) {
+            $failed($value, $field);
+            return null;
+        }
+
+        return $data;
+    }
+
+    /**
      * Fetch
      *
      * @param integer $count

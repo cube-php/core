@@ -26,6 +26,10 @@ interface ModelInterface
     
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update);
 
+    public static function findOrFail($primary_key, callable $failed): ?self;
+
+    public static function findByOrFail(string $field, $value, callable $failed): ?self;
+
     public static function fromData(string $classname, object $data);
     
     public static function getCount();
