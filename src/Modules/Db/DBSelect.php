@@ -136,7 +136,7 @@ class DBSelect extends DBQueryBuilder
      */
     public function groupBy($field)
     {
-        $this->joinSql('GROUP BY', $field);
+        $this->joinSql(null, 'GROUP BY', $field);
         return $this;
     }
 
