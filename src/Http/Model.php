@@ -793,6 +793,20 @@ class Model implements ModelInterface
     }
 
     /**
+     * Get fields with property
+     *
+     * @param array ...$fields
+     * @return array
+     */
+    public static function withFields(...$fields): array
+    {
+        return array_merge(
+            static::$fields,
+            $fields
+        );
+    }
+
+    /**
      * Method gets called when a new entry is created
      *
      * @param mixed $id
