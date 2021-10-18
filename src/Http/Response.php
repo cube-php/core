@@ -412,7 +412,7 @@ class Response implements ResponseInterface
             throw new InvalidArgumentException('Route with name "' . $route_name . '" is not assigned');
         }
 
-        return $this->redirect($path, $query);
+        return $this->redirect($path, $query, true);
     }
 
     /**
