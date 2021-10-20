@@ -499,7 +499,7 @@ class Model implements ModelInterface
      *
      * @param mixed $primary_key
      * @param callable $failed
-     * @return self|null
+     * @return $this
      */
     public static function findOrFail($primary_key, callable $failed): ?self
     {
@@ -521,7 +521,7 @@ class Model implements ModelInterface
      * @param string $field
      * @param mixed $value
      * @param callable $failed
-     * @return self|null
+     * @return $this
      */
     public static function findByOrFail(string $field, $value, callable $failed): ?self
     {
@@ -587,13 +587,14 @@ class Model implements ModelInterface
      *
      * @return int
      */
-    public static function getCount()
+    public static function getCount(): int
     {
         $key = static::getPrimaryKey();
-        return DB::table(static::$schema)
+        $res = DB::table(static::$schema)
                 ->select(['count('. $key .') tcount'])
-                ->fetchOne()
-                ->tcount;
+                ->fetchOne();
+
+        return $res ? $res->tcount : 0;
     }
 
     /**
