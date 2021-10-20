@@ -83,6 +83,19 @@ class DBTable
     }
 
     /**
+     * Table builder
+     *
+     * @param callable $callback
+     * @return $this
+     */
+    public function build(callable $callback)
+    {
+        $this->createTable();
+        $callback(new DBTableBuilder($this));
+        return new self($this->name);
+    }
+
+    /**
      * Return count of rows in table
      * 
      * @return int
@@ -96,17 +109,13 @@ class DBTable
      * Create new table
      * 
      * @param callable $callback
+     * @deprecated 0.0.21 Use build() instead
      * 
      * @return self
      */
     public function create(callable $callback)
     {
-
-        $this->createTemp();
-
-        #Do call back
-        $callback(new DBTableBuilder($this));
-        return new self($this->name);
+        return $this->build($callback);
     }
 
     /**
@@ -319,7 +328,7 @@ class DBTable
     public function selectRaw($statement, $params = [])
     {
         $builder = new DBSelect;
-        return $builder->raw($this->name, $statement, $params);
+        return $builder->raw($statement, $params);
     }
 
     /**
@@ -364,7 +373,7 @@ class DBTable
      * 
      * @return void
      */
-    private function createTemp()
+    private function createTable()
     {
         if($this->exists()) return;
 
