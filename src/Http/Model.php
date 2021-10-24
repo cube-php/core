@@ -194,6 +194,7 @@ class Model implements ModelInterface
             $id = static::createEntry($this->_data);
             $this->{$key} = $id;
             $this->_updates = [];
+            $this->_is_new = false;
             return true;
         }
 
