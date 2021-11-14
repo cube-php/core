@@ -191,6 +191,7 @@ class Model implements ModelInterface
         $key = self::getPrimaryKey();
 
         if($this->_is_new) {
+            $this->_data = array_merge($this->_data, $this->_updates);
             $id = static::createEntry($this->_data);
             $this->{$key} = $id;
             $this->_updates = [];
