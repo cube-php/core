@@ -64,11 +64,19 @@ class Str implements Stringable
     /**
      * String as array
      *
+     * @param bool $renove_chars
      * @return array
      */
-    public function words(): array
+    public function words(bool $remove_chars = false): array
     {
-        return explode(' ', $this->string);
+        $str = $this->string;
+
+        if($remove_chars) {
+            $str = preg_replace('/[^a-z0-9\s]+/i', ' ', $str);
+            $str = preg_replace('/\s+/', ' ', $str);
+        }
+
+        return explode(' ', trim($str));
     }
 
     /**
@@ -98,6 +106,17 @@ class Str implements Stringable
     public function kebab(): string
     {
         $content_arr = array_map('strtolower', $this->words());
+        return implode('-', $content_arr);
+    }
+
+    /**
+     * Slugify content
+     *
+     * @return string
+     */
+    public function slug(): string
+    {
+        $content_arr = array_map('strtolower', $this->words(true));
         return implode('-', $content_arr);
     }
 
