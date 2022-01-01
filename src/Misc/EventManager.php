@@ -6,6 +6,7 @@ use InvalidArgumentException;
 
 class EventManager
 {
+    public const onBeforeMigrate = 'onBeforeMigrate';
     /**
      * Registered events
      * 

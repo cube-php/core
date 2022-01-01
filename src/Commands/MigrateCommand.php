@@ -4,6 +4,7 @@ namespace Cube\Commands;
 
 use Cube\App\Directory;
 use Cube\Helpers\Cli\CliActions;
+use Cube\Misc\EventManager;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -27,6 +28,11 @@ class MigrateCommand extends BaseCommand
     {
         $raw_name = $input->getArgument('name');
         $action = $input->getOption('action');
+
+        EventManager::dispatchEvent(
+            EventManager::onBeforeMigrate,
+            [$raw_name, $action]
+        );
 
         $name_required_actions = array('down', 'empty');
         $actions = array_merge($name_required_actions, ['up']);
