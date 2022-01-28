@@ -101,6 +101,17 @@ class DBConnection
     }
 
     /**
+     * Close connection
+     *
+     * @return void
+     */
+    public function close()
+    {
+        $this->connection = null;
+        static::$_connected = false;
+    }
+
+    /**
      * Return config
      * 
      * @return array
