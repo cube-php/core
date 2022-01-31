@@ -17,6 +17,7 @@ use Stringable;
 
 class Route
 {
+    public CONST ROUTE_NAME_IMPODER = '.';
 
     /**
      * Prefix to register a view rather than a controller for route
@@ -112,17 +113,26 @@ class Route
     private $_params_list = [];
 
     /**
+     * Route's parents' names
+     *
+     * @var array
+     */
+    private array $parent_names = [];
+
+    /**
      * Class constructor
      * 
      * @param string|string[] $method
      * @param string $path
      * @param string $controller
+     * @param array|null $parent_names
      */
-    public function __construct($method, $path, $controller)
+    public function __construct($method, $path, $controller, ?array $parent_names = null)
     {
         $this->setMethod(strtolower($method));
         $this->setPath($path);
         $this->setController($controller);
+        $this->parent_names = $parent_names;
     }
 
     /**
@@ -406,7 +416,10 @@ class Route
      */
     public function name(string $name): self
     {
-        $this->_name = $name;
+        $names = $this->parent_names;
+        $names[] = $name;
+
+        $this->_name = implode(self::ROUTE_NAME_IMPODER, $names);
         RouteCollection::bindNamedRoute($this);
         return $this;
     }

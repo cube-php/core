@@ -37,6 +37,13 @@ class Router
     private $_parent = null;
 
     /**
+     * Route name
+     *
+     * @var array
+     */
+    protected array $name = array();
+
+    /**
      * Constructor
      *
      * @param string $parent_path
@@ -49,6 +56,7 @@ class Router
         if($parent) {
             $this->setNamespace();
             $this->setMiddleware();
+            $this->name = $parent->name;
         }
     }
 
@@ -140,6 +148,18 @@ class Router
 
         return $router;
     }
+
+    /**
+     * Set group
+     *
+     * @param string $name
+     * @return self
+     */
+    public function name(string $name)
+    {
+        $this->name[] = $name;
+        return $this;
+    }
     
     /**
      * Add a new route on 'POST' request method
@@ -203,7 +223,7 @@ class Router
         $root_namespace = $this->_root_namespace;
 
         $route_path = $root_path ? $root_path . $path : $path;
-        $route = new Route($method, $route_path, $controller);
+        $route = new Route($method, $route_path, $controller, $this->name);
         
         if($root_middlewares) $route->use($root_middlewares);
         if($root_namespace) $route->setNamespace($root_namespace);
