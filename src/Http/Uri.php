@@ -77,10 +77,10 @@ class Uri implements UriInterface
      * 
      * @return string
      */
-    public function getFullUrl()
+    public function getFullUrl(bool $with_scheme = true)
     {
         $query = ($this->_query) ? '?' . $this->_query : '';
-        return $this->getUrl() . $query;
+        return $this->getUrl($with_scheme) . $query;
     }
 
     /**

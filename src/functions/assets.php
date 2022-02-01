@@ -44,7 +44,7 @@ function route(string $name, ?array $params = null, ?array $query = null) {
  */
 function url($path = '', ?array $query = null) : string
 {
-    $request = new Request();
+    $request = Request::getRunningInstance();
 
     if(is_array($path)) {
         $path = sprintf('/%s', implode('/', $path));

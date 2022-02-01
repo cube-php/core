@@ -2,6 +2,7 @@
 
 namespace Cube\App;
 
+use Cube\Http\Request;
 use Cube\Http\Session;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
@@ -300,12 +301,39 @@ class App
     }
 
     /**
+     * Force https
+     *
+     * @return Response|bool
+     */
+    private function checkForcedHttps()
+    {
+        $https = 'https';
+        $config = self::getConfig('app');
+        $force_https = $config['force_https'] ?? false;
+
+        if(!$force_https) {
+            return false;
+        }
+
+        $request = Request::getRunningInstance();
+        $url_scheme = strtolower($request->url()->getScheme());
+
+        if($url_scheme === $https) {
+            return false;
+        }
+
+        $secure_uri = concat($https, '://', $request->url()->getFullUrl(false));
+        return redirect($secure_uri, [], true);
+    }
+
+    /**
      * Initialize routes
      *
      * @return void
      */
     private function initRoutes()
-    {
+    {  
+        $this->checkForcedHttps();
         $this->requireDirectoryFiles(
             $this->directory()->get(Directory::PATH_ROUTES));
 

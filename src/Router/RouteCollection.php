@@ -45,7 +45,7 @@ class RouteCollection
      */
     public function __construct()
     {
-        $this->_request = new Request();
+        $this->_request = Request::getRunningInstance();
     }
 
     /**
@@ -168,7 +168,7 @@ class RouteCollection
         #Attach route to all routes
         static::$_routes[] = $route;
 
-        $request = new Request();
+        $request = Request::getRunningInstance();
 
         #attach on request method
         if($route->getMethod() && $request->getMethod() !== $route->getMethod()) {

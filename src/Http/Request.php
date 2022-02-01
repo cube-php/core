@@ -16,6 +16,8 @@ use Cube\App\App;
 
 class Request implements RequestInterface
 {
+    private static ?self $running_instance = null;
+
     /**
      * Request completed event
      * 
@@ -90,6 +92,7 @@ class Request implements RequestInterface
      */
     public function __construct()
     {
+        self::$running_instance = $this;
         $this->_body = file_get_contents('php://input');
     }
 
@@ -431,6 +434,16 @@ class Request implements RequestInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Get running request instance
+     *
+     * @return self
+     */
+    public static function getRunningInstance(): self
+    {
+        return self::$running_instance ??= new self();
     }
 
     /**
