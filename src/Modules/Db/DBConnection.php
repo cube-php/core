@@ -47,6 +47,11 @@ class DBConnection
     private function __construct()
     {
         $config = $this->config = App::getConfig('database');
+        $options = $config['options'] ?? [];
+
+        if(!is_array($options)) {
+            throw new DBException('Invalid database configuration options');
+        }
         
         $driver = $config['driver'] ?? '';
         $hostname = $config['hostname'] ?? '';
@@ -64,15 +69,20 @@ class DBConnection
             $dsn .= ";port={$port}";
         }
 
-        $opts = array(
+        $default_opts = array(
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_PERSISTENT => true
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         );
+
+        if(count($options)) {
+            every($options, function($value, $key) use (&$default_opts) {
+                $default_opts[$key] = $value;
+            });
+        }
         
         try {
 
-            $this->connection = new PDO($dsn, $username, $password, $opts);
+            $this->connection = new PDO($dsn, $username, $password, $default_opts);
             static::$_connected = true;
 
         } catch (PDOException $e) {
