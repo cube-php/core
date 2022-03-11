@@ -571,7 +571,7 @@ class DBQueryBuilder
     /**
      * Add new binding param
      * 
-     * @param string|int $value
+     * @param array $value
      * 
      * @return string placeholder
      */
