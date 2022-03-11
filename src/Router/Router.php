@@ -153,7 +153,7 @@ class Router
      * Set group
      *
      * @param string $name
-     * @return self
+     * @return $this
      */
     public function name(string $name)
     {
