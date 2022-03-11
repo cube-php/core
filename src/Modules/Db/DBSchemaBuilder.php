@@ -145,14 +145,24 @@ class DBSchemaBuilder
      */
     private $default = null;
 
+    /**
+     * Schema position
+     *
+     * @var int|null
+     */
     private $position = null;
 
+    /**
+     * Schema row name
+     *
+     * @var string
+     */
     private $position_row_name = null;
 
     /**
      * Class constructor
      * 
-     * @param string $table
+     * @param DBTable $table
      * @param string $schema_name
      */
     public function __construct(DBTable $table, $schema_name, $add_field = true)
@@ -181,7 +191,7 @@ class DBSchemaBuilder
      * 
      * @param string $name Data type name
      * 
-     * @return self
+     * @return $this
      * 
      * @throws \Exception
      */
@@ -235,6 +245,20 @@ class DBSchemaBuilder
         #Do nothing if the field name already exists
         if($this->table->hasField($this->name)) return;
 
+        $has_after_rule = $this->position && $this->position_row_name;
+
+        if($this->table->hasField('created_at') && $this->name !== 'updated_at' && !$has_after_rule) {
+
+            $table_fields = $this->table->fields();
+            $created_at_index = array_find_index($table_fields, function($name) {
+                return $name === 'created_at';
+            });
+
+            $last_field_name = $table_fields[$created_at_index - 1];
+            $this->position = self::POSITION_AFTER;
+            $this->position_row_name = $last_field_name;
+        }
+
         #Go on and add the field
         $this->table->addField($this->getStructure());
 
@@ -245,6 +269,18 @@ class DBSchemaBuilder
         if($this->name !==  $temp_field && $this->table->hasField($temp_field)) {
             $this->table->removeTempField();
         }
+    }
+
+    /**
+     * After field
+     *
+     * @param string $field_name
+     * @return $this
+     */
+    public function after(string $field_name)
+    {
+        $this->position = self::POSITION_AFTER;
+        $this->position_row_name = $field_name;
     }
 
     /**
