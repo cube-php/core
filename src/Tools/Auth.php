@@ -16,6 +16,7 @@ use Cube\Misc\EventManager;
 use Cube\Exceptions\AuthException;
 use Cube\Interfaces\ModelInterface;
 use Cube\Modules\Db\DBTable;
+use Cube\Modules\SessionManager;
 
 class Auth
 {
@@ -70,13 +71,6 @@ class Auth
      * @var string[]
      */
     private static $_auth_name = 'session_auth';
-
-    /**
-     * Auth cookie device name
-     *
-     * @var string
-     */
-    private static $_device_name = 'session_auth_device_id';
 
     /**
      * Cube cookie token dbname
@@ -221,7 +215,7 @@ class Auth
     }
 
     /**
-     * End current authenticated user's session
+     * End current authenticated user's session on current device only
      *
      * @return bool
      */
@@ -229,7 +223,7 @@ class Auth
     {
         $id = Session::get(static::$_auth_name);
         $token = Cookie::get(static::$_auth_name);
-        $device_id = static::getDeviceId();
+        $device_id = DeviceIdentifier::getDeviceId();
 
         Session::remove(static::$_auth_name);
         Cookie::remove(static::$_auth_name);
@@ -243,6 +237,45 @@ class Auth
         #Dispatch loggedout event
         EventManager::dispatchEvent(self::EVENT_ON_LOGGED_OUT, $id);
         return true;
+    }
+
+    /**
+     * Logout all logged in devices for currently logged in user
+     *
+     * @return bool
+     */
+    public static function logoutAllDevices(): bool
+    {
+        $user_id = Auth::id();
+        SessionManager::discardAllForUser($user_id);
+        self::deletaAllCookiesForUser($user_id);
+
+        Session::remove(static::$_auth_name);
+        Cookie::remove(static::$_auth_name);
+
+        return true;
+    }
+
+    /**
+     * Get id of user currently logged in
+     *
+     * @return mixed
+     */
+    public static function id()
+    {
+        $primary_key = self::getPrimaryKeyFieldName();
+
+        if(!$primary_key) {
+            return null;
+        }
+
+        $user = self::user();
+
+        if(!$user) {
+            return null;
+        }
+
+        return $user->{$primary_key};
     }
 
     /**
@@ -338,7 +371,7 @@ class Auth
 
         static::getDbTable()->insert([
             'user_id' => $user_id,
-            'device_id' => static::getDeviceId(),
+            'device_id' => DeviceIdentifier::getDeviceId(),
             'token' => $token,
             'expires_at' => $expires_at
         ]);
@@ -358,7 +391,7 @@ class Auth
         #If not create the table with it's fields
         if(!DB::hasTable(static::$_cookie_token_dbname)) {
             static::getDbTable()
-                ->create(function ($table) {
+                ->build(function ($table) {
                     $table->field('id')->int()->increment();
                     $table->field('user_id')->varchar();
                     $table->field('device_id')->varchar();
@@ -371,6 +404,19 @@ class Auth
     }
 
     /**
+     * Delete all auth cookies for currently logged in user
+     *
+     * @param mixed $user_id
+     * @return int row count
+     */
+    private static function deletaAllCookiesForUser($user_id): int
+    {
+        return self::getDbTable()->delete()
+                ->where('user_id', $user_id)
+                ->fulfil();
+    }
+
+    /**
      * Validate user's cookie
      *
      * @param string $token
@@ -378,18 +424,33 @@ class Auth
      */
     private static function validateAuthCookieToken($token)
     {
+        $fields = array(
+            'user_id',
+            'token',
+            'expires_at'
+        );
+
         $cookie_table = DB::table(static::$_cookie_token_dbname);
-        $is_valid = $cookie_table
-                        ->select(['user_id', 'token'])
+        $data = $cookie_table
+                        ->select($fields)
                         ->where('token', $token)
                         ->fetchOne();
 
-        if(!$is_valid) {
+        if(!$data) {
+            return false;
+        }
+
+        if(strtotime($data->expires_at) < time()) {
+            $cookie_table
+                ->delete()
+                ->where('token', $token)
+                ->fulfil();
+
             return false;
         }
 
         #Set user
-        return $is_valid->user_id;
+        return $data->user_id;
     }
 
     /**
@@ -403,14 +464,13 @@ class Auth
     }
 
     /**
-     * Get auth device id
+     * Get defined primary key field name
      *
      * @return string
      */
-    private static function getDeviceId(): ?string
+    private static function getPrimaryKeyFieldName(): ?string
     {
-        return Cookie::getOrSet(static::$_device_name, function () {
-            return generate_token(20);
-        });
+        $config = static::getConfig();
+        return $config[self::CONFIG_PRIMARY_KEY] ?? null;
     }
 }

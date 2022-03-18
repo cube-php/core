@@ -6,6 +6,7 @@ use Cube\Http\Request;
 use Cube\Http\Session;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
+use Cube\Modules\SessionManager;
 use Cube\Router\RouteCollection;
 use Throwable;
 
@@ -112,8 +113,6 @@ class App
     {
         self::$directory = new Directory($dir);
         self::$instance = $this;
-
-        $this->init();
     }
 
     /**
@@ -165,6 +164,8 @@ class App
      */
     public function run()
     {
+        $this->init();
+
         try {
             $this->initRoutes();
         } catch(Throwable $e) {
@@ -348,6 +349,10 @@ class App
      */
     private function initSessions()
     {
+        if(!$this->is_terminal) {
+            SessionManager::initialize();
+        }
+
         Session::createInstance();
     }
 
