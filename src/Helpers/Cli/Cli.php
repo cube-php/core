@@ -18,6 +18,7 @@ use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
 use Cube\Commands\MigrateCommand;
 use Cube\Commands\ServerCommand;
+use Cube\Commands\SessionMigrateCommand;
 use Cube\Commands\ViewClearCacheCommand;
 use Cube\Exceptions\CubeCliException;
 use Cube\Http\Env;
@@ -45,7 +46,8 @@ class Cli
         MakeConsoleCommand::class,
         MakeHelperCommand::class,
         AppSetupCommand::class,
-        ViewClearCacheCommand::class
+        ViewClearCacheCommand::class,
+        SessionMigrateCommand::class
     );
 
     /**
@@ -56,6 +58,7 @@ class Cli
     public function __construct(App $app)
     {
         $app->isRunningViaTerminal(true);
+        $app->init();
         $this->app = $app;
     }
 

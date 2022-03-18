@@ -2,8 +2,11 @@
 
 namespace Cube\Modules;
 
+use Cube\App\App;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBConnection;
+use Cube\Modules\Db\DBTable;
+use Cube\Tools\Auth;
 
 class SessionManager
 {
@@ -117,22 +120,13 @@ class SessionManager
         DB::table('sessions')
                 ->replace([
                     'sess_id' => $session_id,
+                    'user_id' => Auth::id(),
                     'last_update' => date('Y-m-d H:i:s'),
                     'sess_data' => $session_data,
                     'created_at' => getnow()
                 ]);
 
         return true;
-    }
-
-    /**
-     * Returns if session manager is ready
-     *
-     * @return boolean
-     */
-    public static function isReady()
-    {
-        return static::$can_run;
     }
 
     /**
@@ -146,24 +140,67 @@ class SessionManager
     }
 
     /**
+     * Delete all session related to $user_id
+     *
+     * @param mixed $user_id
+     * @return void
+     */
+    public static function discardAllForUser($user_id)
+    {
+        self::getTable()->delete()
+            ->where('user_id', $user_id)
+            ->fulfil();
+    }
+
+    /**
+     * Returns if session manager is ready
+     *
+     * @return boolean
+     */
+    public static function isReady()
+    {
+        return static::$can_run;
+    }
+
+    /**
+     * Start session manager
+     *
+     * @return void
+     */
+    public static function initialize()
+    {
+        $config = App::getConfig('app');
+        $session = $config['session'] ?? 'default';
+
+        if($session === 'database') {
+            return static::$can_run = true;
+        }
+
+        static::$can_run = false;
+    }
+
+    /**
+     * Get session database table
+     *
+     * @return DBTable
+     */
+    private static function getTable(): DBTable
+    {
+        return DB::table(self::TABLE_NAME);
+    }
+
+    /**
      * Build session schema
      * 
      * For session handler
      */
     private function up()
     {
-
-        if(!DBConnection::isConnected()) {
-            return false;
-        }
-    
-        DB::table(self::TABLE_NAME)->create(function($table) {
+        self::getTable()->build(function($table) {
             $table->field('sess_id')->varchar()->primary();
             $table->field('sess_data')->text();
+            $table->field('user_id')->int()->nullable();
             $table->field('last_update')->datetime();
         });
-
-        static::$can_run = true;
-        return true;
     }
 }
