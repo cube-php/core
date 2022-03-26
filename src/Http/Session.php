@@ -27,32 +27,9 @@ class Session
      */
     private function __construct()
     {
-
-        /**
-         * Check if SessionManager is ready
-         * 
-         * Else fallback to PHP's default session handler
-         */
         if(SessionManager::isReady()) {
-
-            /**
-             * Create session manager instance
-             */
             $handler = new SessionManager();
-
-            /**
-             * Set custom session handlers
-             */
-            session_set_save_handler(
-                array($handler, 'open'),
-                array($handler, 'close'),
-                array($handler, 'read'),
-                array($handler, 'write'),
-                array($handler, 'destroy'),
-                array($handler, 'gc')
-            );
-            
-            register_shutdown_function('session_write_close');
+            session_set_save_handler($handler, true);
         }
 
         /**
@@ -64,6 +41,7 @@ class Session
          * Start session
          */
         session_start();
+        self::set(self::$_cookie_name, generate_token(30));
     }
 
     /**

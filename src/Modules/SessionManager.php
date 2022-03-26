@@ -4,11 +4,11 @@ namespace Cube\Modules;
 
 use Cube\App\App;
 use Cube\Modules\DB;
-use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBTable;
 use Cube\Tools\Auth;
+use SessionHandlerInterface;
 
-class SessionManager
+class SessionManager implements SessionHandlerInterface
 {
     protected const TABLE_NAME = 'sessions';
 
@@ -36,8 +36,9 @@ class SessionManager
     /**
      * On session close
      * 
+     * @return bool
      */
-    public function close()
+    public function close(): bool
     {
         return true;
     }
@@ -45,9 +46,9 @@ class SessionManager
     /**
      * On destroy session
      * 
-     * @return void
+     * @return bool
      */
-    public function destroy($session_id)
+    public function destroy($session_id): bool
     {
         DB::table(self::TABLE_NAME)
             ->delete()
@@ -59,11 +60,12 @@ class SessionManager
     /**
      * Session
      * 
-     * @param string $maxlifetime
+     * @param int $maxlifetime
      * 
-     * @return void
+     * @return bool
      */
-    public function gc($maxlifetime)
+    #[\ReturnTypeWillChange] 
+    public function gc($maxlifetime): bool
     {
         $old = time() - $maxlifetime;
 
@@ -81,9 +83,9 @@ class SessionManager
      * @param string $save_path
      * @param string $session_id Session Id
      * 
-     * @return void
+     * @return bool
      */
-    public function open($save_path, $session_name)
+    public function open($save_path, $session_name): bool
     {
         return true;
     }
@@ -91,20 +93,20 @@ class SessionManager
     /**
      * On read session
      * 
-     * @param string $session_id Session id
+     * @param string|false
      */
-    public function read($session_id)
+    public function read($session_id): string
     {
         $session = DB::table('sessions')
                 ->select(['sess_data'])
                 ->where('sess_id', $session_id)
                 ->fetchOne();
 
-        if(!$session) {
-            return '';
+        if($session) {
+            return base64_decode($session->sess_data);
         }
 
-        return $session->sess_data;
+        return '';
     }
 
     /**
@@ -113,16 +115,16 @@ class SessionManager
      * @param string $session_id Session Id
      * @param string $session_data Data to write to session
      * 
-     * @return void
+     * @return bool
      */
-    public function write($session_id, $session_data)
+    public function write($session_id, $session_data): bool
     {
         DB::table('sessions')
                 ->replace([
                     'sess_id' => $session_id,
                     'user_id' => Auth::id(),
                     'last_update' => date('Y-m-d H:i:s'),
-                    'sess_data' => $session_data,
+                    'sess_data' => base64_encode($session_data),
                     'created_at' => getnow()
                 ]);
 
