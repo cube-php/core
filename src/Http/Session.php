@@ -51,7 +51,7 @@ class Session
                 array($handler, 'destroy'),
                 array($handler, 'gc')
             );
-
+            
             register_shutdown_function('session_write_close');
         }
 
