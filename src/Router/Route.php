@@ -64,7 +64,7 @@ class Route
     /**
      * Route controller
      * 
-     * @var string[]|Closure
+     * @var string|Closure
      */
     private $_controller = array();
 
@@ -129,7 +129,7 @@ class Route
      */
     public function __construct($method, $path, $controller, ?array $parent_names = null)
     {
-        $this->setMethod(strtolower($method));
+        $this->setMethod(strtolower((string) $method));
         $this->setPath($path);
         $this->setController($controller);
         $this->parent_names = $parent_names;

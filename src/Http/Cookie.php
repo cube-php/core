@@ -2,18 +2,8 @@
 
 namespace Cube\Http;
 
-use InvalidArgumentException;
-
 class Cookie
 {
-    /**
-     * Cookie constructor
-     * 
-     */
-    public function __construct()
-    {
-    }
-
     /**
      * Set new cookie
      * 
@@ -22,9 +12,10 @@ class Cookie
      * @param float|int $expires Cookie duration
      * @param string $path
      * 
-     * @return void
+     * @return bool
      */
-    public static function set($name, $value, $expires = null, $path = '/'): bool {
+    public static function set(string $name, string $value, $expires = null, $path = '/'): bool
+    {
         $expires = $expires ?? getdays(7);
         setcookie($name, $value, (time() + $expires), $path);
         return true;
@@ -39,7 +30,8 @@ class Cookie
      * @param string $path
      * @return bool
      */
-    public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool {
+    public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool
+    {
         if(static::has($name)) {
             return true;
         }
@@ -120,6 +112,6 @@ class Cookie
      */
     public static function remove($name)
     {
-        self::set($name, null, time() - 300);
+        self::set($name, '', time() - 300);
     }
 }

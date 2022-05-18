@@ -26,9 +26,10 @@ class Server extends Collection implements ServerInterface
      * 
      * @return bool
      */
-    public function isHTTPs() {
-
-        $https = strtolower($this->get('https'));
+    public function isHTTPs()
+    {
+        $scheme = (string) $this->get('https');
+        $https = strtolower($scheme);
         return ($https && $https === 'on');
     }
 }

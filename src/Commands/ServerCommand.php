@@ -47,9 +47,10 @@ class ServerCommand extends BaseCommand
         $host = $web !== false ? $this->getLocalIP() : '127.0.0.1';
         $url = concat($host, ':', $port);
         $webroot = $this->app->getPath(Directory::PATH_WEBROOT);
+        $php_path = env('CLI_PHP_PATH') ?: 'php';
 
         $process = implode(' ', [
-            'php',
+            $php_path,
             '-S',
             $url,
             '-t',
