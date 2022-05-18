@@ -41,7 +41,10 @@ class Session
          * Start session
          */
         session_start();
-        self::set(self::$_cookie_name, generate_token(30));
+        
+        if(!self::has(self::$_cookie_name)) {
+            self::set(self::$_cookie_name, generate_token(30));
+        }
     }
 
     /**
