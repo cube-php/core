@@ -405,6 +405,25 @@ class Model implements ModelInterface
     }
 
     /**
+     * Create Entry and return entry as Model instance
+     *
+     * @param array $entry
+     * @return $this
+     */
+    public static function createObjectEntry(array $entry)
+    {
+        $classname = get_called_class();
+        $instance = new $classname();
+        
+        every($entry, function ($value, $key) use (&$instance) {
+            $instance->{$key} = $value;
+        });
+
+        $instance->save();
+        return $instance;
+    }
+
+    /**
      * Delete from schema
      *
      * @return DBDelete
