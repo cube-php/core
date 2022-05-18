@@ -82,6 +82,13 @@ class Model implements ModelInterface
     protected array $without_data = array();
 
     /**
+     * Only list or properties to return with data
+     *
+     * @var array
+     */
+    protected array $only_data = array();
+
+    /**
      * Model data
      *
      * @var array
@@ -280,6 +287,16 @@ class Model implements ModelInterface
         return $this->once(function () {
             $data = $this->_data;
             $data_keys = array_keys($data);
+            $only_data = $this->only_data;
+
+            if($only_data) {
+                $return_data = array();
+                every($only_data, function ($key) use ($data, &$return_data) {
+                    $return_data[$key] = $data[$key];
+                });
+
+                $data = $return_data;
+            }
             
             every($this->with_data, function ($val, $index) use (&$data) {
 
