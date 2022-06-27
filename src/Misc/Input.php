@@ -122,6 +122,22 @@ class Input implements InputInterface
     }
 
     /**
+     * Check if value of this input is one of $values
+     *
+     * @param array $values
+     * @param boolean $case_sensitive
+     * @return boolean
+     */
+    public function isOneOf(array $values, bool $case_sensitive = false): bool
+    {
+        $choices = $case_sensitive ? $values : array_map('strtolower', $values);
+        return in_array(
+            strtolower($this->getValue()),
+            $choices
+        );
+    }
+
+    /**
      * Check if $value is email
      * 
      * @return bool
