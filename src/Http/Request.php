@@ -295,7 +295,7 @@ class Request implements RequestInterface
      * @param string $defaults Default value if input isn't found
      * @return Input|Input[]
      */
-    public function input($name, $defaults = null)
+    public function input($name, string $defaults = '')
     {
         $names = explode(',', $name);
         
