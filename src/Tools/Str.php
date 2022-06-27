@@ -62,6 +62,16 @@ class Str implements Stringable
     }
 
     /**
+     * Get last character from string
+     *
+     * @return string
+     */
+    public function last(): string
+    {
+        return substr($this->string, -1, 1);
+    }
+
+    /**
      * String as array
      *
      * @param bool $renove_chars
