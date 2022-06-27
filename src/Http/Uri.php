@@ -5,6 +5,7 @@ namespace Cube\Http;
 use InvalidArgumentException;
 use Cube\App\App;
 use Cube\Interfaces\UriInterface;
+use Cube\Tools\Str;
 
 class Uri implements UriInterface
 {
@@ -225,7 +226,22 @@ class Uri implements UriInterface
      */
     public function matches($path)
     {
-        return !!preg_match("#^{$path}#", $this->getPath());
+        $path = self::removeTrailingSlash($path);
+        $current_path = self::removeTrailingSlash($this->getPath());
+        return !!preg_match("#^{$path}#", $current_path);
+    }
+
+    /**
+     * Check if url matches specified $path
+     *
+     * @param string $path Path to check match
+     * @return boolean
+     */
+    public function matchesExact($path)
+    {
+        $path = self::removeTrailingSlash($path);
+        $current_path = self::removeTrailingSlash($this->getPath());
+        return $path === $current_path;
     }
 
     /**
@@ -270,6 +286,21 @@ class Uri implements UriInterface
 
         #Parse query params
         $this->parseQueryParams();
+    }
+
+    /**
+     * Get url without trailing slash
+     *
+     * @param string $uri
+     * @return string
+     */
+    public static function removeTrailingSlash(string $uri): string
+    {
+        $str = Str::from($uri);
+        $item = $str->last();
+        return $item === '/'
+                ? substr($uri, 0, $str->length() - 1)
+                : $uri;
     }
 
     /**
