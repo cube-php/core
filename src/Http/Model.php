@@ -337,6 +337,27 @@ class Model implements ModelInterface
     }
 
     /**
+     * Check if current instance is same as specified instance
+     *
+     * @param ModelInterface $instance
+     * @return boolean
+     */
+    public function is(ModelInterface $instance): bool
+    {
+        $this_model_class = get_class($this);
+        $instance_class = get_class($instance);
+
+        if($this_model_class !== $instance_class) {
+            throw new InvalidArgumentException(
+                concat($this_model_class, ' Expected, ', $instance_class, ' Found Instead')
+            );
+        }
+
+        $key = self::$primary_key;
+        return $this->{$key} === $instance->{$key};
+    }
+
+    /**
      * Delete this model
      *
      * @return bool
