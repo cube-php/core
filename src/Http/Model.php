@@ -200,7 +200,7 @@ class Model implements ModelInterface
         if($this->_is_new) {
             $this->_data = array_merge($this->_data, $this->_updates);
             $id = static::createEntry($this->_data);
-            $this->{$key} = $id;
+            $this->_data[$key] = $id;
             $this->_updates = [];
             $this->_is_new = false;
             return true;
