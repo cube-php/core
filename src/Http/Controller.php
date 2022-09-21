@@ -7,15 +7,6 @@ use Cube\Misc\Components;
 abstract class Controller
 {   
     /**
-     * Controller constructor
-     * 
-     */
-    public function __construct()
-    {
-
-    }
-
-    /**
      * Get component
      *
      * @param string $name Component name
@@ -25,5 +16,23 @@ abstract class Controller
     public function getComponent(string $name, array $args = [])
     {
         return Components::get($name, $args);
+    }
+
+    /**
+     * Use middleware
+     *
+     * @param string|array|callable $data
+     * @return mixed
+     */
+    public function middleware($data)
+    {
+        $request = Request::getRunningInstance();
+        $result = $request->useMiddleware($data);
+
+        if($result instanceof Response) {
+            exit;
+        }
+
+        return $result;
     }
 }

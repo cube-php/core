@@ -103,7 +103,7 @@ class RouteCollection
                 #Engage Middlewares
                 $request = $route->engageMiddleware($this->_request);
 
-                if(!$request) {
+                if($request instanceof Response) {
                     return true;
                 }
 

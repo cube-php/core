@@ -390,16 +390,18 @@ class Request implements RequestInterface
     }
 
     /**
-     * Undocumented function
+     * Use middleware
      *
-     * @param string[] $middleware Middleware name
+     * @param string[]|string $middleware Middleware name
      *
      * @return self
      * 
      * @throws \InvalidArgumentException
      */
-    public function useMiddleware($middlewares)
+    public function useMiddleware($middleware_list)
     {
+        $middlewares = is_array($middleware_list) ? $middleware_list : [$middleware_list];
+
         if(!count($middlewares)) {
             return $this;
         }
@@ -410,18 +412,24 @@ class Request implements RequestInterface
 
         foreach($middlewares as $middleware) {
 
-            $vars = explode(':', $middleware);
-
-            $key = $vars[0];
-            $args = $vars[1] ?? null;
-            $class = $wares[$key] ?? null;
-
-            if(!$class) {
-                throw new InvalidArgumentException ('Middleware "'.$key.'" is not assigned');
+            if(is_callable($middleware)) {
+                $result = $middleware($result);
             }
 
-            $args_value = $args ? explode(',', $args) : null;
-            $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
+            if(is_string($middleware)) {
+                $vars = explode(':', $middleware);
+    
+                $key = $vars[0];
+                $args = $vars[1] ?? null;
+                $class = $wares[$key] ?? null;
+    
+                if(!$class) {
+                    throw new InvalidArgumentException ('Middleware "'.$key.'" is not assigned');
+                }
+    
+                $args_value = $args ? explode(',', $args) : null;
+                $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
+            }
 
             if($result instanceof Response) {
                 $stopped = true;
@@ -430,7 +438,7 @@ class Request implements RequestInterface
         }
 
         if($stopped) {
-            return null;
+            return $result;
         }
 
         return $result;
