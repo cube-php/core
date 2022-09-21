@@ -16,6 +16,7 @@ use Cube\Commands\MakeHelperCommand;
 use Cube\Commands\MakeMiddlewareCommand;
 use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
+use Cube\Commands\MakeRuleCommand;
 use Cube\Commands\MigrateCommand;
 use Cube\Commands\ServerCommand;
 use Cube\Commands\SessionMigrateCommand;
@@ -47,7 +48,8 @@ class Cli
         MakeHelperCommand::class,
         AppSetupCommand::class,
         ViewClearCacheCommand::class,
-        SessionMigrateCommand::class
+        SessionMigrateCommand::class,
+        MakeRuleCommand::class
     );
 
     /**
