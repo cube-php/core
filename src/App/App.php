@@ -2,6 +2,7 @@
 
 namespace Cube\App;
 
+use Cube\Http\Env;
 use Cube\Http\Request;
 use Cube\Http\Session;
 use Cube\Misc\Components;
@@ -418,7 +419,7 @@ class App
      */
     public static function isProduction()
     {
-        $config = strtolower(env('app_env'));
+        $config = strtolower(Env::getMain('app_env'));
         return in_array($config, ['prod', 'production']);
     }
 
