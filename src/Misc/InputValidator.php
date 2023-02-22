@@ -188,6 +188,7 @@ class InputValidator
      * 
      * @param array $extensions Callback functions to extend validator
      * 
+     * @deprecated v0.0.5 Use Request::validate instead
      * @return void
      */
     public static function init($extensions = [])

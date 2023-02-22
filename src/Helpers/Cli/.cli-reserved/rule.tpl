@@ -2,13 +2,17 @@
 
 namespace App\Rules;
 
-use Cube\Misc\InputValidator;
+use Cube\Helpers\InputValidator\InputValidatorItem;
+use Cube\Interfaces\InputValidatorRuleInterface;
 
-class {className}
+class {className} implements InputValidatorRuleInterface
 {
-    public static function handle(InputValidator $input)
+
+    private static $defaultMessage = '';
+
+    public static function rule(InputValidatorItem $item, ?string $message = null)
     {
         //handle rule
-        $value = $input->getValue();
+        $value = $item->getInput()->getValue();
     }
 }

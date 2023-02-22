@@ -2,9 +2,9 @@
 
 namespace Cube\Misc;
 
-use Cube\Exceptions\InputException;
 use InvalidArgumentException;
 use Cube\Misc\InputValidator;
+use Cube\Exceptions\InputException;
 use Cube\Interfaces\InputInterface;
 
 class Input implements InputInterface
@@ -112,6 +112,16 @@ class Input implements InputInterface
     }
 
     /**
+     * Get input name
+     *
+     * @return string
+     */
+    public function getKey(): string
+    {
+        return $this->_key;
+    }
+
+    /**
      * Input's value
      *
      * @return mixed
@@ -202,6 +212,7 @@ class Input implements InputInterface
     /**
      * Create input's validator instance
      * 
+     * @deprecated v0.0.5
      * @return InputValidator
      */
     public function validate($rules = null)
