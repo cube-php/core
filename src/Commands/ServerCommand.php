@@ -10,6 +10,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ServerCommand extends BaseCommand
 {
+    private $defaultPort = '8888';
+    
     protected static $defaultName = 'serve';
 
     /**
@@ -37,6 +39,12 @@ class ServerCommand extends BaseCommand
     {
         $options = $input->getOptions();
         $port = $options['port'];
+        $env_port = env('serve_port');
+
+        if($port === $this->defaultPort && $env_port) {
+            $port = $env_port;
+        }
+
         $web = $options['web'];
 
         if(!preg_match('/[0-9]/', $port)) {
