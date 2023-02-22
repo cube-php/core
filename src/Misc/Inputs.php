@@ -14,7 +14,7 @@ class Inputs extends Collection
      */
     public function __construct($content)
     {
-        $parse = parse_str($content, $data);
+        parse_str($content, $data);
         foreach($data as $index => $value) {
             $this->set($index, $value);
         }
@@ -30,7 +30,7 @@ class Inputs extends Collection
     public function get($key)
     {
         $vars = explode('.', trim($key));
-        $value = $items = $this->all();
+        $value = $this->all();
 
         foreach($vars as $var) {
             $value = $value[$var] ?? null;

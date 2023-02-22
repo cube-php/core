@@ -838,7 +838,7 @@ class Model implements ModelInterface
     public static function sum(string $field)
     {
         return self::query()
-                ->select(["SUM(${field}) total"]);
+                ->select([concat('SUM(', $field ,') total')]);
     }
 
     /**

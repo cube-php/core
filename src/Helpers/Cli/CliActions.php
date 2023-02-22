@@ -19,6 +19,7 @@ class CliActions
     public const RESOURCE_TYPE_EVENT = 'Event';
     public const RESOURCE_TYPE_COMMANDS = 'Command';
     public const RESOURCE_TYPE_HELPER = 'helper';
+    public const RESOURCE_TYPE_VALIDATION_RULE = 'Rule';
     
     /**
      * Build & generate resouce

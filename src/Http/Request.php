@@ -13,6 +13,7 @@ use Cube\Misc\FilesParser;
 use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
+use Cube\Misc\RequestValidator;
 
 class Request implements RequestInterface
 {
@@ -64,13 +65,6 @@ class Request implements RequestInterface
      * @var Uri
      */
     private static $_url;
-    
-    /**
-     * Input
-     *
-     * @var Input
-     */
-    private static $_input;
 
     /**
      * Request body
@@ -78,6 +72,13 @@ class Request implements RequestInterface
      * @var mixed
      */
     private $_body;
+    
+    /**
+     * Input
+     *
+     * @var Inputs
+     */
+    private $_processed_body;
 
     /**
      * All resolved middlewares
@@ -93,7 +94,7 @@ class Request implements RequestInterface
     public function __construct()
     {
         self::$running_instance = $this;
-        $this->_body = file_get_contents('php://input');
+        $this->parseBody();
     }
 
     /**
@@ -135,7 +136,7 @@ class Request implements RequestInterface
      * @param boolean $as_input Set whether body content should be wrapped as an input
      * @return Input[]|string
      */
-    public function getBody($fields = null, $as_input = true)
+    public function getBody($fields = null)
     {
         $body = trim($this->_body);
         $fields_key = is_array($fields) 
@@ -150,27 +151,15 @@ class Request implements RequestInterface
             return $body;
         }
 
-        if(!$as_input) {
-            $decoded_data = json_decode($body, true);
-            return array_values($decoded_data);
-        }
-
         $returns = [];
-        $fields = array_map(function ($field) {
-            return trim($field);
-        }, $fields_key);
-
-        $is_json_body = in_array(substr($body, 0, 1), ['{', '[']);
-        $is_json_body ? $data = json_decode($body) : parse_str($body, $data);
-
-        $inputs = new Inputs($data ? http_build_query($data) : '');
+        $fields = array_map('trim', $fields_key);
 
         if(!count($fields)) {
-            return $inputs;
+            return $this->_processed_body;
         }
 
         foreach($fields as $field) {
-            $returns[] = $inputs->get($field);
+            $returns[] = $this->_processed_body->get($field);
         }
 
         return $returns;
@@ -327,13 +316,7 @@ class Request implements RequestInterface
      */
     public function inputs()
     {
-        if(static::$_input) {
-            return static::$_input;
-        }
-
-        $content = http_build_query($_POST);
-        static::$_input = new Inputs($content);
-        return static::$_input;
+        return $this->_processed_body;
     }
 
     /**
@@ -445,6 +428,19 @@ class Request implements RequestInterface
     }
 
     /**
+     * Validate Input
+     *
+     * @param array $rules
+     * @return RequestValidator
+     */
+    public function validate(array $rules)
+    {
+        $validator = new RequestValidator($this);
+        $validator->addRules($rules);
+        return $validator;
+    }
+
+    /**
      * Get running request instance
      *
      * @return self
@@ -479,5 +475,23 @@ class Request implements RequestInterface
 
         static::$_resolved_middlewares = $wares;
         return $wares;
+    }
+
+    /**
+     * Parse request body
+     *
+     * @return void
+     */
+    private function parseBody()
+    {
+        $body = file_get_contents('php://input');
+        $this->_body = $body;
+        $is_json = str($body)->isJson();
+
+        $this->_processed_body = new Inputs(
+            $is_json
+                ? http_build_query(json_decode($body, true))
+                : $body
+        );
     }
 }

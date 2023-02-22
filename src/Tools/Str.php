@@ -62,6 +62,16 @@ class Str implements Stringable
     }
 
     /**
+     * Get first character from string
+     *
+     * @return string
+     */
+    public function first(): string
+    {
+        return substr($this->string, 0, 1);
+    }
+
+    /**
      * Get last character from string
      *
      * @return string
@@ -170,6 +180,17 @@ class Str implements Stringable
     public function includes(string $search): bool
     {
         return false !== stripos($this->string, $search);
+    }
+
+    /**
+     * Return value if string is json
+     *
+     * @return boolean
+     */
+    public function isJson(): bool
+    {
+        json_decode($this->string);
+        return !json_last_error();
     }
 
     /**
