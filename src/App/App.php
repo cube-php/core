@@ -62,7 +62,7 @@ class App
      * @var string
      */
     const EVENT_APP_ON_DEVELOPMENT  = 'onAppDevelopment';
-    
+
     /**
      * Event when app is in production mode
      * 
@@ -121,10 +121,10 @@ class App
      */
     public function __destruct()
     {
-        if($this->is_terminal) {
+        if ($this->is_terminal) {
             return;
         }
-        
+
         EventManager::dispatchEvent(
             self::EVENT_RUNNING,
             $this
@@ -169,8 +169,8 @@ class App
 
         try {
             $this->initRoutes();
-        } catch(Throwable $e) {
-            if(App::isDevelopment()) {
+        } catch (Throwable $e) {
+            if (App::isDevelopment()) {
                 throw $e;
             }
 
@@ -199,7 +199,7 @@ class App
     {
         $components = self::getConfig('components');
 
-        if(!is_array($components)) {
+        if (!is_array($components)) {
             return;
         }
 
@@ -217,7 +217,7 @@ class App
     {
         $events = self::getConfig('events');
 
-        if(!is_array($events)) {
+        if (!is_array($events)) {
             return;
         }
 
@@ -237,14 +237,14 @@ class App
      */
     private function requireDirectoryFiles($dirname, bool $cache = true)
     {
-        
+
         $files = scandir($dirname);
 
         array_walk($files, function ($name) use ($dirname, $cache) {
             $path = $dirname . '/' . $name;
             $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
-            if($ext !== 'php') {
+            if ($ext !== 'php') {
                 return;
             }
 
@@ -254,7 +254,7 @@ class App
             $name_vars = explode('.', $name);
             $fname = $name_vars[0];
 
-            if($cache) {
+            if ($cache) {
                 return self::$caches[$cache_name][$fname] = require_once $path;
             }
 
@@ -271,7 +271,7 @@ class App
     {
         $timezone = self::getConfig('app', 'timezone');
 
-        if($timezone) {
+        if ($timezone) {
             date_default_timezone_set($timezone);
         }
     }
@@ -294,10 +294,20 @@ class App
     /**
      * Set if app is running via terminal
      *
+     * @return boolean
+     */
+    public function isRunningViaTerminal(): bool
+    {
+        return $this->is_terminal;
+    }
+
+    /**
+     * Set if app is running via terminal
+     *
      * @param boolean $status
      * @return boolean
      */
-    public function isRunningViaTerminal(bool $status = true)
+    public function setIsRunningViaTerminal(bool $status = true)
     {
         $this->is_terminal = $status;
     }
@@ -313,14 +323,14 @@ class App
         $config = self::getConfig('app');
         $force_https = $config['force_https'] ?? false;
 
-        if(!$force_https) {
+        if (!$force_https) {
             return false;
         }
 
         $request = Request::getRunningInstance();
         $url_scheme = strtolower($request->url()->getScheme());
 
-        if($url_scheme === $https) {
+        if ($url_scheme === $https) {
             return false;
         }
 
@@ -334,10 +344,11 @@ class App
      * @return void
      */
     private function initRoutes()
-    {  
+    {
         $this->checkForcedHttps();
         $this->requireDirectoryFiles(
-            $this->directory()->get(Directory::PATH_ROUTES));
+            $this->directory()->get(Directory::PATH_ROUTES)
+        );
 
         $routes = new RouteCollection();
         $routes->build();
@@ -350,7 +361,7 @@ class App
      */
     private function initSessions()
     {
-        if(!$this->is_terminal) {
+        if (!$this->is_terminal) {
             SessionManager::initialize();
         }
 
@@ -376,23 +387,23 @@ class App
      */
     public static function getConfig(string $name, $value = null)
     {
-        if(!isset(self::$caches['config'])) {
+        if (!isset(self::$caches['config'])) {
             self::getRunningInstance()->loadConfig();
         }
 
         $config = self::$caches['config'];
 
-        if(!isset($config[$name])) {
+        if (!isset($config[$name])) {
             return null;
         }
 
         $data = $config[$name];
-        
-        if(!is_array($data)) {
+
+        if (!is_array($data)) {
             return null;
         }
 
-        if($value && !isset($data[$value])) {
+        if ($value && !isset($data[$value])) {
             return null;
         }
 
@@ -408,8 +419,8 @@ class App
     public static function getPath($pathname)
     {
         return self::getRunningInstance()
-                    ->directory()
-                    ->get($pathname);
+            ->directory()
+            ->get($pathname);
     }
 
     /**
