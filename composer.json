@@ -1,27 +1,27 @@
 {
-    "name": "brainex/php-cube-core",
-    "description": "PHP Cube core utilities",
-    "version": "0.1.0",
-    "type": "library",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "dammynex",
-            "email": "damilolaofficial@gmail.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "Cube\\": "src/"
-        },
-        "files": [
-            "src/utils/bootstrap.php"
-        ]
-    },
-    "require": {
-        "twig/twig": "^3.2",
-        "symfony/console": "^5.2",
-        "symfony/process": "^5.2",
-        "symfony/cache": "^5.2"
+  "name": "brainex/php-cube-core",
+  "description": "PHP Cube core utilities",
+  "version": "0.1.1",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "dammynex",
+      "email": "damilolaofficial@gmail.com"
     }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Cube\\": "src/"
+    },
+    "files": [
+      "src/utils/bootstrap.php"
+    ]
+  },
+  "require": {
+    "twig/twig": "^3.2",
+    "symfony/console": "^5.2",
+    "symfony/process": "^5.2",
+    "symfony/cache": "^5.2"
+  }
 }
