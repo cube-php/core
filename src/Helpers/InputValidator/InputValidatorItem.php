@@ -37,8 +37,8 @@ class InputValidatorItem
     public function apply($rules)
     {
         $rules_list = is_array($rules)
-                        ? array_merge($this->rules, $rules)
-                        : array_map('trim', explode('|', $rules));
+            ? $this->processRules($rules)
+            : array_map('trim', explode('|', $rules));
 
         $this->rules = array_merge($this->rules, $rules_list);
         $this->runValidation($rules_list);
@@ -79,6 +79,39 @@ class InputValidatorItem
     }
 
     /**
+     * Get current request validator
+     *
+     * @return RequestValidator
+     */
+    public function getRequestValidator(): RequestValidator
+    {
+        return $this->validator;
+    }
+
+    /**
+     * Process rules
+     *
+     * @param array $rules
+     * @return array
+     */
+    private function processRules(array $rules): array
+    {
+        $rules_list = [];
+        every($rules, function ($value, $index) use (&$rules_list) {
+            $has_message = !is_numeric($index);
+
+            if (!$has_message) {
+                $processed_rules = explode('|', $value);
+                return $rules_list = array_merge($rules_list, $processed_rules);
+            }
+
+            return $rules_list[] = concat($index, ':', $value);
+        });
+
+        return array_merge($this->rules, $rules_list);
+    }
+
+    /**
      * Run validation
      *
      * @param array $rules
@@ -104,7 +137,7 @@ class InputValidatorItem
         $args = array_slice($rule_vars, 1);
         $rule_class_name = RequestValidator::getRule($rule_class_id);
 
-        if(!is_callable([$rule_class_name, 'rule'])) {
+        if (!is_callable([$rule_class_name, 'rule'])) {
             throw new InputException(
                 sprintf('"%s" is not a valid rule', $rule_class_name)
             );
