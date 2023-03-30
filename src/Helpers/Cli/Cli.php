@@ -59,7 +59,7 @@ class Cli
      */
     public function __construct(App $app)
     {
-        $app->isRunningViaTerminal(true);
+        $app->setIsRunningViaTerminal(true);
         $app->init();
         $this->app = $app;
     }
@@ -96,14 +96,14 @@ class Cli
         $bin_file = concat(App::getPath(Directory::PATH_ROOT), '/cube');
         $command = is_array($command) ? implode(' ', $command) : $command;
 
-        if(!file_exists($bin_file)) {
+        if (!file_exists($bin_file)) {
             throw new CubeCliException('Cube executable file not found');
         }
 
         $output = [];
         $commands_list = [];
 
-        if($php_path) {
+        if ($php_path) {
             $commands_list[] = $php_path;
         }
 
@@ -115,7 +115,7 @@ class Cli
 
         $executable_command = implode(' ', $commands);
 
-        if($in_background) {
+        if ($in_background) {
             $output = exec($executable_command);
             return true;
         }
@@ -129,7 +129,7 @@ class Cli
 
         $content = implode(PHP_EOL, $output);
 
-        if(!$process->isSuccessful()) {
+        if (!$process->isSuccessful()) {
             throw new CubeCliException($content);
         }
 
