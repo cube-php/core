@@ -7,12 +7,15 @@ use Cube\Exceptions\InputException;
 use Cube\Helpers\InputValidator\InputValidatorItem;
 use Cube\Helpers\InputValidator\Rules\AmountRule;
 use Cube\Helpers\InputValidator\Rules\EmailRule;
+use Cube\Helpers\InputValidator\Rules\EqualsRule;
 use Cube\Helpers\InputValidator\Rules\MaxLengthRule;
 use Cube\Helpers\InputValidator\Rules\MinLengthRule;
 use Cube\Helpers\InputValidator\Rules\NumberRule;
 use Cube\Helpers\InputValidator\Rules\RequiredRule;
 use Cube\Helpers\InputValidator\Rules\UrlRule;
 use Cube\Http\Request;
+use Cube\Interfaces\InputValidatorRuleInterface;
+use ReflectionClass;
 
 class RequestValidator
 {
@@ -28,6 +31,7 @@ class RequestValidator
         'min_length' => MinLengthRule::class,
         'max_length' => MaxLengthRule::class,
         'required' => RequiredRule::class,
+        'equals' => EqualsRule::class,
         'number' => NumberRule::class,
         'amount' => AmountRule::class,
         'email' => EmailRule::class,
@@ -81,12 +85,22 @@ class RequestValidator
      */
     public function getFirstError(): ?string
     {
-        if($this->isValid()) {
+        if ($this->isValid()) {
             return null;
         }
 
         $first_key = array_keys($this->_errors)[0];
         return $this->_errors[$first_key][0];
+    }
+
+    /**
+     * Get curent request
+     *
+     * @return Request
+     */
+    public function getRequest(): Request
+    {
+        return $this->request;
     }
 
     /**
@@ -108,7 +122,7 @@ class RequestValidator
      */
     public function attachErrorForInput(string $name, string $error)
     {
-        if(!isset($this->_errors[$name])) {
+        if (!isset($this->_errors[$name])) {
             $this->_errors[$name] = array();
         }
 
@@ -123,7 +137,7 @@ class RequestValidator
      */
     public static function loadRules(): bool
     {
-        if(static::$_has_loaded_rules) {
+        if (static::$_has_loaded_rules) {
             return true;
         }
 
@@ -145,11 +159,22 @@ class RequestValidator
      */
     public static function getRule(string $name)
     {
-        if(!self::$_has_loaded_rules) {
+        if (!self::$_has_loaded_rules) {
             self::loadRules();
         }
 
-        if(!self::isRegistered($name)) {
+        if (class_exists($name)) {
+            $rf = new ReflectionClass($name);
+            if (!$rf->implementsInterface(InputValidatorRuleInterface::class)) {
+                throw new InputException(
+                    sprintf('"%s" is not a valid validator rule', $name)
+                );
+            }
+
+            return $name;
+        }
+
+        if (!self::isRegistered($name)) {
             throw new InputException(
                 sprintf('"%s" is not a registered input validator rule', $name)
             );

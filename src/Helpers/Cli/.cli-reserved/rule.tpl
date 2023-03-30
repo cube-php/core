@@ -10,9 +10,9 @@ class {className} implements InputValidatorRuleInterface
 
     private static $defaultMessage = '';
 
-    public static function rule(InputValidatorItem $item, ?string $message = null)
+    public static function rule(InputValidatorItem $validator, ?string $message = null)
     {
         //handle rule
-        $value = $item->getInput()->getValue();
+        $value = $validator->getInput()->getValue();
     }
 }
