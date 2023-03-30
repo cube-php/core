@@ -8,6 +8,7 @@
  * =============================================================
  */
 
+use Cube\App\App;
 use Cube\Interfaces\ModelInterface;
 
 /**
@@ -16,7 +17,8 @@ use Cube\Interfaces\ModelInterface;
  * @param int $length
  * @return string
  */
-function generate_token($length) {
+function generate_token($length)
+{
     return bin2hex(openssl_random_pseudo_bytes($length));
 }
 
@@ -26,7 +28,9 @@ function generate_token($length) {
  * @param mixed ...$data
  * @return void
  */
-function dd(...$data) {
+function dd(...$data)
+{
+    $app = App::getRunningInstance();
     $backtrace = debug_backtrace();
     $exact_location = $backtrace[0]['file'];
     $exact_line = $backtrace[0]['line'];
@@ -46,8 +50,11 @@ function dd(...$data) {
     $header_content = concat($exact_location, ' on line ', $exact_line);
     $header = h('div', ['style' => implode(';', $styles)], $header_content);
 
-    every($data, function ($pdata) use ($header) {
-        echo $header;
+    every($data, function ($pdata) use ($header, $header_content, $app) {
+        echo $app->isRunningViaTerminal()
+            ? concat('-> ', $header_content) . PHP_EOL
+            : $header;
+
         var_dump($pdata);
     });
 
@@ -59,15 +66,16 @@ function dd(...$data) {
  *
  * @return string
  */
-function get_called_class_method(): ?string {
-   $backtrace = debug_backtrace(
-       DEBUG_BACKTRACE_IGNORE_ARGS | DEBUG_BACKTRACE_PROVIDE_OBJECT,
-       3
+function get_called_class_method(): ?string
+{
+    $backtrace = debug_backtrace(
+        DEBUG_BACKTRACE_IGNORE_ARGS | DEBUG_BACKTRACE_PROVIDE_OBJECT,
+        3
     );
 
     $caller = $backtrace[2] ?? null;
 
-    if(!$caller) {
+    if (!$caller) {
         return null;
     }
 
@@ -80,26 +88,27 @@ function get_called_class_method(): ?string {
  * @param string $dir
  * @return integer
  */
-function unlink_dir_files(string $dir): int {
+function unlink_dir_files(string $dir): int
+{
     $files = scandir($dir);
     $dot_files = array('.', '..');
     $count = 0;
 
     every($files, function ($file) use ($dot_files, $dir, &$count) {
 
-        if(in_array($file, $dot_files)) {
+        if (in_array($file, $dot_files)) {
             return;
         }
 
         $file_path = concat($dir, DIRECTORY_SEPARATOR, $file);
 
-        if(is_dir($file_path)) {
+        if (is_dir($file_path)) {
             unlink_dir_files($file_path);
             rmdir($file_path);
             return $count++;
         }
 
-        if(unlink($file_path)) {
+        if (unlink($file_path)) {
             $count++;
         }
     });
@@ -113,7 +122,8 @@ function unlink_dir_files(string $dir): int {
  * @param array $data
  * @return array
  */
-function model2array(array $data): array {
+function model2array(array $data): array
+{
     return every($data, function (ModelInterface $item) {
         return $item->data();
     });
