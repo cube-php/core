@@ -11,7 +11,7 @@ class NumberRule implements InputValidatorRuleInterface
 
     public static function rule(InputValidatorItem $validator, ?string $message = null)
     {
-        if(is_numeric($validator->getInput()->getValue())) {
+        if (!is_numeric($validator->getInput()->getValue())) {
             $validator->attachError($message ?: self::$defaultMessage, [
                 '{input}' => $validator->getInput()->getKey()
             ]);
