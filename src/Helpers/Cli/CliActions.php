@@ -20,7 +20,7 @@ class CliActions
     public const RESOURCE_TYPE_COMMANDS = 'Command';
     public const RESOURCE_TYPE_HELPER = 'helper';
     public const RESOURCE_TYPE_VALIDATION_RULE = 'Rule';
-    
+
     /**
      * Build & generate resouce
      *
@@ -48,8 +48,7 @@ class CliActions
         try {
             $file = new File($fpath, true, true);
             $file->write($refined_template);
-        }
-        catch(FileSystemException $e) {
+        } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
 
@@ -68,7 +67,7 @@ class CliActions
         $allowed_types = ['css', 'js', 'vue', 'svelte', 'sass', 'scss', 'less'];
         $type = strtolower($type);
 
-        if(!in_array($type, $allowed_types)) {
+        if (!in_array($type, $allowed_types)) {
             throw new CliActionException('Invalid asset type');
         }
 
@@ -76,7 +75,7 @@ class CliActions
         $template = self::getReservedTemplate('asset');
         $base_path = concat(App::getPath(Directory::PATH_STORAGE), DIRECTORY_SEPARATOR, $type);
 
-        if(!is_dir($base_path)) {
+        if (!is_dir($base_path)) {
             mkdir($base_path, 0755);
         }
 
@@ -90,8 +89,7 @@ class CliActions
         try {
             $file = new File($model_path, true, true);
             $file->write($refined_template);
-        }
-        catch(FileSystemException $e) {
+        } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
 
@@ -148,7 +146,7 @@ class CliActions
         $name_capitalized = array_map('ucfirst', $name_vars);
         $vars_count = count($name_vars);
 
-        if($vars_count == 1) {
+        if ($vars_count == 1) {
             return '';
         }
 
@@ -180,13 +178,12 @@ class CliActions
     private static function getReservedTemplate($name)
     {
         $path = __DIR__ . DIRECTORY_SEPARATOR . '.cli-reserved' . DIRECTORY_SEPARATOR . "{$name}.tpl";
-        
+
         try {
             $file = new File($path);
             $content = $file->getContent();
             return $content;
-        }
-        catch(FileSystemException $e) {
+        } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
     }
@@ -198,7 +195,7 @@ class CliActions
      * @param string $syntax
      * @return string
      */
-    public static function getSyntaxedName($name, $syntax = '')
+    public static function getSyntaxedName(string $name, string $syntax = '')
     {
         $config = App::getRunningInstance()->getConfig('cli');
         $config_keys = $config ? array_keys($config) : [];
@@ -207,7 +204,7 @@ class CliActions
 
             $suffix_config_name = Cli::CONFIG_SUFFIX;
 
-            if(!in_array($suffix_config_name, $config_keys)) {
+            if (!in_array($suffix_config_name, $config_keys)) {
                 return true;
             }
 
@@ -215,7 +212,7 @@ class CliActions
             $suffixes = array_keys($suffix_list);
             $type_name = strtolower($syntax);
 
-            if(!in_array($type_name, $suffixes)) {
+            if (!in_array($type_name, $suffixes)) {
                 return true;
             }
 
@@ -226,11 +223,11 @@ class CliActions
         $formatted_name_vars = array_map('ucfirst', $name_vars);
         $new_name = implode('', $formatted_name_vars);
 
-        if(!$syntax) {
+        if (!$syntax) {
             return strtolower($new_name);
         }
 
-        if(!$should_add_suffix()) {
+        if (!$should_add_suffix()) {
             return $new_name;
         }
 

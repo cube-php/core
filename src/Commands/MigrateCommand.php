@@ -37,7 +37,7 @@ class MigrateCommand extends BaseCommand
         $name_required_actions = array('down', 'empty');
         $actions = array_merge($name_required_actions, ['up']);
 
-        if(in_array($action, $name_required_actions) && !$raw_name) {
+        if (in_array($action, $name_required_actions) && !$raw_name) {
             $output->writeln(
                 concat('<fg=red>Migration name is required to perform "', $action, '" action </>')
             );
@@ -45,7 +45,7 @@ class MigrateCommand extends BaseCommand
             return Command::FAILURE;
         }
 
-        if(!$action || !in_array($action, $actions)) {
+        if (!$action || !in_array($action, $actions)) {
             $output->writeln(
                 concat('<fg=red>', 'Invalid action', '</>')
             );
@@ -59,18 +59,22 @@ class MigrateCommand extends BaseCommand
 
         array_walk($files, function ($file) use ($path, $output, $action, $raw_name, &$count) {
 
-            $name = CliActions::getSyntaxedName($raw_name, 'Migration');
+            $name = CliActions::getSyntaxedName(
+                (string) $raw_name,
+                'Migration'
+            );
+
             $filepath = concat($path, '/', $file);
             $ext = strtolower(pathinfo($filepath, PATHINFO_EXTENSION));
 
             $class = pathinfo($filepath, PATHINFO_FILENAME);
             $class_name = concat('App\Migrations\\', $class);
 
-            if('php' !== $ext) {
+            if ('php' !== $ext) {
                 return;
             }
 
-            if($raw_name && $class !== $name) {
+            if ($raw_name && $class !== $name) {
                 return;
             }
 
