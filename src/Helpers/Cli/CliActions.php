@@ -56,6 +56,38 @@ class CliActions
     }
 
     /**
+     * Build & generate resouce
+     *
+     * @param string $raw_name
+     * @param string $type
+     * @param bool $add_type Add type to name
+     * @return bool
+     */
+    public static function buildCustomResource(string $raw_name, string $dir, bool $add_type = true)
+    {
+        $name = self::getSyntaxedName($raw_name, '', true);
+        $filename = self::addExt($name, $add_type);
+
+        $template = self::getReservedTemplate('custom-resource');
+        $dir_path = implode('/', array_map('ucfirst', explode('/', $dir)));
+
+        $fpath = self::generateModulePath($dir_path, $filename);
+        $refined_template = strtr($template, [
+            '{className}' => self::getClassName($name),
+            '{subNamespace}' => self::getClassNamespace($dir)
+        ]);
+
+        try {
+            $file = new File($fpath, true, true);
+            $file->write($refined_template);
+        } catch (FileSystemException $e) {
+            throw new CliActionException($e->getMessage());
+        }
+
+        return true;
+    }
+
+    /**
      * Build asset
      *
      * @param string $type
@@ -147,7 +179,7 @@ class CliActions
         $vars_count = count($name_vars);
 
         if ($vars_count == 1) {
-            return '';
+            return '\\' . $name_capitalized[0];
         }
 
         $main_vars = array_slice($name_capitalized, 0, $vars_count - 1);
@@ -195,7 +227,7 @@ class CliActions
      * @param string $syntax
      * @return string
      */
-    public static function getSyntaxedName(string $name, string $syntax = '')
+    public static function getSyntaxedName(string $name, string $syntax = '', bool $format_name = false)
     {
         $config = App::getRunningInstance()->getConfig('cli');
         $config_keys = $config ? array_keys($config) : [];
@@ -222,6 +254,10 @@ class CliActions
         $name_vars = preg_split('/\-|\_/', $name);
         $formatted_name_vars = array_map('ucfirst', $name_vars);
         $new_name = implode('', $formatted_name_vars);
+
+        if (!$syntax && $format_name) {
+            return $new_name;
+        }
 
         if (!$syntax) {
             return strtolower($new_name);
