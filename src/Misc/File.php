@@ -20,7 +20,7 @@ class File
      * @var string
      */
     private $_path;
-    
+
     /**
      * File constructor
      * 
@@ -29,16 +29,15 @@ class File
      * @param bool      $throw_exists_exception Whether to throw an exception if file already exists
      */
     public function __construct($path, $create_new = false, $throw_exists_exception = false)
-    {   
+    {
         $this->_path = $path;
         $exists = file_exists($this->_path);
-        
-        if($exists && $throw_exists_exception) {
-            throw new FileSystemException
-                ('File at "' . $this->_path . ' already exists"');
+
+        if ($exists && $throw_exists_exception) {
+            throw new FileSystemException('File at "' . $this->_path . '" already exists');
         }
-        
-        if(!$exists && $create_new) {
+
+        if (!$exists && $create_new) {
             $dir_vars = explode('/', $path);
             $dir_name_vars = array_slice($dir_vars, 0, count($dir_vars) - 1);
             $dir_name = implode(DIRECTORY_SEPARATOR, $dir_name_vars);
@@ -48,9 +47,8 @@ class File
         $modes = !$exists && $create_new ? 'w+' : 'a+';
         $file = @fopen($path, $modes);
 
-        if(!$file) {
-            throw new FileSystemException
-                ('"' . $path . '" Failed to open stream, File not found!');
+        if (!$file) {
+            throw new FileSystemException('"' . $path . '" Failed to open stream, File not found!');
         }
 
         $this->_file = $file;
@@ -124,10 +122,9 @@ class File
         $dir = str_replace($filename, '', $this->_path);
         $new_path = "{$dir}{$new_name}";
         $rename = @rename($this->_path, $new_path);
-        
-        if(!$rename) {
-            throw new FileSystemException
-                ('Unable to rename file "' . $filename . '" to "' . $new_name . '"');
+
+        if (!$rename) {
+            throw new FileSystemException('Unable to rename file "' . $filename . '" to "' . $new_name . '"');
         }
 
         return new self($new_path);

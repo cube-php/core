@@ -7,6 +7,7 @@ use Cube\App\Directory;
 use Cube\Commands\AppSetupCommand;
 use Cube\Commands\ConsoleCommand;
 use Cube\Commands\EventDispatcherCommand;
+use Cube\Commands\MakeAppResourceCommand;
 use Cube\Commands\MakeControllerCommand;
 use Cube\Commands\MakeEventCommand;
 use Cube\Commands\MakeAssetCommand;
@@ -33,23 +34,24 @@ class Cli
     private $app;
 
     protected $commands = array(
-        ServerCommand::class,
-        MakeModelCommand::class,
-        MakeAssetCommand::class,
-        MakeEventCommand::class,
-        MakeMiddlewareCommand::class,
-        MakeMigrationCommand::class,
-        MakeControllerCommand::class,
-        MakeExceptionCommand::class,
-        MigrateCommand::class,
+        MakeAppResourceCommand::class,
         EventDispatcherCommand::class,
-        ConsoleCommand::class,
-        MakeConsoleCommand::class,
-        MakeHelperCommand::class,
-        AppSetupCommand::class,
+        MakeControllerCommand::class,
+        MakeMiddlewareCommand::class,
         ViewClearCacheCommand::class,
         SessionMigrateCommand::class,
-        MakeRuleCommand::class
+        MakeMigrationCommand::class,
+        MakeExceptionCommand::class,
+        MakeConsoleCommand::class,
+        MakeHelperCommand::class,
+        MakeEventCommand::class,
+        MakeAssetCommand::class,
+        MakeModelCommand::class,
+        AppSetupCommand::class,
+        MakeRuleCommand::class,
+        MigrateCommand::class,
+        ConsoleCommand::class,
+        ServerCommand::class
     );
 
     /**
