@@ -100,6 +100,10 @@ class InputValidatorItem
         every($rules, function ($value, $index) use (&$rules_list) {
             $has_message = !is_numeric($index);
 
+            if (is_callable($value)) {
+                return $rules_list[] = $value;
+            }
+
             if (!$has_message) {
                 $processed_rules = explode('|', $value);
                 return $rules_list = array_merge($rules_list, $processed_rules);
@@ -127,11 +131,15 @@ class InputValidatorItem
     /**
      * Compile rule
      *
-     * @param string $rule
+     * @param string|callable $rule
      * @return mixed
      */
-    private function compileRule(string $rule)
+    private function compileRule($rule)
     {
+        if (is_callable($rule)) {
+            return call_user_func($rule, $this);
+        }
+
         $rule_vars = explode(':', $rule);
         $rule_class_id = $rule_vars[0];
         $args = array_slice($rule_vars, 1);
