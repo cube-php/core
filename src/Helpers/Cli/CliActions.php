@@ -48,6 +48,7 @@ class CliActions
         try {
             $file = new File($fpath, true, true);
             $file->write($refined_template);
+            $file->chmod(0644);
         } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
@@ -65,6 +66,11 @@ class CliActions
      */
     public static function buildCustomResource(string $raw_name, string $dir, bool $add_type = true)
     {
+
+        if (!$dir) {
+            throw new CliActionException('Directory for custom resource not set');
+        }
+
         $name = self::getSyntaxedName($raw_name, '', true);
         $filename = self::addExt($name, $add_type);
 
@@ -74,12 +80,13 @@ class CliActions
         $fpath = self::generateModulePath($dir_path, $filename);
         $refined_template = strtr($template, [
             '{className}' => self::getClassName($name),
-            '{subNamespace}' => self::getClassNamespace($dir)
+            '{subNamespace}' => self::getClassNamespace($dir . '/' . $filename)
         ]);
 
         try {
             $file = new File($fpath, true, true);
             $file->write($refined_template);
+            $file->chmod(0644);
         } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
@@ -121,6 +128,7 @@ class CliActions
         try {
             $file = new File($model_path, true, true);
             $file->write($refined_template);
+            $file->chmod(0644);
         } catch (FileSystemException $e) {
             throw new CliActionException($e->getMessage());
         }
@@ -179,7 +187,7 @@ class CliActions
         $vars_count = count($name_vars);
 
         if ($vars_count == 1) {
-            return '\\' . $name_capitalized[0];
+            return '';
         }
 
         $main_vars = array_slice($name_capitalized, 0, $vars_count - 1);

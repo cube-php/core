@@ -5,6 +5,7 @@ namespace Cube\Commands;
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -18,7 +19,7 @@ class MakeAssetCommand extends BaseCommand
         $this
             ->setDescription('Generate asset')
             ->setHelp('This command generates css,js,etc assets in the right directories')
-            ->addArgument('name', InputOption::VALUE_REQUIRED, 'Asset name')
+            ->addArgument('name', InputArgument::REQUIRED, 'Asset name')
             ->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Asset type');
     }
 
@@ -33,11 +34,10 @@ class MakeAssetCommand extends BaseCommand
                 $type,
                 $name
             );
-
-        } catch(CliActionException $e) {
+        } catch (CliActionException $e) {
             $output->writeln([
                 '<fg=red>Unable to generate asset</>',
-                concat('<fg=red>', $e->getMessage() ,'</>')
+                concat('<fg=red>', $e->getMessage(), '</>')
             ]);
 
             return Command::FAILURE;
