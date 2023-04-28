@@ -41,7 +41,7 @@ class File
             $dir_vars = explode('/', $path);
             $dir_name_vars = array_slice($dir_vars, 0, count($dir_vars) - 1);
             $dir_name = implode(DIRECTORY_SEPARATOR, $dir_name_vars);
-            Folder::create($dir_name, '', 0775, true);
+            Folder::create($dir_name, '', 0755, true);
         }
 
         $modes = !$exists && $create_new ? 'w+' : 'a+';
