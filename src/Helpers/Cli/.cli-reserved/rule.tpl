@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Rules;
+namespace App\Rules{subNamespace};
 
 use Cube\Helpers\InputValidator\InputValidatorItem;
 use Cube\Interfaces\InputValidatorRuleInterface;
