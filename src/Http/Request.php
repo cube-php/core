@@ -72,7 +72,7 @@ class Request implements RequestInterface
      * @var mixed
      */
     private $_body;
-    
+
     /**
      * Input
      *
@@ -109,11 +109,10 @@ class Request implements RequestInterface
     {
         $ware = array_key_exists($method, $this->_wares);
 
-        if(!$ware) {
-            throw new InvalidArgumentException
-                ('Custom method "'. $method .'" not assigned');
+        if (!$ware) {
+            throw new InvalidArgumentException('Custom method "' . $method . '" not assigned');
         }
-        
+
         return call_user_func($this->_wares[$method], $args);
     }
 
@@ -139,26 +138,26 @@ class Request implements RequestInterface
     public function getBody($fields = null)
     {
         $body = trim($this->_body);
-        $fields_key = is_array($fields) 
-                        ? $fields
-                        : ($fields ? explode(',', $fields) : []);
-        
-        if(!$body && !count($fields_key)) {
+        $fields_key = is_array($fields)
+            ? $fields
+            : ($fields ? explode(',', $fields) : []);
+
+        if (!$body && !count($fields_key)) {
             return null;
         }
 
-        if(!$fields && !count($fields_key)) {
+        if (!$fields && !count($fields_key)) {
             return $body;
         }
 
         $returns = [];
         $fields = array_map('trim', $fields_key);
 
-        if(!count($fields)) {
+        if (!count($fields)) {
             return $this->_processed_body;
         }
 
-        foreach($fields as $field) {
+        foreach ($fields as $field) {
             $returns[] = $this->_processed_body->get($field);
         }
 
@@ -182,7 +181,7 @@ class Request implements RequestInterface
      */
     public function getHeaders()
     {
-        if(static::$_headers) {
+        if (static::$_headers) {
             return static::$_headers;
         }
 
@@ -197,7 +196,7 @@ class Request implements RequestInterface
      */
     public function getServer()
     {
-        if(static::$_server) {
+        if (static::$_server) {
             return static::$_server;
         }
 
@@ -217,20 +216,19 @@ class Request implements RequestInterface
         $parser = new FilesParser($_FILES);
         $parsed_files = $parser->parse();
 
-        if(!$index) return $parsed_files;
+        if (!$index) return $parsed_files;
 
         $indexes = explode('.', $index);
         $trimmed_indexes = array_map('trim', $indexes);
 
-        foreach($trimmed_indexes as $file_index)
-        {
-            if(is_null($parsed_files)) return null;
+        foreach ($trimmed_indexes as $file_index) {
+            if (is_null($parsed_files)) return null;
             $parsed_files = $parsed_files[$file_index] ?? null;
         }
 
         return $parsed_files;
     }
-    
+
     /**
      * Get client request method
      * 
@@ -287,8 +285,8 @@ class Request implements RequestInterface
     public function input($name, string $defaults = '')
     {
         $names = explode(',', $name);
-        
-        if(count($names) == 1) {
+
+        if (count($names) == 1) {
             $raw_value = $this->inputs()->get($name);
             $input = is_array($raw_value) ? $raw_value : ($raw_value->getValue() ?? $defaults);
             return new Input($input, $name);
@@ -299,10 +297,10 @@ class Request implements RequestInterface
         $single_default = count($defaults_vars) == 1;
         $inputs = [];
 
-        foreach($names as $index => $rname) {
+        foreach ($names as $index => $rname) {
             $default = $single_default ? $defaults : $defaults_vars[$index];
             $raw_value = $this->inputs()->get($rname);
-            $input = is_array($raw_value) ? $raw_value : ($raw_value->getValue() ?? $defaults);
+            $input = is_array($raw_value) ? $raw_value : ($raw_value->getValue() ?? $default);
             $inputs[] = new Input($input, $rname);
         }
 
@@ -344,9 +342,8 @@ class Request implements RequestInterface
     {
         $reserved_method_names = array_map('strtolower', get_class_methods($this));
 
-        if(in_array(strtolower($name), $reserved_method_names)) {
-            throw new InvalidArgumentException
-                ('The specifed method name is a reserved method name');
+        if (in_array(strtolower($name), $reserved_method_names)) {
+            throw new InvalidArgumentException('The specifed method name is a reserved method name');
         }
 
         $this->_wares[$name] = $fn;
@@ -360,7 +357,7 @@ class Request implements RequestInterface
      */
     public function url()
     {
-        if(static::$_url) {
+        if (static::$_url) {
             return static::$_url;
         }
 
@@ -385,7 +382,7 @@ class Request implements RequestInterface
     {
         $middlewares = is_array($middleware_list) ? $middleware_list : [$middleware_list];
 
-        if(!count($middlewares)) {
+        if (!count($middlewares)) {
             return $this;
         }
 
@@ -393,34 +390,34 @@ class Request implements RequestInterface
         $result = $this;
         $stopped = false;
 
-        foreach($middlewares as $middleware) {
+        foreach ($middlewares as $middleware) {
 
-            if(is_callable($middleware)) {
+            if (is_callable($middleware)) {
                 $result = $middleware($result);
             }
 
-            if(is_string($middleware)) {
+            if (is_string($middleware)) {
                 $vars = explode(':', $middleware);
-    
+
                 $key = $vars[0];
                 $args = $vars[1] ?? null;
                 $class = $wares[$key] ?? null;
-    
-                if(!$class) {
-                    throw new InvalidArgumentException ('Middleware "'.$key.'" is not assigned');
+
+                if (!$class) {
+                    throw new InvalidArgumentException('Middleware "' . $key . '" is not assigned');
                 }
-    
+
                 $args_value = $args ? explode(',', $args) : null;
                 $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
             }
 
-            if($result instanceof Response) {
+            if ($result instanceof Response) {
                 $stopped = true;
                 break;
             }
         }
 
-        if($stopped) {
+        if ($stopped) {
             return $result;
         }
 
@@ -457,18 +454,18 @@ class Request implements RequestInterface
      */
     protected function getMiddlewareResolved()
     {
-        if(static::$_resolved_middlewares) {
+        if (static::$_resolved_middlewares) {
             return static::$_resolved_middlewares;
         }
 
         $wares = App::getRunningInstance()->getConfig('middleware');
-        
-        if(!$wares) {
+
+        if (!$wares) {
             return false;
         }
 
         array_walk($wares, function ($class, $key) {
-            if(strpos($key, self::MIDDLEWARE_ARGS_DELIMETER)) {
+            if (strpos($key, self::MIDDLEWARE_ARGS_DELIMETER)) {
                 throw new InvalidArgumentException('Middleware keys must not contain ' . self::MIDDLEWARE_ARGS_DELIMETER);
             }
         });
@@ -484,7 +481,11 @@ class Request implements RequestInterface
      */
     private function parseBody()
     {
-        $body = file_get_contents('php://input');
+        $body_content = file_get_contents('php://input');
+        $body = (!$body_content && count($_POST))
+            ? json_encode($_POST)
+            : $body_content;
+
         $this->_body = $body;
         $is_json = str($body)->isJson();
 
