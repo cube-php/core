@@ -3,6 +3,7 @@
 namespace Cube\Commands;
 
 use Cube\Exceptions\AppException;
+use Cube\Misc\EventManager;
 use Cube\Modules\System;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -21,13 +22,19 @@ class AppSetupCommand extends BaseCommand
     public function execute(InputInterface $input, OutputInterface $output)
     {
         $output->writeln('<fg=yellow>Setting up your app......</>');
+
+        EventManager::dispatchEvent(
+            EventManager::onBeforeMigrate,
+            [null, 'up']
+        );
+
         $system = new System();
-        
+
         try {
             $system->init();
-        } catch(AppException $e) {
+        } catch (AppException $e) {
             $output->writeln(
-                concat('<fg=red>', $e->getMessage() ,'</>')
+                concat('<fg=red>', $e->getMessage(), '</>')
             );
 
             return self::FAILURE;
