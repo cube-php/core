@@ -4,6 +4,7 @@ namespace Cube\Helpers;
 
 use Cube\Http\Env;
 use Cube\App\App;
+use Cube\App\Directory;
 use Cube\Misc\EventManager;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
@@ -69,7 +70,8 @@ class View
      * @param array $filters
      * @return void
      */
-    public function engageFilters(array $filters) {
+    public function engageFilters(array $filters)
+    {
         foreach ($filters as $filter => $closure) {
             $fn = new TwigFilter($filter, $closure, array(
                 'is_safe' => array('html')
@@ -85,7 +87,8 @@ class View
      * @param array $functions
      * @return void
      */
-    public function engageFunctions(array $functions) {
+    public function engageFunctions(array $functions)
+    {
         foreach ($functions as $function) {
             $fn = new TwigFunction($function, $function, array(
                 'is_safe' => array('html')
@@ -109,15 +112,25 @@ class View
         );
 
         $should_cache = $this->_config['cache'] ?? false;
-        $cache_path = $this->_config['cache_dir'] ?? null;
+        $cache_dir = $this->_config['cache_dir'] ?? null;
 
-        if($cache_path && !is_dir($cache_path)) {
-            mkdir($cache_path, 0775, true);
+        if ($should_cache) {
+
+            $app_cache_dir = App::getRunningInstance()->getPath(
+                Directory::PATH_CACHE
+            );
+
+            $cache_path = $app_cache_dir . '/' . $cache_dir;
+
+            if ($cache_path && !is_dir($cache_path)) {
+                mkdir($cache_path, 0775, true);
+            }
+
+            if ($cache_path && $should_cache) {
+                $view_options['cache'] = $cache_path;
+            }
         }
 
-        if($cache_path && $should_cache) {
-            $view_options['cache'] = $cache_path;
-        }
 
         $this->_twig = new Environment($loader, $view_options);
         $this->_twig->addGlobal('env', Env::all());
