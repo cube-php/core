@@ -1,5 +1,5 @@
 {
-  "name": "brainex/php-cube-core",
+  "name": "cube-php/core",
   "description": "PHP Cube core utilities",
   "version": "0.1.6",
   "type": "library",
