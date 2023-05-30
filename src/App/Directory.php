@@ -13,6 +13,7 @@ class Directory
     public const PATH_CONFIG  = 'CONFIG';
     public const PATH_STORAGE = 'STORAGE';
     public const PATH_HELPERS = 'HELPERS';
+    public const PATH_CACHE   = 'CACHE';
 
     private $base_path = null;
 
@@ -54,14 +55,15 @@ class Directory
         $webroot = concat($root, $ds, 'webroot');
 
         $this->paths = array(
-            self::PATH_ROOT => $root,
-            self::PATH_APP => $app_path,
-            self::PATH_ROUTES => concat($root, $ds, 'routes'),
+            self::PATH_STORAGE => concat($webroot, $ds, 'assets'),
             self::PATH_VIEWS => concat($app_path, $ds, 'views'),
-            self::PATH_WEBROOT => $webroot,
-            self::PATH_LOGS => concat($root, $ds, 'logs'),
+            self::PATH_ROUTES => concat($root, $ds, 'routes'),
             self::PATH_CONFIG => concat($root, $ds, 'config'),
-            self::PATH_STORAGE => concat($webroot, $ds, 'assets')
+            self::PATH_CACHE => concat($root, $ds, '.cache'),
+            self::PATH_LOGS => concat($root, $ds, 'logs'),
+            self::PATH_WEBROOT => $webroot,
+            self::PATH_APP => $app_path,
+            self::PATH_ROOT => $root,
         );
     }
 }
