@@ -231,7 +231,7 @@ class Cli
         $packages_dir = $cache_dir . '/packages';
 
         if (!is_dir($packages_dir)) {
-            mkdir($packages_dir);
+            mkdir($packages_dir, 0755, true);
         }
 
         $file_path = $packages_dir . '/packages.json';
