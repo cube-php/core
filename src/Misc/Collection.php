@@ -2,61 +2,83 @@
 
 namespace Cube\Misc;
 
+use ArrayObject;
 use InvalidArgumentException;
 use Cube\Interfaces\CollectionInterface;
 
-abstract class Collection implements CollectionInterface
+abstract class Collection extends ArrayObject implements CollectionInterface
 {
-
-    /**
-     * Collection
-     * 
-     * @var array
-     */
-    private $collection = array();
-
-    /**
-     * Class constructor
-     * 
-     */
-    public function __construct(?array $data = null)
-    {
-        if($data) {
-           array_walk($data, function ($value, $index) {
-               $this->set($index, $index);
-           });
-        }
-    }
-
     /**
      * Get all items in the collection
      * 
-     * @return array;
+     * @return mixed[];
      */
-    public function all() {
-
-        $this->collection = array_change_key_case($this->collection, CASE_LOWER);
-        return $this->collection;
+    public function all(): array
+    {
+        return array_change_key_case(
+            $this->getArrayCopy()
+        );
     }
 
     /**
-     * Return number of items in collection
+     * CLear collection
      *
-     * @return integer
+     * @return void
      */
-    public function count(): int {
-        return count($this->collection);
+    public function clear()
+    {
+        every($this->getArrayCopy(), function ($val, $key) {
+            unset($this[$key]);
+        });
     }
- 
-    /**
-     * Remove all items from collection
-     * 
-     * 
-     */
-    public function clear() {
 
-        unset($this->collection);
-        $this->collection = array();
+    /**
+     * Run function all through items
+     *
+     * @param callable $fn
+     * @return $this
+     */
+    public function each(callable $fn)
+    {
+        every(
+            $this,
+            fn ($value, $key) => $fn($value, $key, $this)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Find item in collection
+     *
+     * @param callable $fn
+     * @return mixed
+     */
+    public function find(callable $fn)
+    {
+        return array_find($this, $fn);
+    }
+
+    /**
+     * Find all items in collection
+     *
+     * @param callable $fn
+     * @return mixed
+     */
+    public function findAll(callable $fn)
+    {
+        return array_find_all($this, $fn);
+    }
+
+    /**
+     * Find index of item in collection
+     *
+     * @param callable $fn
+     * @return int
+     */
+    public function findIndex(callable $fn): int
+    {
+        return array_find_index($this, $fn);
     }
 
     /**
@@ -64,13 +86,13 @@ abstract class Collection implements CollectionInterface
      * 
      * @param string|int $key Index to find
      * 
-     * @return string|string[]
+     * @return mixed[] | null
      */
     public function get($key)
     {
-        return $this->collection[strtolower($key)] ?? null;
+        return $this->all()[$key] ?? null;
     }
-    
+
     /**
      * Check if key is in collection
      * 
@@ -80,7 +102,7 @@ abstract class Collection implements CollectionInterface
      */
     public function has($name)
     {
-        return array_key_exists($name, $this->collection);
+        return array_key_exists($name, $this->all());
     }
 
     /**
@@ -93,13 +115,13 @@ abstract class Collection implements CollectionInterface
     public function remove($name)
     {
         $name = strtolower($name);
-        
-        if(!$this->has($name)) return;
 
-        unset($this->collection[$name]);
-        return $this->collection;
+        if (!$this->has($name)) return;
+
+        unset($this[$name]);
+        return $this->all();
     }
-    
+
     /**
      * Add item to collection
      * 
@@ -112,13 +134,17 @@ abstract class Collection implements CollectionInterface
      */
     public function set($name, $value)
     {
-        if(!(is_string($name) || is_numeric($name))) {
+        if (!(is_string($name) || is_numeric($name))) {
 
-            throw new InvalidArgumentException
-                ('Collection field name shoud be a string or an integer');
+            throw new InvalidArgumentException('Collection field name shoud be a string or an integer');
         }
 
-        $this->collection[strtolower($name)] = $value;
-        return count($this->collection);
+        $this[$name] = $value;
+        return $this->count();
+    }
+
+    public static function new(array $array)
+    {
+        return new self($array);
     }
 }

@@ -8,45 +8,48 @@
  * ==============================================
  */
 
-if(!function_exists('array_get_first')) {
+if (!function_exists('array_get_first')) {
     /**
-    * Get the first element of an array
-    *
-    * @param array $arr
-    * @return void
-    */
-    function array_get_first(array $arr) {
+     * Get the first element of an array
+     *
+     * @param array $arr
+     * @return void
+     */
+    function array_get_first(array $arr)
+    {
         return $arr[0];
     }
 }
 
-if(!function_exists('array_get_last')) {
+if (!function_exists('array_get_last')) {
     /**
      * Get the last element of an array
      *
      * @param array $arr
      * @return mixed
      */
-    function array_get_last(array $arr) {
+    function array_get_last(array $arr)
+    {
         $index = count($arr) - 1;
         return $arr[$index];
     }
 }
 
-if(function_exists('array_shuffle')) {
+if (function_exists('array_shuffle')) {
     /**
      * Shuffle array
      *
      * @param array $arr
      * @return array
      */
-    function array_shuffle(array $arr) {
+    function array_shuffle(array $arr)
+    {
         shuffle($arr);
         return $arr;
     }
 }
 
-if(!function_exists('array_wrap')) {
+if (!function_exists('array_wrap')) {
     /**
      * Wrap value as array if not an array
      * Else return the value itself
@@ -54,15 +57,16 @@ if(!function_exists('array_wrap')) {
      * @param mixed $var
      * @return array
      */
-    function array_wrap($var) {
-        if(!is_array($var)) {
+    function array_wrap($var)
+    {
+        if (!is_array($var)) {
             return [$var];
         }
         return $var;
     }
 }
 
-if(!function_exists('array_map_class')) {
+if (!function_exists('array_map_class')) {
     /**
      * Map array to class
      *
@@ -71,7 +75,8 @@ if(!function_exists('array_map_class')) {
      * @param string $class Class name to map
      * @return array
      */
-    function array_map_class(array $array, $key, $class) {
+    function array_map_class(array $array, $key, $class)
+    {
         return array_map(function ($item) use ($key, $class) {
             $item = (object) $item;
             return new $class($item->{$key});
@@ -79,18 +84,22 @@ if(!function_exists('array_map_class')) {
     }
 }
 
-if(!function_exists('every')) {
+if (!function_exists('every')) {
     /**
      * Iterate over every array and call $func
      *
-     * @param iterable $arr
+     * @param array|ArrayObject $arr
      * @param callable $func
      * @return array
      */
-    function every(array $arr, callable $func): array {
+    function every(array|ArrayObject $arr, callable $func): array
+    {
         $result = [];
+        $collection = ($arr instanceof ArrayObject)
+            ? $arr->getArrayCopy()
+            : $arr;
 
-        array_walk($arr, function($value, $index) use (&$result, $func) {
+        array_walk($collection, function ($value, $index) use (&$result, $func) {
             $result[$index] = $func($value, $index);
         });
 
@@ -98,7 +107,7 @@ if(!function_exists('every')) {
     }
 }
 
-if(!function_exists('array_find_index')) {
+if (!function_exists('array_find_index')) {
     /**
      * Find array index
      *
@@ -106,16 +115,17 @@ if(!function_exists('array_find_index')) {
      * @param callable $func
      * @return mixed
      */
-    function array_find_index(iterable $arr, callable $func) {
-        foreach($arr as $index => $value) {
-            if($func($value, $index)) {
+    function array_find_index(iterable $arr, callable $func)
+    {
+        foreach ($arr as $index => $value) {
+            if ($func($value, $index)) {
                 return $index;
             }
         }
     }
 }
 
-if(!function_exists('array_find')) {
+if (!function_exists('array_find')) {
     /**
      * Find an array when $func is true
      *
@@ -123,16 +133,17 @@ if(!function_exists('array_find')) {
      * @param callable $func
      * @return mixed
      */
-    function array_find(iterable $arr, callable $func) {
-        foreach($arr as $index => $value) {
-            if($func($value, $index)) {
+    function array_find(iterable $arr, callable $func)
+    {
+        foreach ($arr as $index => $value) {
+            if ($func($value, $index)) {
                 return $value;
             }
         }
     }
 }
 
-if(!function_exists('array_find_all')) {
+if (!function_exists('array_find_all')) {
     /**
      * Find all instances where $func is true
      *
@@ -140,11 +151,12 @@ if(!function_exists('array_find_all')) {
      * @param callable $func
      * @return array
      */
-    function array_find_all(iterable $arr, callable $func): array {
+    function array_find_all(iterable $arr, callable $func): array
+    {
         $result = [];
 
-        foreach($arr as $index => $value) {
-            if($func($value, $index)) {
+        foreach ($arr as $index => $value) {
+            if ($func($value, $index)) {
                 $result[$index] = $value;
             }
         }
