@@ -14,4 +14,8 @@ interface CollectionInterface
     public function remove($name);
 
     public function set($name, $value);
+
+    public function each(callable $fn);
+
+    public function find(callable $fn);
 }

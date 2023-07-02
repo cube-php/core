@@ -10,6 +10,7 @@
 
 use Cube\App\App;
 use Cube\Interfaces\ModelInterface;
+use Cube\Misc\Collection;
 
 /**
  * Generate random string token
@@ -119,10 +120,10 @@ function unlink_dir_files(string $dir): int
 /**
  * Return array of model as array of model data
  *
- * @param array $data
+ * @param Collection | array $data
  * @return array
  */
-function model2array(array $data): array
+function model2array(iterable $data): array
 {
     return every($data, function (ModelInterface $item) {
         return $item->data();

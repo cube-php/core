@@ -5,6 +5,7 @@ namespace Cube\Modules\Db;
 use Cube\Exceptions\ModelException;
 use Cube\Http\Model;
 use Cube\Interfaces\ModelInterface;
+use Cube\Misc\ModelCollection;
 use InvalidArgumentException;
 
 use Cube\Modules\DB;
@@ -12,7 +13,7 @@ use Cube\Modules\Db\DBQueryBuilder;
 use ReflectionClass;
 
 class DBSelect extends DBQueryBuilder
-{   
+{
     /**
      * Model class name
      *
@@ -31,7 +32,7 @@ class DBSelect extends DBQueryBuilder
     {
         $this->model = $model;
 
-        if($table_name) {
+        if ($table_name) {
             $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table_name);
         }
     }
@@ -65,7 +66,8 @@ class DBSelect extends DBQueryBuilder
         $this->joinSql(
             null,
             'LIMIT',
-            $this->addParam($offset_id), ',',
+            $this->addParam($offset_id),
+            ',',
             $this->addParam($limit_id)
         );
 
@@ -75,7 +77,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Fetch all results
      * 
-     * @return object[]|null result
+     * @return ModelCollection|array|null result
      */
     public function fetchAll()
     {
@@ -90,7 +92,7 @@ class DBSelect extends DBQueryBuilder
     public function fetchOne()
     {
         $fetched = $this->fetch(0, 1);
-        return $fetched ? $fetched[0] : null;
+        return count($fetched) ? $fetched[0] : null;
     }
 
     /**
@@ -165,16 +167,16 @@ class DBSelect extends DBQueryBuilder
     public function orderBy($orders)
     {
 
-        if(!$orders) {
+        if (!$orders) {
             return $this;
         }
 
         $orders_list = [];
 
-        foreach($orders as $field => $method) {
+        foreach ($orders as $field => $method) {
             $orders_list[] = $field . ' ' . $method;
         }
-        
+
         $this->joinSql(null, 'ORDER BY', implode(', ', $orders_list));
         return $this;
     }
@@ -218,7 +220,7 @@ class DBSelect extends DBQueryBuilder
 
         return $this;
     }
-    
+
     /**
      * UnionAll statement
      * 
@@ -247,19 +249,21 @@ class DBSelect extends DBQueryBuilder
         $params = $this->getSqlParameters();
 
         $stmt = DB::statement($sql, $params);
-        
-        if(!$stmt->rowCount()) {
-            return [];
+        $wrapper = $this->bundle;
+
+        if (!$stmt->rowCount()) {
+            return $wrapper ? ModelCollection::new([]) : [];
         }
 
         $fetched_data = $stmt->fetchAll();
-        $wrapper = $this->bundle;
 
-        if($wrapper && is_array($fetched_data)) {
+        if ($wrapper && is_array($fetched_data)) {
 
-            return array_map(function ($item) use ($wrapper) {
+            $content = array_map(function ($item) use ($wrapper) {
                 return Model::fromData($wrapper, $item);
             }, $fetched_data);
+
+            return new ModelCollection($content);
         }
 
         return $fetched_data;
@@ -271,21 +275,20 @@ class DBSelect extends DBQueryBuilder
      * @return self
      */
     private function wrapModel()
-    {   
+    {
         $class_name = $this->model;
-        
-        if(!$class_name) {
+
+        if (!$class_name) {
             return;
         }
 
-        if(!class_exists($class_name)) {
-            throw new InvalidArgumentException
-                ('Cannot use undefined class "' . $class_name . '" ');
+        if (!class_exists($class_name)) {
+            throw new InvalidArgumentException('Cannot use undefined class "' . $class_name . '" ');
         }
 
         $reflector = new ReflectionClass($this->model);
 
-        if(!in_array(ModelInterface::class, $reflector->getInterfaceNames())) {
+        if (!in_array(ModelInterface::class, $reflector->getInterfaceNames())) {
             throw new ModelException('Invalid model');
         }
 

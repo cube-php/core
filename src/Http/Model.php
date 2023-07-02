@@ -7,6 +7,7 @@ use Cube\Modules\DB;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
 use Cube\Interfaces\ModelInterface;
+use Cube\Misc\ModelCollection;
 use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
 use Cube\Traits\Onceable;
@@ -115,7 +116,7 @@ class Model implements ModelInterface
      * @var array
      */
     private $_relation = array();
-    
+
     /**
      * Relations[]
      *
@@ -138,15 +139,15 @@ class Model implements ModelInterface
      */
     public function __get($name)
     {
-        if(in_array($name, array_keys($this->_data))) {
+        if (in_array($name, array_keys($this->_data))) {
             return $this->_data[$name];
         }
 
-        if(in_array($name, array_keys($this->_data_private))) {
+        if (in_array($name, array_keys($this->_data_private))) {
             return $this->_data_private[$name];
         }
 
-        if(method_exists($this, $name)) {
+        if (method_exists($this, $name)) {
             return $this->$name();
         }
 
@@ -175,13 +176,13 @@ class Model implements ModelInterface
     {
         $has_key = $this->_data && in_array(self::$primary_key, $this->_data);
 
-        if(!$has_key) {
+        if (!$has_key) {
             $this->_data[$name] = $value;
         }
 
         $this->_updates[$name] = $value;
 
-        if(!$this->autosave) {
+        if (!$this->autosave) {
             return;
         }
 
@@ -197,7 +198,7 @@ class Model implements ModelInterface
     {
         $key = self::getPrimaryKey();
 
-        if($this->_is_new) {
+        if ($this->_is_new) {
             $this->_data = array_merge($this->_data, $this->_updates);
             $id = static::createEntry($this->_data);
             $this->_data[$key] = $id;
@@ -208,13 +209,13 @@ class Model implements ModelInterface
 
         $entry_id = $this->{$key};
         $saved = !!static::update($this->_updates)
-                    ->where($key, $entry_id)
-                    ->fulfil();
+            ->where($key, $entry_id)
+            ->fulfil();
 
-                            
-        if($saved) {
+
+        if ($saved) {
             $old_data = (array) $this->_data;
-            array_walk($this->_updates, function ($value, $field) use(&$old_data) {
+            array_walk($this->_updates, function ($value, $field) use (&$old_data) {
                 $old_data[$field] = $value;
             });
 
@@ -238,17 +239,17 @@ class Model implements ModelInterface
     {
         $cname = concat('relation$$', $model, '$$', $field, '$$', $name);
         return $this->once(function () use ($model, $name, $field) {
-            
+
             $field_name = $name ?: self::$primary_key;
             $class = new ReflectionClass($model);
-    
-            if(!$class->implementsInterface(ModelInterface::class)) {
+
+            if (!$class->implementsInterface(ModelInterface::class)) {
                 throw new InvalidArgumentException('Invalid model class');
             }
-    
+
             return $name
-                    ? $model::findBy($field_name, $this->{$field})
-                    : $model::find($this->{$field});
+                ? $model::findBy($field_name, $this->{$field})
+                : $model::find($this->{$field});
         }, $cname);
     }
 
@@ -264,10 +265,10 @@ class Model implements ModelInterface
     {
         $cname = concat('relations$$', $model, '$$', $field, '$$', $name);
         return $this->once(function () use ($name, $model, $field) {
-            
+
             $class = new ReflectionClass($model);
-            
-            if(!$class->implementsInterface(ModelInterface::class)) {
+
+            if (!$class->implementsInterface(ModelInterface::class)) {
                 throw new InvalidArgumentException('Invalid model class');
             }
 
@@ -289,7 +290,7 @@ class Model implements ModelInterface
             $data_keys = array_keys($data);
             $only_data = $this->only_data;
 
-            if($only_data) {
+            if ($only_data) {
                 $return_data = array();
                 every($only_data, function ($key) use ($data, &$return_data) {
                     $return_data[$key] = $data[$key];
@@ -297,36 +298,60 @@ class Model implements ModelInterface
 
                 $data = $return_data;
             }
-            
+
             every($this->with_data, function ($val, $index) use (&$data) {
 
                 $cls = get_called_class();
+                $key = !is_numeric($index) ? $index : $val;
 
-                if(!method_exists($cls, $val)) {
+                if (is_callable($val)) {
+                    return $data[$key] = $val();
+                }
+
+                $values = explode('.', $val);
+                $method_name = $values[0];
+
+                if (!method_exists($cls, $method_name)) {
                     throw new ModelException(
-                        concat('Property "', $val ,'" not defined in "', $cls, '"')
+                        concat('Property "', $val, '" not defined in "', $cls, '"')
                     );
                 }
 
-                $value = $this->{$val}();
-                $key = !is_numeric($index) ? $index : $val;
+                $value_fn = function () use ($method_name, $values) {
+                    $value = $this->{$method_name}();
 
-                if(is_object($value)) {
-                    
+                    if (count($values) === 1) {
+                        return $value;
+                    }
+
+                    $nested_value = $value;
+                    $iterable_values = array_slice($values, 1);
+
+                    every($iterable_values, function ($value) use (&$nested_value) {
+                        $data = (array) $nested_value;
+                        $nested_value = $data[$value];
+                    });
+
+                    return $nested_value;
+                };
+
+                $value = $value_fn();
+                if (is_object($value)) {
+
                     $ref_class = new ReflectionClass($value);
 
-                    if($ref_class->implementsInterface(ModelInterface::class)) {
+                    if ($ref_class->implementsInterface(ModelInterface::class)) {
                         return $data[$key] = $value->data();
                     }
                 }
-                
+
                 return $data[$key] = $value;
             });
 
             every($this->without_data, function ($val) use (&$data, $data_keys) {
-                if(!in_array($val, $data_keys)) {
+                if (!in_array($val, $data_keys)) {
                     throw new ModelException(
-                        concat('Property"', $val,'" is undefined for ', get_called_class())
+                        concat('Property"', $val, '" is undefined for ', get_called_class())
                     );
                 }
                 unset($data[$val]);
@@ -347,7 +372,7 @@ class Model implements ModelInterface
         $this_model_class = get_class($this);
         $instance_class = get_class($instance);
 
-        if($this_model_class !== $instance_class) {
+        if ($this_model_class !== $instance_class) {
             throw new InvalidArgumentException(
                 concat($this_model_class, ' Expected, ', $instance_class, ' Found Instead')
             );
@@ -366,14 +391,14 @@ class Model implements ModelInterface
     {
         $primary_key = static::getPrimaryKey();
         $entry_id = $this->{$primary_key};
-        
+
         static::onBeforeDelete($this);
 
         $deleted = static::delete()
             ->where($primary_key, $entry_id)
             ->fulfil();
 
-        if(!$deleted) {
+        if (!$deleted) {
             return false;
         }
 
@@ -382,9 +407,21 @@ class Model implements ModelInterface
     }
 
     /**
-     * Check if is new
+     * Add data that will be returned when Model::data() is called
      *
-     * @return boolean
+     * @param string $key
+     * @param callable $fn
+     * @return void
+     */
+    public function withData(string $key, callable $fn)
+    {
+        $this->with_data[$key] = $fn;
+    }
+
+    /**
+     * Set as new instance
+     *
+     * @return void
      */
     private function isNewInsance($status)
     {
@@ -399,14 +436,14 @@ class Model implements ModelInterface
      * 
      * @param array $opts
      * 
-     * @return array|null
+     * @return ModelCollection|array|null
      */
     public static function all(?array $order = null, ?array $opts = null)
     {
         $query = static::select()
-                    ->orderBy($order);
+            ->orderBy($order);
 
-        return $opts ? 
+        return $opts ?
             call_user_func_array([$query, 'fetch'], $opts) : $query->fetchAll();
     }
 
@@ -421,7 +458,7 @@ class Model implements ModelInterface
     {
         $entry_id = DB::table(static::$schema)->insert($entry);
         static::onCreate($entry_id);
-        
+
         return $entry_id;
     }
 
@@ -435,7 +472,7 @@ class Model implements ModelInterface
     {
         $classname = get_called_class();
         $instance = new $classname();
-        
+
         every($entry, function ($value, $key) use (&$instance) {
             $instance->{$key} = $value;
         });
@@ -465,8 +502,8 @@ class Model implements ModelInterface
     public static function find($primary_key)
     {
         return static::select()
-                ->where(static::getPrimaryKey(), $primary_key)
-                ->fetchOne();
+            ->where(static::getPrimaryKey(), $primary_key)
+            ->fetchOne();
     }
 
     /**
@@ -482,10 +519,10 @@ class Model implements ModelInterface
     public static function findAllBy($field, $value, $order = null, $params = null)
     {
         $query = static::select()
-                 ->where($field, $value)
-                 ->orderBy($order);
+            ->where($field, $value)
+            ->orderBy($order);
 
-        if(!$params) {
+        if (!$params) {
             return call_user_func([$query, 'fetchAll']);
         }
 
@@ -503,8 +540,8 @@ class Model implements ModelInterface
     public static function findBy($field, $value)
     {
         return static::select()
-                ->where($field, $value)
-                ->fetchOne();
+            ->where($field, $value)
+            ->fetchOne();
     }
 
     /**
@@ -530,9 +567,9 @@ class Model implements ModelInterface
     public static function findByPrimaryKeyAndRemove($primary_key)
     {
         return DB::table(static::$schema)
-                ->delete()
-                ->where(static::getPrimaryKey(), $primary_key)
-                ->fulfil();
+            ->delete()
+            ->where(static::getPrimaryKey(), $primary_key)
+            ->fulfil();
     }
 
     /**
@@ -546,9 +583,9 @@ class Model implements ModelInterface
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update)
     {
         return DB::table(static::$schema)
-                ->update($update)
-                ->where(static::getPrimaryKey(), $primary_key)
-                ->fulfil();
+            ->update($update)
+            ->where(static::getPrimaryKey(), $primary_key)
+            ->fulfil();
     }
 
     /**
@@ -563,8 +600,8 @@ class Model implements ModelInterface
     public static function findOrFail($primary_key, callable $failed): ?self
     {
         $data = self::find($primary_key);
-        
-        if(!$data) {
+
+        if (!$data) {
             $failed($primary_key);
             return null;
         }
@@ -586,7 +623,7 @@ class Model implements ModelInterface
     {
         $data = self::findBy($field, $value);
 
-        if(!$data) {
+        if (!$data) {
             $failed($value, $field);
             return null;
         }
@@ -625,10 +662,11 @@ class Model implements ModelInterface
         array_walk($fields, function ($_, $key) use ($classname, &$instance, &$fields, &$data, &$private_data) {
 
             $casted_value = $instance->checkCast(
-                $fields, $key
+                $fields,
+                $key
             );
 
-            if(in_array($key, $classname::$private_fields)) {
+            if (in_array($key, $classname::$private_fields)) {
                 return $private_data[$key] = $casted_value;
             }
 
@@ -650,8 +688,8 @@ class Model implements ModelInterface
     {
         $key = static::getPrimaryKey();
         $res = DB::table(static::$schema)
-                ->select(['count('. $key .') tcount'])
-                ->fetchOne();
+            ->select(['count(' . $key . ') tcount'])
+            ->fetchOne();
 
         return $res ? $res->tcount : 0;
     }
@@ -668,10 +706,10 @@ class Model implements ModelInterface
         $key = static::getPrimaryKey();
 
         return DB::table(static::$schema)
-                ->select(['count('. $key .') tcount'])
-                ->where($field, $value)
-                ->fetchOne()
-                ->tcount;
+            ->select(['count(' . $key . ') tcount'])
+            ->where($field, $value)
+            ->fetchOne()
+            ->tcount;
     }
 
     /**
@@ -683,7 +721,7 @@ class Model implements ModelInterface
     {
         $key = static::getPrimaryKey();
         return DB::table(static::$schema)
-                ->select(["count({$key}) as count"]);
+            ->select(["count({$key}) as count"]);
     }
 
     /**
@@ -697,7 +735,7 @@ class Model implements ModelInterface
     public static function getFirst($field = null)
     {
         return static::select()
-                ->getFirst(($field ?? static::getPrimaryKey()));
+            ->getFirst(($field ?? static::getPrimaryKey()));
     }
 
     /**
@@ -711,7 +749,7 @@ class Model implements ModelInterface
     public static function getLast($field = null)
     {
         return static::select()
-                ->getLast(($field ?? static::getPrimaryKey()));
+            ->getLast(($field ?? static::getPrimaryKey()));
     }
 
     /**
@@ -782,9 +820,9 @@ class Model implements ModelInterface
         });
 
         $rows = $query->fulfil();
-        
-        if(!$rows) {
-           $new_data = array_merge($fields, $data);
+
+        if (!$rows) {
+            $new_data = array_merge($fields, $data);
             return self::createEntry($new_data);
         }
 
@@ -819,9 +857,9 @@ class Model implements ModelInterface
     public static function search($field, $keyword, $limit = null, $offset = null)
     {
         $query = static::select()
-                ->whereLike($field, $keyword);
+            ->whereLike($field, $keyword);
 
-        if(!$limit) {
+        if (!$limit) {
             return $query->fetchAll();
         }
 
@@ -838,7 +876,7 @@ class Model implements ModelInterface
     public static function sum(string $field)
     {
         return self::query()
-                ->select([concat('SUM(', $field ,') total')]);
+            ->select([concat('SUM(', $field, ') total')]);
     }
 
     /**
@@ -922,7 +960,7 @@ class Model implements ModelInterface
         $cast = $this->cast;
         $value = isset($params[$field]) ? $params[$field] : null;
 
-        if(!count($cast)) {
+        if (!count($cast)) {
             return $value;
         }
 
@@ -932,12 +970,12 @@ class Model implements ModelInterface
             self::CAST_TYPE_FLOAT,
             self::CAST_TYPE_INT
         );
-        
+
         $masked_cast = array_find_all($cast, function ($value, $key) {
             return is_numeric($key);
         });
 
-        if($masked_cast) {
+        if ($masked_cast) {
             every($masked_cast, function ($fields_list, $type) use (&$cast) {
                 unset($cast[$type]);
                 $fields = explode('|', $fields_list);
@@ -947,16 +985,16 @@ class Model implements ModelInterface
                 });
             });
         }
-        
+
         $selected_cast_type = $cast[$field] ?? null;
 
-        if(!$selected_cast_type) {
+        if (!$selected_cast_type) {
             return $value;
         }
 
-        if(!in_array($selected_cast_type, $allowed_casts)) {
+        if (!in_array($selected_cast_type, $allowed_casts)) {
             throw new ModelException(
-                concat('Data type "', $selected_cast_type ,'" is not specified')
+                concat('Data type "', $selected_cast_type, '" is not specified')
             );
         }
 
@@ -987,7 +1025,7 @@ class Model implements ModelInterface
             ...$private_fields
         ]);
 
-        if(!count($rows)) {
+        if (!count($rows)) {
             return ['*'];
         }
 

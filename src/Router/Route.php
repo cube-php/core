@@ -12,12 +12,12 @@ use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
 use Cube\Http\Model;
-use Cube\Tools\Str;
+use Cube\Misc\ModelCollection;
 use Stringable;
 
 class Route
 {
-    public CONST ROUTE_NAME_IMPODER = '.';
+    public const ROUTE_NAME_IMPODER = '.';
 
     /**
      * Prefix to register a view rather than a controller for route
@@ -154,11 +154,11 @@ class Route
     {
         $controller = $this->_controller;
 
-        if(is_array($controller)) {
+        if (is_array($controller)) {
             return implode('.', $controller);
         }
 
-        if(is_callable($controller)) {
+        if (is_callable($controller)) {
             return 'Closure';
         }
 
@@ -260,11 +260,11 @@ class Route
      */
     public function setNamespace($namespace)
     {
-        if(is_string($namespace)) {
+        if (is_string($namespace)) {
             $this->_namespace[] = $namespace;
         }
 
-        if(is_array($namespace)) {
+        if (is_array($namespace)) {
             $this->_namespace = array_merge($this->_namespace, $namespace);
         }
 
@@ -357,20 +357,20 @@ class Route
     {
 
         $embed_request = App::getConfig('view', 'embed_request') ?? false;
-        if($embed_request) {
+        if ($embed_request) {
             $response->req = $request;
         }
 
         #Check if route is registered with a view
         $view_file_path = $this->_isReturnView();
-        if($view_file_path) {
+        if ($view_file_path) {
             return $response->view($view_file_path);
         }
 
         #Parse controller
         $this->_parseController();
 
-        if($this->_is_callble_controller) {
+        if ($this->_is_callble_controller) {
             $controller = Closure::bind($this->_controller, new AnonController(), AnonController::class);
             return $this->_analyzeControllerResult($controller, $request, $response);
         }
@@ -380,9 +380,8 @@ class Route
 
         $controller = new $class;
 
-        if(!is_callable([$controller, $method])) {
-            throw new InvalidArgumentException
-                ("{$class}::{$method}() on route \"{$this->getPath()}\" is not a valid callable method");
+        if (!is_callable([$controller, $method])) {
+            throw new InvalidArgumentException("{$class}::{$method}() on route \"{$this->getPath()}\" is not a valid callable method");
         }
 
         return $this->_analyzeControllerResult([$controller, $method], $request, $response);
@@ -455,8 +454,8 @@ class Route
      */
     public function use($wares)
     {
-        if(is_array($wares)) {
-            foreach($wares as $ware) {
+        if (is_array($wares)) {
+            foreach ($wares as $ware) {
                 $this->_middlewares[] = $ware;
             }
             return $this;
@@ -478,19 +477,25 @@ class Route
     {
         $result = call_user_func_array($controller, [$request, $response]);
 
-        if($result instanceof Response) {
+        if ($result instanceof Response) {
             return $result;
         }
 
-        if($result instanceof Model) {
+        if ($result instanceof Model) {
             return $response->json($result->data());
         }
 
-        if(is_string($result) || $result instanceof Stringable) {
+        if ($result instanceof ModelCollection) {
+            return $response->json(
+                model2array($result)
+            );
+        }
+
+        if (is_string($result) || $result instanceof Stringable) {
             return $response->write($result);
         }
 
-        if(is_array($result)) {
+        if (is_array($result)) {
             return $response->json($result);
         }
     }
@@ -504,13 +509,13 @@ class Route
     {
         $controller = $this->_controller;
 
-        if(!is_string($controller)) {
+        if (!is_string($controller)) {
             return false;
         }
 
         $first_value = substr($controller, 0, 1);
 
-        if($first_value != self::VIEW_PREFIX) {
+        if ($first_value != self::VIEW_PREFIX) {
             return false;
         }
 
@@ -527,7 +532,7 @@ class Route
 
         $controller = $this->_controller;
 
-        if(is_callable($controller)) {
+        if (is_callable($controller)) {
             $this->_is_callble_controller = true;
             $this->_controller = $controller;
             return true;
@@ -535,10 +540,9 @@ class Route
 
         $controller_vars = explode('.', $controller);
         $controller_vars_count = count($controller_vars);
-        
-        if($controller_vars_count < 2 || $controller_vars_count > 2) {
-            throw new InvalidArgumentException
-                ('Controller should be passed as "ClassName.methodName"');
+
+        if ($controller_vars_count < 2 || $controller_vars_count > 2) {
+            throw new InvalidArgumentException('Controller should be passed as "ClassName.methodName"');
         }
 
         $namespace = implode(self::NAMESPACE_SEPARATOR, $this->_namespace);

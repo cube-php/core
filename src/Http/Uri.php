@@ -52,7 +52,7 @@ class Uri implements UriInterface
     private $_parsed_query;
 
     private $_usual_ports = [80, 443];
-    
+
     /**
      * Uri constructor
      * 
@@ -60,7 +60,7 @@ class Uri implements UriInterface
      */
     public function __construct($url = null)
     {
-        if($url) $this->parse($url);
+        if ($url) $this->parse($url);
     }
 
     /**
@@ -114,7 +114,7 @@ class Uri implements UriInterface
         $url = $with_scheme ? $this->_scheme . '://' : '';
         $url .= $this->_host;
 
-        if($this->getPort() && !in_array($this->getPort(), $this->_usual_ports)) {
+        if ($this->getPort() && !in_array($this->getPort(), $this->_usual_ports)) {
             $url .= ':' . $this->getPort();
         }
 
@@ -151,7 +151,7 @@ class Uri implements UriInterface
     {
         $url = $this->getScheme() . '://' . $this->getHost();
 
-        if($this->getPort()) {
+        if ($this->getPort()) {
             $url .= ':' . $this->getPort();
         }
 
@@ -180,14 +180,14 @@ class Uri implements UriInterface
         $name_vars = explode(',', $name);
         $name_vars_count = count($name_vars);
 
-        if($name_vars_count == 1) {
+        if ($name_vars_count == 1) {
             return $this->_parsed_query[$name] ?? $otherwise;
         }
 
         $name_vars_trimmed = array_map('trim', $name_vars);
         $keys = [];
 
-        foreach($name_vars_trimmed as $index => $key) {
+        foreach ($name_vars_trimmed as $index => $key) {
             $selected_otherwise_value = is_array($otherwise) ?
                 $otherwise[$index] ?? null : $otherwise;
 
@@ -202,7 +202,8 @@ class Uri implements UriInterface
      * 
      * @return string
      */
-    public function getQueryParams() {
+    public function getQueryParams()
+    {
         return $this->_query;
     }
 
@@ -253,7 +254,7 @@ class Uri implements UriInterface
      */
     public function parse($url)
     {
-        if(!$this->isUri($url)) {
+        if (!$this->isUri($url)) {
             throw new InvalidArgumentException('Argument "$url" is not a valid url');
         }
 
@@ -267,7 +268,7 @@ class Uri implements UriInterface
         #Let's get host name
         $this->_host = $url_data->host;
 
-        if($directory) {
+        if ($directory) {
             $this->_host .= $directory;
         }
 
@@ -280,7 +281,7 @@ class Uri implements UriInterface
 
         #Get url path
         $this->_path = $url_data->path;
-        if($directory) {
+        if ($directory) {
             $this->_path = preg_replace("#{$directory}#", "", $this->_path);
         }
 
@@ -299,8 +300,8 @@ class Uri implements UriInterface
         $str = Str::from($uri);
         $item = $str->last();
         return $item === '/'
-                ? substr($uri, 0, $str->length() - 1)
-                : $uri;
+            ? substr($uri, 0, $str->length() - 1)
+            : $uri;
     }
 
     /**
@@ -313,12 +314,12 @@ class Uri implements UriInterface
         $query = $this->_query;
         $data = array();
 
-        if(!$query) return $data;
+        if (!$query) return $data;
 
         parse_str($query, $data);
         $context = array();
 
-        foreach($data as $field => $value) {
+        foreach ($data as $field => $value) {
             $context[$field] = htmlspecialchars($value);
         }
 
