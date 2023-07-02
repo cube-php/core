@@ -6,6 +6,7 @@ use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Commands\AppSetupCommand;
 use Cube\Commands\ConsoleCommand;
+use Cube\Commands\CubeVersionCommand;
 use Cube\Commands\EventDispatcherCommand;
 use Cube\Commands\MakeAppResourceCommand;
 use Cube\Commands\MakeControllerCommand;
@@ -43,6 +44,7 @@ class Cli
         SessionMigrateCommand::class,
         MakeMigrationCommand::class,
         MakeExceptionCommand::class,
+        CubeVersionCommand::class,
         MakeConsoleCommand::class,
         MakeHelperCommand::class,
         MakeEventCommand::class,
