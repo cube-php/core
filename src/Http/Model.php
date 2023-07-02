@@ -308,14 +308,34 @@ class Model implements ModelInterface
                     return $data[$key] = $val();
                 }
 
-                if (!method_exists($cls, $val)) {
+                $values = explode('.', $val);
+                $method_name = $values[0];
+
+                if (!method_exists($cls, $method_name)) {
                     throw new ModelException(
                         concat('Property "', $val, '" not defined in "', $cls, '"')
                     );
                 }
 
-                $value = $this->{$val}();
+                $value_fn = function () use ($method_name, $values) {
+                    $value = $this->{$method_name}();
 
+                    if (count($values) === 1) {
+                        return $value;
+                    }
+
+                    $nested_value = $value;
+                    $iterable_values = array_slice($values, 1);
+
+                    every($iterable_values, function ($value) use (&$nested_value) {
+                        $data = (array) $nested_value;
+                        $nested_value = $data[$value];
+                    });
+
+                    return $nested_value;
+                };
+
+                $value = $value_fn();
                 if (is_object($value)) {
 
                     $ref_class = new ReflectionClass($value);
