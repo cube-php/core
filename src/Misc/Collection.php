@@ -6,7 +6,7 @@ use ArrayObject;
 use InvalidArgumentException;
 use Cube\Interfaces\CollectionInterface;
 
-abstract class Collection extends ArrayObject implements CollectionInterface
+class Collection extends ArrayObject implements CollectionInterface
 {
     /**
      * Get all items in the collection
