@@ -182,6 +182,28 @@ class DBSelect extends DBQueryBuilder
     }
 
     /**
+     * Ascending order
+     *
+     * @param string $field
+     * @return $this
+     */
+    public function orderByAsc(string $field)
+    {
+        return $this->orderBy([$field => 'ASC']);
+    }
+
+    /**
+     * Descending order
+     *
+     * @param string $field
+     * @return $this
+     */
+    public function orderByDesc(string $field)
+    {
+        return $this->orderBy([$field => 'DESC']);
+    }
+
+    /**
      * Raw order by query
      * 
      * @param string    $statement Query statement
