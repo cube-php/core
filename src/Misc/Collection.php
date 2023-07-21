@@ -143,7 +143,55 @@ class Collection extends ArrayObject implements CollectionInterface
         return $this->count();
     }
 
-    public static function new(array $array)
+    /**
+     * Slice collection
+     *
+     * @param integer $offset
+     * @param integer $length
+     * @param boolean $preserve_keys
+     * @return $this
+     */
+    public function slice(int $offset, int $length, bool $preserve_keys = false)
+    {
+        $cls = get_called_class();
+        $array = array_slice(
+            $this->getArrayCopy(),
+            $offset,
+            $length,
+            $preserve_keys
+        );
+
+        return new $cls($array);
+    }
+
+    /**
+     * Model collection splice
+     *
+     * @param integer $offset
+     * @param integer|null $length
+     * @param mixed $replacement
+     * @return $this
+     */
+    public function splice(int $offset, ?int $length = null, mixed $replacement = [])
+    {
+        $cls = get_called_class();
+        $array = array_splice(
+            $this->getArrayCopy(),
+            $offset,
+            $length,
+            $replacement
+        );
+
+        return new $cls($array);
+    }
+
+    /**
+     * Create new instance
+     *
+     * @param array $array
+     * @return self
+     */
+    public static function new(array $array): self
     {
         return new self($array);
     }
