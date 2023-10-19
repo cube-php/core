@@ -379,6 +379,14 @@ class Route
         $method = $this->_controller['method_name'];
 
         $controller = new $class($request, $response);
+        $controller_middlewares_result = $request->useMiddleware(
+            $controller->getMiddlewares()
+        );
+
+        if ($controller_middlewares_result instanceof Response) {
+            return $controller_middlewares_result;
+        }
+
         $middleware_fn_name = '__middleware';
 
         if (is_callable([$controller, $middleware_fn_name])) {

@@ -5,7 +5,9 @@ namespace Cube\Http;
 use Cube\Misc\Components;
 
 abstract class Controller
-{   
+{
+    protected array $middlewares = [];
+
     /**
      * Get component
      *
@@ -26,13 +28,23 @@ abstract class Controller
      */
     public function middleware($data)
     {
-        $request = Request::getRunningInstance();
-        $result = $request->useMiddleware($data);
-
-        if($result instanceof Response) {
-            exit;
+        if (is_array($data)) {
+            return $this->middlewares = array_merge(
+                $this->middlewares,
+                $data
+            );
         }
 
-        return $result;
+        $this->middlewares[] = $data;
+    }
+
+    /**
+     * Get "in-controller" assigned middlewares
+     *
+     * @return array
+     */
+    public function getMiddlewares(): array
+    {
+        return $this->middlewares;
     }
 }
