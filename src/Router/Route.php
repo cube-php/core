@@ -378,7 +378,16 @@ class Route
         $class = $this->_controller['class_name'];
         $method = $this->_controller['method_name'];
 
-        $controller = new $class;
+        $controller = new $class($request, $response);
+        $middleware_fn_name = '__middleware';
+
+        if (is_callable([$controller, $middleware_fn_name])) {
+            $result = call_user_func_array([$controller, $middleware_fn_name], [$request, $response]);
+
+            if ($result instanceof Response) {
+                return $result;
+            }
+        }
 
         if (!is_callable([$controller, $method])) {
             throw new InvalidArgumentException("{$class}::{$method}() on route \"{$this->getPath()}\" is not a valid callable method");
