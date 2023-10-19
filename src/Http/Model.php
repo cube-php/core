@@ -90,6 +90,13 @@ class Model implements ModelInterface
     protected array $only_data = array();
 
     /**
+     * Order returned data
+     *
+     * @var array
+     */
+    protected array $data_order = array();
+
+    /**
      * Model data
      *
      * @var array
@@ -299,6 +306,15 @@ class Model implements ModelInterface
                 $data = $return_data;
             }
 
+            every($this->without_data, function ($val) use (&$data, $data_keys) {
+                if (!in_array($val, $data_keys)) {
+                    throw new ModelException(
+                        concat('Property"', $val, '" is undefined for ', get_called_class())
+                    );
+                }
+                unset($data[$val]);
+            });
+
             every($this->with_data, function ($val, $index) use (&$data) {
 
                 $cls = get_called_class();
@@ -348,16 +364,20 @@ class Model implements ModelInterface
                 return $data[$key] = $value;
             });
 
-            every($this->without_data, function ($val) use (&$data, $data_keys) {
-                if (!in_array($val, $data_keys)) {
-                    throw new ModelException(
-                        concat('Property"', $val, '" is undefined for ', get_called_class())
-                    );
-                }
-                unset($data[$val]);
+            $order = $this->data_order;
+
+            if (!count($order)) {
+                return $data;
+            }
+
+            $ordered_data = array();
+            every($order, function ($name) use (&$data, &$ordered_data) {
+                $ordered_data[$name] = $data[$name];
+                unset($data[$name]);
             });
 
-            return $data;
+            $new_data = array_merge($ordered_data, $data);
+            return $new_data;
         });
     }
 
