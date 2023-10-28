@@ -8,7 +8,7 @@ use Cube\Misc\File;
 
 final class Env
 {
-    
+
     /**
      * Environment variables
      * 
@@ -51,8 +51,8 @@ final class Env
      * Get main var
      *
      * @param string $name
-     * @param [type] $default
-     * @return void
+     * @param mixed $default
+     * @return mixed
      */
     public static function get(string $name, $default = null)
     {
@@ -77,14 +77,14 @@ final class Env
      */
     private static function load()
     {
-        if(static::$_has_loaded_main) {
+        if (static::$_has_loaded_main) {
             return static::$_main_vars;
         }
 
         $root = App::getPath(Directory::PATH_ROOT);
         $env_file = $root . DIRECTORY_SEPARATOR . '.env';
 
-        if(!file_exists($env_file)) {
+        if (!file_exists($env_file)) {
             $file = new File($env_file, true);
             $file->write('');
         }
@@ -103,7 +103,7 @@ final class Env
      */
     private static function loadExtras()
     {
-        if(static::$_has_loaded_extras) {
+        if (static::$_has_loaded_extras) {
             return static::$_extra_vars;
         }
 
@@ -113,11 +113,11 @@ final class Env
 
         $all_vars = [];
 
-        if(file_exists($prod_env_file) && App::isProduction()) {
+        if (file_exists($prod_env_file) && App::isProduction()) {
             $all_vars = array_merge($all_vars, parse_ini_file($prod_env_file));
         }
 
-        if(file_exists($dev_env_file) && App::isDevelopment()) {
+        if (file_exists($dev_env_file) && App::isDevelopment()) {
             $all_vars = array_merge($all_vars, parse_ini_file($dev_env_file));
         }
 

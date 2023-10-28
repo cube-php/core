@@ -7,6 +7,7 @@ use Cube\Http\Request;
 use Cube\Http\Session;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
+use Cube\Modules\Db\DBConnection;
 use Cube\Modules\SessionManager;
 use Cube\Router\RouteCollection;
 use Throwable;
@@ -139,6 +140,7 @@ class App
     public function init()
     {
         $this->loadConfig();
+        $this->loadDbConfig();
         $this->setTimezone();
         $this->initHelpers();
         $this->initSessions();
@@ -188,6 +190,27 @@ class App
         $this->requireDirectoryFiles(
             $this->directory()->get(Directory::PATH_CONFIG)
         );
+    }
+
+    /**
+     * Load database config
+     *
+     * @return bool
+     */
+    private function loadDbConfig(): bool
+    {
+        $config = $this->getConfig('database');
+
+        if (!count($config)) {
+            return false;
+        }
+
+        every(
+            $config,
+            fn ($config, $name) => DBConnection::addConfig($name, $config)
+        );
+
+        return true;
     }
 
     /**

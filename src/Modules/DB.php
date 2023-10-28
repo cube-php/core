@@ -35,7 +35,7 @@ class DB
             'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?',
             [$constraint_name]
         )->fetch();
-        
+
         return !!$query->tcount;
     }
 
@@ -92,11 +92,11 @@ class DB
      */
     public static function tables()
     {
-        $dbname = static::conn()->getConfig()['dbname'];
+        $dbname = static::conn()->dbname;
 
         $query = static::statement('SELECT table_name FROM information_schema.tables WHERE table_schema = ?', [$dbname]);
-        
-        if(!$query->rowCount()) return array();
+
+        if (!$query->rowCount()) return array();
 
         $results = $query->fetchAll();
         $data = array();
@@ -117,6 +117,6 @@ class DB
      */
     private static function conn()
     {
-        return DBConnection::getInstance();
+        return DBConnection::getConnectionByName('default');
     }
 }

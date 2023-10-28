@@ -28,7 +28,14 @@ class Model implements ModelInterface
      * 
      * @var string
      */
-    protected static $schema;
+    protected static $schema = '';
+
+    /**
+     * Database name
+     *
+     * @var string
+     */
+    protected static string $database_name = '';
 
     /**
      * Selectable fields from specified $schema
@@ -476,7 +483,7 @@ class Model implements ModelInterface
      */
     public static function createEntry(array $entry)
     {
-        $entry_id = DB::table(static::$schema)->insert($entry);
+        $entry_id = self::getTable()->insert($entry);
         static::onCreate($entry_id);
 
         return $entry_id;
@@ -508,7 +515,7 @@ class Model implements ModelInterface
      */
     public static function delete(): DBDelete
     {
-        return DB::table(static::$schema)->delete();
+        return self::getTable()->delete();
     }
 
     /**
@@ -586,7 +593,7 @@ class Model implements ModelInterface
      */
     public static function findByPrimaryKeyAndRemove($primary_key)
     {
-        return DB::table(static::$schema)
+        return self::getTable()
             ->delete()
             ->where(static::getPrimaryKey(), $primary_key)
             ->fulfil();
@@ -602,7 +609,7 @@ class Model implements ModelInterface
      */
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update)
     {
-        return DB::table(static::$schema)
+        return self::getTable()
             ->update($update)
             ->where(static::getPrimaryKey(), $primary_key)
             ->fulfil();
@@ -707,7 +714,7 @@ class Model implements ModelInterface
     public static function getCount(): int
     {
         $key = static::getPrimaryKey();
-        $res = DB::table(static::$schema)
+        $res = self::getTable()
             ->select(['count(' . $key . ') tcount'])
             ->fetchOne();
 
@@ -725,7 +732,7 @@ class Model implements ModelInterface
     {
         $key = static::getPrimaryKey();
 
-        return DB::table(static::$schema)
+        return self::getTable()
             ->select(['count(' . $key . ') tcount'])
             ->where($field, $value)
             ->fetchOne()
@@ -740,7 +747,7 @@ class Model implements ModelInterface
     public static function getCountQuery()
     {
         $key = static::getPrimaryKey();
-        return DB::table(static::$schema)
+        return self::getTable()
             ->select(["count({$key}) as count"]);
     }
 
@@ -800,7 +807,7 @@ class Model implements ModelInterface
      */
     public static function getSumByField(string $field)
     {
-        return DB::table(static::$schema)->sum($field);
+        return self::getTable()->sum($field);
     }
 
     /**
@@ -810,7 +817,7 @@ class Model implements ModelInterface
      */
     public static function query(): DBTable
     {
-        return DB::table(static::$schema);
+        return self::getTable();
     }
 
     /**
@@ -966,6 +973,16 @@ class Model implements ModelInterface
     protected static function onUpdate($id)
     {
         return $id;
+    }
+
+    /**
+     * Get table for schema
+     *
+     * @return DBTable
+     */
+    protected static function getTable(): DBTable
+    {
+        return DB::table(static::$schema);
     }
 
     /**
