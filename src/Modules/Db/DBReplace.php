@@ -13,9 +13,9 @@ class DBReplace extends DBQueryBuilder
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(public readonly DBTable $table)
     {
-        $this->joinSql('REPLACE INTO', $table_name);
+        $this->joinSql('REPLACE INTO', $this->table);
     }
 
     /**
@@ -38,8 +38,9 @@ class DBReplace extends DBQueryBuilder
      */
     private function finish()
     {
-        $db = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
-        return DB::lastInsertId();
+        $db = $this->table->getDatabase();
+        $db->statement($this->getSqlQuery(), $this->getSqlParameters());
+        return $db->lastInsertId();
     }
 
     /**

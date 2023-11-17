@@ -31,11 +31,11 @@ class Model implements ModelInterface
     protected static $schema = '';
 
     /**
-     * Database name
+     * Connection name
      *
      * @var string
      */
-    protected static string $database_name = '';
+    protected static string $connection = 'default';
 
     /**
      * Selectable fields from specified $schema
@@ -864,7 +864,7 @@ class Model implements ModelInterface
     public static function select(...$args): DBSelect
     {
         $select = new DBSelect(
-            static::$schema,
+            self::getTable(),
             count($args) ? $args : self::fields(),
             get_called_class()
         );
@@ -982,7 +982,10 @@ class Model implements ModelInterface
      */
     protected static function getTable(): DBTable
     {
-        return DB::table(static::$schema);
+        return new DBTable(
+            static::$schema,
+            static::$connection
+        );
     }
 
     /**

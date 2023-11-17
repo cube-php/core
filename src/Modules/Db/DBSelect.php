@@ -28,13 +28,10 @@ class DBSelect extends DBQueryBuilder
      * @param array $fields
      * @param string|null $model
      */
-    public function __construct($table_name = '', $fields = [], ?string $model = null)
+    public function __construct(protected readonly DBTable $table, array $fields = [], ?string $model = null)
     {
         $this->model = $model;
-
-        if ($table_name) {
-            $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table_name);
-        }
+        $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table->name);
     }
 
     /**
@@ -270,7 +267,7 @@ class DBSelect extends DBQueryBuilder
         $sql = $this->getSqlQuery();
         $params = $this->getSqlParameters();
 
-        $stmt = DB::statement($sql, $params);
+        $stmt = $this->table->getDatabase()->statement($sql, $params);
         $wrapper = $this->bundle;
 
         if (!$stmt->rowCount()) {

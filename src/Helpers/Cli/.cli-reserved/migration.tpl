@@ -10,6 +10,8 @@ class {className} implements MigrationInterface
 {
     private const NAME = '{name}';
 
+    private const CONNECTION_NAME = 'default'
+
     /**
      * Action to create migration
      *
@@ -17,7 +19,8 @@ class {className} implements MigrationInterface
      */
     public static function up()
     {
-        DB::table(self::NAME)
+        Database::from(self::CONNECTION_NAME)
+            ->table(self::NAME)
             ->build(function (DBTableBuilder $builder) {
                 $builder->field('id')->int()->increment();
             });
@@ -30,7 +33,9 @@ class {className} implements MigrationInterface
      */
     public static function empty()
     {
-        DB::table(self::NAME)->truncate();
+        Database::from(self::CONNECTION_NAME)
+            ->table(self::NAME)
+            ->truncate();
     }
 
     /**
@@ -40,6 +45,8 @@ class {className} implements MigrationInterface
      */
     public static function down()
     {
-        DB::table(self::NAME)->drop();
+        Database::from(self::CONNECTION_NAME)
+            ->table(self::NAME)
+            ->drop();
     }
 }

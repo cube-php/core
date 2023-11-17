@@ -17,7 +17,8 @@ use Cube\Http\Response;
  * @param boolean $is_external
  * @return Response
  */
-function redirect($path, $params = [], $is_external = false) {
+function redirect($path, $params = [], $is_external = false)
+{
     return response()->redirect($path, $params, $is_external);
 }
 
@@ -27,7 +28,8 @@ function redirect($path, $params = [], $is_external = false) {
  * @param boolean $new_instance Set if a new instance of response is needed
  * @return Response
  */
-function response($new_instance = false) {
+function response($new_instance = false)
+{
     return (Response::getInstance($new_instance));
 }
 
@@ -40,7 +42,8 @@ function response($new_instance = false) {
  * @param boolean $new_instance Set if a new instance of response is needed
  * @return Response
  */
-function view($tpl, $context = [], $run_render = true, $new_instance = false) {
+function view($tpl, $context = [], $run_render = true, $new_instance = false)
+{
     return response($new_instance)->view($tpl, $context, $run_render);
 }
 
@@ -51,6 +54,7 @@ function view($tpl, $context = [], $run_render = true, $new_instance = false) {
  * @param array $context
  * @return Response
  */
-function load_view($tpl, array $context = []): string {
+function load_view($tpl, array $context = []): string
+{
     return view($tpl, $context, false, true);
 }

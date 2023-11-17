@@ -13,9 +13,9 @@ class DBDelete extends DBQueryBuilder
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(public readonly DBTable $table)
     {
-        $this->joinSql('DELETE FROM', $table_name);
+        $this->joinSql('DELETE FROM', $table->name);
     }
 
     /**
@@ -25,7 +25,14 @@ class DBDelete extends DBQueryBuilder
      */
     public function fulfil()
     {
-        $query = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
+        $query = $this
+            ->table
+            ->getDatabase()
+            ->statement(
+                $this->getSqlQuery(),
+                $this->getSqlParameters()
+            );
+
         return $query->rowCount();
     }
 }

@@ -7,15 +7,14 @@ use Cube\Modules\Db\DBQueryBuilder;
 
 class DBUpdate extends DBQueryBuilder
 {
-
     /**
      * Constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(public readonly DBTable $table)
     {
-        $this->joinSql('UPDATE', $table_name);
+        $this->joinSql('UPDATE', $table->name);
     }
 
     /**
@@ -39,7 +38,11 @@ class DBUpdate extends DBQueryBuilder
      */
     public function fulfil()
     {
-        $db = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
+        $db = $this
+            ->table
+            ->getDatabase()
+            ->statement($this->getSqlQuery(), $this->getSqlParameters());
+
         return $db->rowCount();
     }
 
@@ -55,8 +58,8 @@ class DBUpdate extends DBQueryBuilder
         $keys = array_keys($params);
         $values = array_values($params);
         $placeholders = [];
-        
-        foreach($keys as $key) $placeholders[] = "{$key} = ?";
+
+        foreach ($keys as $key) $placeholders[] = "{$key} = ?";
 
         $fields = implode(',', $placeholders);
         $this->bindParam($values);
