@@ -41,9 +41,6 @@ class Auth
     /** @var string No. of days it will take an auth token to expire */
     public const CONFIG_COOKIE_EXPIRY_DAYS = 'cookie_expiry_days';
 
-    /** @var string Database schema connection name */
-    public const CONFIG_CONNECTION_NAME = 'connection_name';
-
     /** @var string On authenticated event */
     public const EVENT_ON_AUTHENTICATED = 'authenticated';
 
@@ -480,8 +477,16 @@ class Auth
      */
     private static function getConnectionName(): string
     {
-        return static::getConfig(self::CONFIG_CONNECTION_NAME)
-            ?: 'default';
+        $model = static::getConfig(self::CONFIG_MODEL);
+
+        if (!$model) {
+            throw new AuthException('Auth model not set');
+        }
+
+        $name = $model::getConnectionName();
+
+        dd($name);
+        return $name;
     }
 
     /**

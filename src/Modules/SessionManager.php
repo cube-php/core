@@ -24,7 +24,8 @@ class SessionManager implements SessionHandlerInterface
      * 
      * Check if the session table has been created
      */
-    public function __construct() {
+    public function __construct()
+    {
         /**
          * Switched the initialization to be powered by the 
          * Command line to free up system
@@ -50,7 +51,7 @@ class SessionManager implements SessionHandlerInterface
      */
     public function destroy($session_id): bool
     {
-        DB::table(self::TABLE_NAME)
+        self::getTable()
             ->delete()
             ->where('sess_id', $session_id)
             ->fulfil();
@@ -64,12 +65,12 @@ class SessionManager implements SessionHandlerInterface
      * 
      * @return bool
      */
-    #[\ReturnTypeWillChange] 
+    #[\ReturnTypeWillChange]
     public function gc($maxlifetime): bool
     {
         $old = time() - $maxlifetime;
 
-        DB::table(self::TABLE_NAME)
+        self::getTable()
             ->delete()
             ->where('UNIX_TIMESTAMP(last_update)', '<', $old)
             ->fulfil();
@@ -97,12 +98,12 @@ class SessionManager implements SessionHandlerInterface
      */
     public function read($session_id): string
     {
-        $session = DB::table('sessions')
-                ->select(['sess_data'])
-                ->where('sess_id', $session_id)
-                ->fetchOne();
+        $session = self::getTable()
+            ->select(['sess_data'])
+            ->where('sess_id', $session_id)
+            ->fetchOne();
 
-        if($session) {
+        if ($session) {
             return base64_decode($session->sess_data);
         }
 
@@ -119,14 +120,14 @@ class SessionManager implements SessionHandlerInterface
      */
     public function write($session_id, $session_data): bool
     {
-        DB::table('sessions')
-                ->replace([
-                    'sess_id' => $session_id,
-                    'user_id' => Auth::id(),
-                    'last_update' => date('Y-m-d H:i:s'),
-                    'sess_data' => base64_encode($session_data),
-                    'created_at' => getnow()
-                ]);
+        self::getTable()
+            ->replace([
+                'sess_id' => $session_id,
+                'user_id' => Auth::id(),
+                'last_update' => date('Y-m-d H:i:s'),
+                'sess_data' => base64_encode($session_data),
+                'created_at' => getnow()
+            ]);
 
         return true;
     }
@@ -174,7 +175,7 @@ class SessionManager implements SessionHandlerInterface
         $config = App::getConfig('app');
         $session = $config['session'] ?? 'default';
 
-        if($session === 'database') {
+        if ($session === 'database') {
             return static::$can_run = true;
         }
 
@@ -188,7 +189,16 @@ class SessionManager implements SessionHandlerInterface
      */
     private static function getTable(): DBTable
     {
-        return DB::table(self::TABLE_NAME);
+        $config = App::getConfig(
+            'auth',
+            Auth::CONFIG_MODEL
+        );
+
+        $conn_name = $config::getConnectionName();
+        return new DBTable(
+            self::TABLE_NAME,
+            $conn_name
+        );
     }
 
     /**
@@ -198,7 +208,7 @@ class SessionManager implements SessionHandlerInterface
      */
     private function up()
     {
-        self::getTable()->build(function($table) {
+        self::getTable()->build(function ($table) {
             $table->field('sess_id')->varchar()->primary();
             $table->field('sess_data')->text();
             $table->field('user_id')->int()->nullable();

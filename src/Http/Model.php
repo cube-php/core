@@ -790,6 +790,16 @@ class Model implements ModelInterface
     }
 
     /**
+     * Connection name
+     *
+     * @return string
+     */
+    public static function getConnectionName(): string
+    {
+        return static::$connection;
+    }
+
+    /**
      * Schema's primary key
      *
      * @return string
