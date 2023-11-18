@@ -7,7 +7,6 @@ use InvalidArgumentException;
 
 use Cube\App\App;
 use Cube\App\Directory;
-use Cube\Modules\DB;
 
 use Cube\Http\Session;
 use Cube\Http\Cookie;
@@ -15,60 +14,53 @@ use Cube\Http\Cookie;
 use Cube\Misc\EventManager;
 use Cube\Exceptions\AuthException;
 use Cube\Interfaces\ModelInterface;
+use Cube\Modules\Database;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\SessionManager;
 
 class Auth
 {
-    /**
-     * Error message when authentication fails
-     */
+    /** @var string Error message when authentication fails */
     public const CONFIG_ERROR_MSG = 'error_msg';
-    
-    /**
-     * Table name for users
-     */
+
+    /** @var string Table name for users */
     public const CONFIG_SCHEMA = 'schema';
 
-    /**
-     * Password hash method
-     */
+    /** @var string Password hash method */
     public const CONFIG_HASH_METHOD = 'hash_method';
 
-    /**
-     * Authenticaton attempt combination
-     */
+    /** @var string Authenticaton attempt combination */
     public const CONFIG_COMBINATION = 'combination';
 
-    /**
-     * Table primary key Id
-     */
+    /** @var string Table primary key Id */
     public const CONFIG_PRIMARY_KEY = 'primary_key';
 
-    /**
-     * Users model class
-     */
+    /** @var string user Model class */
     public const CONFIG_MODEL = 'instance';
 
-    /**
-     * No. of days it will take an auth token to expire
-     */
+    /** @var string No. of days it will take an auth token to expire */
     public const CONFIG_COOKIE_EXPIRY_DAYS = 'cookie_expiry_days';
 
+    /** @var string Database schema connection name */
+    public const CONFIG_CONNECTION_NAME = 'connection_name';
+
+    /** @var string On authenticated event */
     public const EVENT_ON_AUTHENTICATED = 'authenticated';
+
+    /** @var string On logged out event */
     public const EVENT_ON_LOGGED_OUT    = 'loggedout';
 
     /**
      * Authentication configuration
      * 
-     * @var string[]
+     * @var string
      */
     private static $_config;
 
     /**
      * Get authentication status
      * 
-     * @var string[]
+     * @var string
      */
     private static $_auth_name = 'session_auth';
 
@@ -105,19 +97,19 @@ class Auth
         $schema = $config['schema'] ?? null;
         $config_combination = (array) $config['combination'];
 
-        if(!$schema) {
+        if (!$schema) {
             throw new AuthException('Auth schema field is undefined');
         }
 
         $auth_fields = $config_combination['fields'] ?? null;
 
-        if(!$auth_fields) {
+        if (!$auth_fields) {
             throw new AuthException('Authentication fields not specified');
         }
 
         $auth_fields_names = array_keys($auth_fields);
 
-        if(!$field) {
+        if (!$field) {
             throw new AuthException(
                 concat('Enter ', implode('or ', $auth_fields_names), ' to login')
             );
@@ -126,13 +118,13 @@ class Auth
         $auth_field_name = null;
         $default_field_name = null;
 
-        foreach($auth_fields as $field_name => $fn) {
-            if($fn && $fn($field)) {
+        foreach ($auth_fields as $field_name => $fn) {
+            if ($fn && $fn($field)) {
                 $auth_field_name = $field_name;
                 break;
             }
 
-            if(!$fn) {
+            if (!$fn) {
                 $default_field_name = $field_name;
                 continue;
             }
@@ -141,26 +133,27 @@ class Auth
         $auth_field_name = $auth_field_name ?: $default_field_name;
         $secret_key_name = $config_combination['secret_key'];
 
-        $query = DB::table($schema)
-                    ->select([$primary_key, $secret_key_name])
-                    ->where($auth_field_name, $field)
-                    ->fetchOne();
+        $table = new DBTable($schema, self::getConnectionName());
+        $query = $table
+            ->select([$primary_key, $secret_key_name])
+            ->where($auth_field_name, $field)
+            ->fetchOne();
 
-        if(!$query) {
+        if (!$query) {
             throw new AuthException($error_msg);
         }
 
         $raw_server_secret = $query->{$secret_key_name};
         $secret_is_valid = $hash_method($secret, $raw_server_secret);
 
-        if(!$secret_is_valid) {
+        if (!$secret_is_valid) {
             throw new AuthException($error_msg);
         }
 
         $schema_primary_key = $query->{$primary_key};
 
         #Check for the remeber feature
-        if($remember) {
+        if ($remember) {
             static::setUserCookieToken($schema_primary_key);
         }
 
@@ -187,13 +180,13 @@ class Auth
         $primary_key = $config[self::CONFIG_PRIMARY_KEY] ?? null;
         $instance = $config[self::CONFIG_MODEL] ?? null;
 
-        if(!$primary_key) {
+        if (!$primary_key) {
             throw new InvalidArgumentException('Auth config "Primary key" not assigned');
         }
 
         $data = $instance::findBy($field, $value);
 
-        if(!$data) {
+        if (!$data) {
             throw new AuthException('Authentication data not found');
         }
 
@@ -204,11 +197,11 @@ class Auth
             self::EVENT_ON_AUTHENTICATED,
             $schema_primary_key
         );
-        
+
         Session::set(static::$_auth_name, $schema_primary_key);
-        
-        if($remember) {
-            Cookie::set(static::$_auth_name, $schema_primary_key);
+
+        if ($remember) {
+            Cookie::set(self::$_auth_name, $schema_primary_key);
         }
 
         return true;
@@ -265,13 +258,13 @@ class Auth
     {
         $primary_key = self::getPrimaryKeyFieldName();
 
-        if(!$primary_key) {
+        if (!$primary_key) {
             return null;
         }
 
         $user = self::user();
 
-        if(!$user) {
+        if (!$user) {
             return null;
         }
 
@@ -285,7 +278,7 @@ class Auth
      */
     public static function user()
     {
-        if(static::$_auth_user) {
+        if (static::$_auth_user) {
             return static::$_auth_user;
         }
 
@@ -293,18 +286,18 @@ class Auth
         $auth_id = Session::get(static::$_auth_name);
         $instance = static::getConfig(self::CONFIG_MODEL);
 
-        if(!$instance) {
+        if (!$instance) {
             throw new AuthException('Model not specified');
         }
 
         $instance_reflector = new ReflectionClass($instance);
         $model_inteface = ModelInterface::class;
 
-        if(!$instance_reflector->implementsInterface($model_inteface)) {
+        if (!$instance_reflector->implementsInterface($model_inteface)) {
             throw new AuthException($instance . ' does not implement ' . $model_inteface);
         }
 
-        if($auth_id) {
+        if ($auth_id) {
             static::$_auth_user = $instance::find($auth_id);
             return static::$_auth_user;
         }
@@ -312,13 +305,13 @@ class Auth
         #Check for user auto log cookie
         $cookie_token = Cookie::get(static::$_auth_name);
 
-        if(!$cookie_token) {
+        if (!$cookie_token) {
             return null;
         }
 
         $user_id = static::validateAuthCookieToken($cookie_token);
 
-        if(!$user_id) {
+        if (!$user_id) {
             static::logout();
             return null;
         }
@@ -338,17 +331,17 @@ class Auth
      */
     private static function getConfig($field = null)
     {
-        if(!static::$_config) {
+        if (!static::$_config) {
             static::$_config = App::getConfig('auth');
         }
 
         $config_path = App::getPath(Directory::PATH_CONFIG);
 
-        if(!static::$_config) {
+        if (!static::$_config) {
             throw new AuthException('Auth config not found in "' . $config_path . '"');
         }
 
-        if($field) {
+        if ($field) {
             return static::$_config[$field] ?? null;
         }
 
@@ -386,20 +379,29 @@ class Auth
      * @return boolean
      */
     public static function up()
-    {   
+    {
+        $conn_name = self::getConnectionName();
+        $db = new Database($conn_name);
+
         #Check if cookie table exists
         #If not create the table with it's fields
-        if(!DB::hasTable(static::$_cookie_token_dbname)) {
-            static::getDbTable()
+        if (!$db->hasTable(static::$_cookie_token_dbname)) {
+
+            $table = new DBTable(
+                static::$_cookie_token_dbname,
+                $conn_name
+            );
+
+            $table
                 ->build(function ($table) {
                     $table->field('id')->int()->increment();
                     $table->field('user_id')->varchar();
                     $table->field('device_id')->varchar();
                     $table->field('token')->text();
                     $table->field('expires_at')->datetime();
-                }); 
+                });
         }
-        
+
         return true;
     }
 
@@ -412,8 +414,8 @@ class Auth
     private static function deletaAllCookiesForUser($user_id): int
     {
         return self::getDbTable()->delete()
-                ->where('user_id', $user_id)
-                ->fulfil();
+            ->where('user_id', $user_id)
+            ->fulfil();
     }
 
     /**
@@ -424,23 +426,28 @@ class Auth
      */
     private static function validateAuthCookieToken($token)
     {
+
         $fields = array(
             'user_id',
             'token',
             'expires_at'
         );
 
-        $cookie_table = DB::table(static::$_cookie_token_dbname);
-        $data = $cookie_table
-                        ->select($fields)
-                        ->where('token', $token)
-                        ->fetchOne();
+        $cookie_table = new DBTable(
+            static::$_cookie_token_dbname,
+            self::getConnectionName()
+        );
 
-        if(!$data) {
+        $data = $cookie_table
+            ->select($fields)
+            ->where('token', $token)
+            ->fetchOne();
+
+        if (!$data) {
             return false;
         }
 
-        if(strtotime($data->expires_at) < time()) {
+        if (strtotime($data->expires_at) < time()) {
             $cookie_table
                 ->delete()
                 ->where('token', $token)
@@ -460,7 +467,21 @@ class Auth
      */
     private static function getDbTable(): DBTable
     {
-        return DB::table(static::$_cookie_token_dbname);
+        return new DBTable(
+            static::$_cookie_token_dbname,
+            self::getConnectionName()
+        );
+    }
+
+    /**
+     * Get connection name
+     *
+     * @return string
+     */
+    private static function getConnectionName(): string
+    {
+        return static::getConfig(self::CONFIG_CONNECTION_NAME)
+            ?: 'default';
     }
 
     /**
