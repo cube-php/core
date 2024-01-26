@@ -85,6 +85,17 @@ class Uri implements UriInterface
     }
 
     /**
+     * Get path with redirection params
+     *
+     * @return string
+     */
+    public function getFullPath(): string
+    {
+        $query = ($this->_query) ? '?' . $this->_query : '';
+        return $this->getPath() . $query;
+    }
+
+    /**
      * Get url pathname
      * 
      * @return string
