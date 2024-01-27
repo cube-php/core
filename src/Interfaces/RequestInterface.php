@@ -18,7 +18,7 @@ interface RequestInterface
 
     public function inputs();
 
-    public function input($name);
+    public function input(string | array $name, string $defaults = '');
 
     public function setAttribute($name, $value);
 
