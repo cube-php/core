@@ -12,19 +12,20 @@ use Cube\Router\RouteCollection;
  * @param array|null $params
  * @return string|null
  */
-function route(string $name, ?array $params = null, ?array $query = null) {
+function route(string $name, ?array $params = null, ?array $query = null)
+{
     $route = RouteCollection::getRouteFromName($name);
 
-    if(!$route) {
+    if (!$route) {
         return null;
     }
 
     $new_params = [];
     every($route->getParams(), function ($value, $key) use ($params, &$new_params, $route) {
 
-        if(!isset($params[$value])) {
+        if (!isset($params[$value])) {
             throw new RouteException(
-                concat('Parameter "', $value ,'" not specified for route ', $route->getName())
+                concat('Parameter "', $value, '" not specified for route ', $route->getName())
             );
         }
 
@@ -42,11 +43,11 @@ function route(string $name, ?array $params = null, ?array $query = null) {
  * @param null|array $query Query string
  * @return string
  */
-function url($path = '', ?array $query = null) : string
+function url($path = '', ?array $query = null): string
 {
     $request = Request::getRunningInstance();
 
-    if(is_array($path)) {
+    if (is_array($path)) {
         $path = sprintf('/%s', implode('/', $path));
     }
 
@@ -63,7 +64,7 @@ function url($path = '', ?array $query = null) : string
  * @param bool $should_cache
  * @return string
  */
-function asset($asset_path, bool $should_cache = false) : string
+function asset($asset_path, bool $should_cache = false): string
 {
     $full_path = array_merge(['assets'], array_wrap($asset_path));
     $query = $should_cache ? ['v' => asset_token()] : null;
@@ -75,37 +76,38 @@ function asset($asset_path, bool $should_cache = false) : string
  * 
  * @return string
  */
-function jscript($name, $no_cache = null) : string
+function jscript($name, array $params = [], $no_cache = null): string
 {
-    if(is_array($name)) {
+    if (is_array($name)) {
 
         $links = '';
-        
-        foreach($name as $name) {
-            $links .= "\n"  . jscript($name, $no_cache);
+
+        foreach ($name as $name) {
+            $links .= "\n"  . jscript($name, $params, $no_cache);
         }
 
         return $links;
     }
 
-    $asset = asset(['js', $name . '.js'], true);
+    $src = array('src' => asset(['js', $name . '.js'], true));
+    $attr = array(...$src, ...$params);
 
-    return h('script', ['src' => $asset]);
+    return h('script', $attr);
 }
 
 
 /**
- * Load javascript files
+ * Load css files
  * 
  * @return string
  */
-function css($name, $no_cache = null) : string
+function css($name, $no_cache = null): string
 {
-    if(is_array($name)) {
+    if (is_array($name)) {
 
         $links = '';
-        
-        foreach($name as $name) {
+
+        foreach ($name as $name) {
             $links .= "\n"  . css($name, $no_cache);
         }
 
@@ -120,8 +122,9 @@ function css($name, $no_cache = null) : string
     ]);
 }
 
-function asset_token() : string {
-    if(App::isDevelopment()) {
+function asset_token(): string
+{
+    if (App::isDevelopment()) {
         return time();
     }
 
