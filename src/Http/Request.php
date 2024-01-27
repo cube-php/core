@@ -278,13 +278,13 @@ class Request implements RequestInterface
     /**
      * Get input
      *
-     * @param string $name Input name
+     * @param string|array $name Input name
      * @param string $defaults Default value if input isn't found
      * @return Input|Input[]
      */
-    public function input($name, string $defaults = '')
+    public function input(string | array $name, string $defaults = '')
     {
-        $names = explode(',', $name);
+        $names = is_string($name) ? explode(',', $name) : $name;
 
         if (count($names) == 1) {
             $raw_value = $this->inputs()->get($name);
