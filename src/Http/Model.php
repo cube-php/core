@@ -315,13 +315,25 @@ class Model implements ModelInterface
                 unset($data[$val]);
             });
 
-            every($this->with_data, function ($val, $index) use (&$data) {
+            every($this->with_data, function ($val, $index) use (&$data, $data_keys) {
 
                 $cls = get_called_class();
                 $key = !is_numeric($index) ? $index : $val;
 
                 if (is_callable($val)) {
                     return $data[$key] = $val();
+                }
+
+                if (str_starts_with($val, '@')) {
+                    $property_name = substr($val, 1);
+
+                    if (!in_array($property_name, $data_keys)) {
+                        throw new ModelException(
+                            concat('Property "', $property_name, '" not defined in "', $cls, '"')
+                        );
+                    }
+
+                    return $data[$key] = $this->_data[$property_name];
                 }
 
                 $values = explode('.', $val);
