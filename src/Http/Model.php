@@ -546,7 +546,7 @@ class Model implements ModelInterface
      * @param array|null $order Order methods
      * @param array|null $params Parameters
      * 
-     * @return array
+     * @return ModelCollection|array|null
      */
     public static function findAllBy($field, $value, $order = null, $params = null)
     {
@@ -668,7 +668,7 @@ class Model implements ModelInterface
      *
      * @param integer $count
      * @param integer $offset
-     * @return $this[]
+     * @return ModelCollection|array|null
      */
     public static function fetch(int $count, int $offset = 0)
     {
