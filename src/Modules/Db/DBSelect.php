@@ -22,6 +22,13 @@ class DBSelect extends DBQueryBuilder
     public $model = null;
 
     /**
+     * Lock for update
+     *
+     * @var boolean
+     */
+    protected bool $lock = false;
+
+    /**
      * Constructor
      * 
      * @param string $table_name
@@ -158,6 +165,17 @@ class DBSelect extends DBQueryBuilder
     }
 
     /**
+     * Lock for update
+     *
+     * @return $this
+     */
+    public function lock()
+    {
+        $this->lock = true;
+        return $this;
+    }
+
+    /**
      * Order query
      * 
      * @param array $order
@@ -236,7 +254,6 @@ class DBSelect extends DBQueryBuilder
      */
     public function union(DBQueryBuilder $query)
     {
-
         $queryToAppend = (string) $query;
         $this->joinSql(null, 'UNION', $queryToAppend);
 
@@ -267,6 +284,11 @@ class DBSelect extends DBQueryBuilder
     private function get()
     {
         $this->wrapModel();
+
+        if ($this->lock) {
+            $this->joinSql(null, 'FOR UPDATE');
+        }
+
         $sql = $this->getSqlQuery();
         $params = $this->getSqlParameters();
 

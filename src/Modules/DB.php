@@ -4,6 +4,7 @@ namespace Cube\Modules;
 
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBConnection;
+use Throwable;
 
 class DB
 {
@@ -35,7 +36,7 @@ class DB
             'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?',
             [$constraint_name]
         )->fetch();
-        
+
         return !!$query->tcount;
     }
 
@@ -95,8 +96,8 @@ class DB
         $dbname = static::conn()->getConfig()['dbname'];
 
         $query = static::statement('SELECT table_name FROM information_schema.tables WHERE table_schema = ?', [$dbname]);
-        
-        if(!$query->rowCount()) return array();
+
+        if (!$query->rowCount()) return array();
 
         $results = $query->fetchAll();
         $data = array();
@@ -108,6 +109,57 @@ class DB
         });
 
         return $data;
+    }
+
+    /**
+     * Start database transaction
+     *
+     * @return void
+     */
+    public static function startTransaction()
+    {
+        DB::statement('START TRANSACTION');
+    }
+
+    /**
+     * Commit database transaction
+     *
+     * @return void
+     */
+    public static function commit()
+    {
+        DB::statement('COMMIT;');
+    }
+
+    /**
+     * Rollback database transaction
+     *
+     * @return void
+     */
+    public static function rollback()
+    {
+        DB::statement('ROLLBACK');
+    }
+
+    /**
+     * Run database transaction operations
+     *
+     * @param callable $fn
+     * @return mixed
+     */
+    public static function transaction(callable $fn): mixed
+    {
+        self::startTransaction();
+
+        try {
+
+            return $fn();
+        } catch (Throwable $e) {
+            self::rollback();
+            throw $e;
+        }
+
+        self::commit();
     }
 
     /**
