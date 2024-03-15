@@ -816,6 +816,16 @@ class Model implements ModelInterface
     }
 
     /**
+     * Lock
+     *
+     * @return DBSelect
+     */
+    public static function lock(): DBSelect
+    {
+        return self::select()->lock();
+    }
+
+    /**
      * Query schema's table directly
      *
      * @return DBTable

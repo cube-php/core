@@ -107,6 +107,28 @@ if (!function_exists('every')) {
     }
 }
 
+if (!function_exists('array_until')) {
+    function array_until(array|ArrayObject $arr, callable $func)
+    {
+        $result = null;
+        $collection = ($arr instanceof ArrayObject)
+            ? $arr->getArrayCopy()
+            : $arr;
+
+        foreach ($collection as $key => $value) {
+
+            $res = $func($key, $value);
+
+            if ($res) {
+                $result = [$key => $value];
+                break;
+            }
+        }
+
+        return $result;
+    }
+}
+
 if (!function_exists('array_find_index')) {
     /**
      * Find array index
