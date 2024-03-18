@@ -118,7 +118,7 @@ class DB
      */
     public static function startTransaction()
     {
-        DB::statement('START TRANSACTION');
+        DB::statement('START TRANSACTION;');
     }
 
     /**
@@ -138,7 +138,7 @@ class DB
      */
     public static function rollback()
     {
-        DB::statement('ROLLBACK');
+        DB::statement('ROLLBACK;');
     }
 
     /**
@@ -153,13 +153,14 @@ class DB
 
         try {
 
-            return $fn();
+            $result = $fn();
         } catch (Throwable $e) {
             self::rollback();
             throw $e;
         }
 
         self::commit();
+        return $result;
     }
 
     /**
