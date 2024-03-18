@@ -219,7 +219,6 @@ class Model implements ModelInterface
             ->where($key, $entry_id)
             ->fulfil();
 
-
         if ($saved) {
             $old_data = (array) $this->_data;
             array_walk($this->_updates, function ($value, $field) use (&$old_data) {
@@ -391,6 +390,34 @@ class Model implements ModelInterface
             $new_data = array_merge($ordered_data, $data);
             return $new_data;
         });
+    }
+
+    /**
+     * Fetch fresh model data from database
+     *
+     * @return $this
+     */
+    public function refresh(): self
+    {
+        $key = static::getPrimaryKey();
+        $this->_data = self::find($this->{$key})->_data;
+        return $this;
+    }
+
+    /**
+     * Fetch fresh data for $this and lock for update
+     *
+     * @return $this
+     */
+    public function refreshAndLock(): self
+    {
+        $key = static::getPrimaryKey();
+        $model = self::lock()
+            ->where($key, $this->{$key})
+            ->fetchOne();
+
+        $this->_data = (array) $model->_data;
+        return $model;
     }
 
     /**
