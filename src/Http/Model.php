@@ -393,6 +393,23 @@ class Model implements ModelInterface
     }
 
     /**
+     * Create a model duplicate
+     *
+     * @return $this
+     */
+    public function duplicate()
+    {
+        $data = $this->_data;
+        $primary_key = self::getPrimaryKey();
+
+        if (isset($data[$primary_key])) {
+            unset($data[$primary_key]);
+        }
+
+        return self::createObjectEntry($data);
+    }
+
+    /**
      * Fetch fresh model data from database
      *
      * @return $this
