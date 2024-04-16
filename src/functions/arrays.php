@@ -108,19 +108,19 @@ if (!function_exists('every')) {
 }
 
 if (!function_exists('array_until')) {
-    function array_until(array|ArrayObject $arr, callable $func)
+    /**
+     * Loop through array until $fn is satisfied
+     *
+     * @param array $iterable
+     * @param callable $fn
+     * @return mixed
+     */
+    function array_until(array $iterable, callable $fn)
     {
         $result = null;
-        $collection = ($arr instanceof ArrayObject)
-            ? $arr->getArrayCopy()
-            : $arr;
-
-        foreach ($collection as $key => $value) {
-
-            $res = $func($key, $value);
-
-            if ($res) {
-                $result = [$key => $value];
+        foreach ($iterable as $index => $item) {
+            if ($fn($item, $index)) {
+                $result = $item;
                 break;
             }
         }
