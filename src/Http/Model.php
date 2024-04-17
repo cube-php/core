@@ -932,6 +932,26 @@ class Model implements ModelInterface
     }
 
     /**
+     * Select all but specified fields
+     *
+     * @param array ...$fields
+     * @return DBSelect
+     */
+    public static function selectExcept(...$fields): DBSelect
+    {
+        $all_fields = static::fields();
+        $selectable_fields = array_diff($all_fields, $fields);
+
+        $select = new DBSelect(
+            static::$schema,
+            $selectable_fields,
+            get_called_class()
+        );
+
+        return $select;
+    }
+
+    /**
      * Search for matching fields
      *
      * @param string $field Field to search
