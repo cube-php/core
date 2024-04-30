@@ -89,13 +89,16 @@ class View
      */
     public function engageFunctions(array $functions)
     {
-        foreach ($functions as $function) {
-            $fn = new TwigFunction($function, $function, array(
+        every($functions, function ($callable, $key) {
+            $has_value = !is_numeric($key);
+            $name = $has_value ? $key : $callable;
+
+            $fn = new TwigFunction($name, $callable, array(
                 'is_safe' => array('html')
             ));
 
             $this->_twig->addFunction($fn);
-        }
+        });
     }
 
     /**
