@@ -20,6 +20,8 @@ use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
 use Cube\Commands\MakeRuleCommand;
 use Cube\Commands\MigrateCommand;
+use Cube\Commands\Router\RouterCacheCommand;
+use Cube\Commands\Router\RouterClearCacheCommand;
 use Cube\Commands\ServerCommand;
 use Cube\Commands\SessionMigrateCommand;
 use Cube\Commands\ViewClearCacheCommand;
@@ -36,6 +38,7 @@ class Cli
     private $app;
 
     protected $commands = array(
+        RouterClearCacheCommand::class,
         MakeAppResourceCommand::class,
         EventDispatcherCommand::class,
         MakeControllerCommand::class,
@@ -46,6 +49,7 @@ class Cli
         MakeExceptionCommand::class,
         CubeVersionCommand::class,
         MakeConsoleCommand::class,
+        RouterCacheCommand::class,
         MakeHelperCommand::class,
         MakeEventCommand::class,
         MakeAssetCommand::class,

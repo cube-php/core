@@ -483,6 +483,23 @@ class Route
     }
 
     /**
+     * Router to json
+     *
+     * @return array
+     */
+    public function toJSON(): array
+    {
+        return array(
+            'namespace' => array_slice($this->_namespace, 2),
+            'controller' => $this->getController(),
+            'middlewares' => $this->_middlewares,
+            'method' => $this->getMethod(),
+            'path' => $this->getPath(),
+            'name' => $this->getName()
+        );
+    }
+
+    /**
      * Analyze route's controller
      *
      * @param string|array $controller
