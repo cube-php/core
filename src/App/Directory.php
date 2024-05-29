@@ -14,6 +14,7 @@ class Directory
     public const PATH_STORAGE = 'STORAGE';
     public const PATH_HELPERS = 'HELPERS';
     public const PATH_CACHE   = 'CACHE';
+    public const PATH_CONTROLLERS = 'CONTROLLERS';
 
     private $base_path = null;
 
@@ -53,6 +54,7 @@ class Directory
         $root = $this->base_path;
         $app_path = concat($root, $ds, 'app');
         $webroot = concat($root, $ds, 'webroot');
+        $controllers = concat($app_path, $ds, 'Controllers');
 
         $this->paths = array(
             self::PATH_STORAGE => concat($webroot, $ds, 'assets'),
@@ -61,6 +63,7 @@ class Directory
             self::PATH_CONFIG => concat($root, $ds, 'config'),
             self::PATH_CACHE => concat($root, $ds, '.cache'),
             self::PATH_LOGS => concat($root, $ds, 'logs'),
+            self::PATH_CONTROLLERS => $controllers,
             self::PATH_WEBROOT => $webroot,
             self::PATH_APP => $app_path,
             self::PATH_ROOT => $root,

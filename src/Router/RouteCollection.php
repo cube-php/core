@@ -46,6 +46,7 @@ class RouteCollection
     public function __construct()
     {
         $this->_request = Request::getRunningInstance();
+        ControllerRoutesLoader::load();
     }
 
     /**
@@ -55,14 +56,13 @@ class RouteCollection
      */
     public function build()
     {
-
         $path_match_found = false;
         $raw_current_url = (string) $this->_request->url()->getPath();
         $current_url = $this->trimPath($raw_current_url);
 
-        foreach(static::$_attached_routes as $route) {
-            
-            if($path_match_found) {
+        foreach (static::$_attached_routes as $route) {
+
+            if ($path_match_found) {
                 break;
             }
 
@@ -73,18 +73,18 @@ class RouteCollection
             $test = preg_match("#^{$regex_path}$#", $current_url, $matches);
 
             #Match found!!!
-            if($test) {
+            if ($test) {
 
                 $path_match_found = true;
                 $path_attributes = array_slice($matches, 1);
                 $route_attributes = $route->getAttributes();
 
-                array_walk($route_attributes, function($attribute, $index) use ($path_attributes, $route) {
+                array_walk($route_attributes, function ($attribute, $index) use ($path_attributes, $route) {
 
                     $name = $attribute;
                     $value = $path_attributes[$index] ?? null;
 
-                    if($route->hasOptionalParameter()) {
+                    if ($route->hasOptionalParameter()) {
                         $value = substr($value, 0, strlen($value) - 1);
                     }
 
@@ -96,14 +96,14 @@ class RouteCollection
                     App::EVENT_ROUTE_MATCH_FOUND,
                     $this->_request
                 );
-                
+
                 #Get parsed response
                 $response = $route->parseResponse(Response::getInstance());
 
                 #Engage Middlewares
                 $request = $route->engageMiddleware($this->_request);
 
-                if($request instanceof Response) {
+                if ($request instanceof Response) {
                     return true;
                 }
 
@@ -115,7 +115,7 @@ class RouteCollection
                     Request::EVENT_COMPLETED,
                     $this->_request
                 );
-                
+
                 return true;
             }
         }
@@ -171,7 +171,7 @@ class RouteCollection
         $request = Request::getRunningInstance();
 
         #attach on request method
-        if($route->getMethod() && $request->getMethod() !== $route->getMethod()) {
+        if ($route->getMethod() && $request->getMethod() !== $route->getMethod()) {
             return $route;
         }
         static::$_attached_routes[] = $route;
