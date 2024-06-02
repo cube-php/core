@@ -6,7 +6,7 @@ use Cube\App\App;
 use Cube\App\Directory;
 use InvalidArgumentException;
 use Cube\Interfaces\ResponseInterface;
-use Cube\Helpers\View;
+use Cube\View\ViewRenderer;
 
 use Cube\Http\Headers;
 use Cube\Http\Session;
@@ -66,7 +66,7 @@ class Response implements ResponseInterface
     public const HTTP_TOO_MANY_REQUESTS = 429;
     public const HTTP_REQUEST_HEADER_FIELDS_TOO_LARGE = 431;
     public const HTTP_UNAVAILABLE_FOR_LEGAL_REASONS = 451;
-    
+
     public const HTTP_INTERNAL_SERVER_ERROR = 500;
     public const HTTP_NOT_IMPLEMENTED = 501;
     public const HTTP_BAD_GATEWAY = 502;
@@ -164,7 +164,7 @@ class Response implements ResponseInterface
         self::HTTP_LOOP_DETECTED => 'Loop Detected',
         self::HTTP_NOT_EXTENDED => 'Not Extended',
         self::HTTP_NETWORK_AUTHENTICATION_REQUIRED => 'Network Authentication Required'
-     );
+    );
 
     /**
      * Headers
@@ -186,7 +186,7 @@ class Response implements ResponseInterface
      * @var bool
      */
     private $_has_render_headers = false;
-    
+
     /**
      * View
      *
@@ -208,7 +208,7 @@ class Response implements ResponseInterface
     private function __construct()
     {
         $this->_header = new Headers;
-        $this->_view = new View(App::getPath(Directory::PATH_VIEWS));
+        $this->_view = new ViewRenderer(App::getPath(Directory::PATH_VIEWS));
     }
 
     /**
@@ -324,7 +324,7 @@ class Response implements ResponseInterface
     {
         $code = (int) $code;
 
-        if(!$code or $code < 100 or $code > 599) {
+        if (!$code or $code < 100 or $code > 599) {
             throw new InvalidArgumentException('The HTTP status code specified is invalid');
         }
 
@@ -348,7 +348,7 @@ class Response implements ResponseInterface
 
         #Check if headers have been output
         #Else output headers
-        if(!$this->_has_render_headers) {
+        if (!$this->_has_render_headers) {
             $this->_header->render();
             $this->_has_render_headers = true;
         }
@@ -367,12 +367,13 @@ class Response implements ResponseInterface
      * 
      * @return self
      */
-    public function json($data, ?int $status_code = null) {
+    public function json($data, ?int $status_code = null)
+    {
 
         $this->withHeader('Content-Type', 'application/json');
         $data = json_encode($data);
 
-        if($status_code) {
+        if ($status_code) {
             $this->withStatusCode($status_code);
         }
 
@@ -408,7 +409,7 @@ class Response implements ResponseInterface
     {
         $path = route($route_name, $params);
 
-        if(!$path) {
+        if (!$path) {
             throw new InvalidArgumentException('Route with name "' . $route_name . '" is not assigned');
         }
 
@@ -440,7 +441,7 @@ class Response implements ResponseInterface
         $resolved_context = array_merge($this->_view_context, $context);
         $rendered_content = $this->_view->render($path, $resolved_context);
 
-        if(!$run_render) {
+        if (!$run_render) {
             return $rendered_content;
         }
 
@@ -456,11 +457,11 @@ class Response implements ResponseInterface
      */
     public static function getInstance($force_new = false)
     {
-        if($force_new) {
+        if ($force_new) {
             return new self();
         }
 
-        if(static::$_instance) {
+        if (static::$_instance) {
             return static::$_instance;
         }
 
