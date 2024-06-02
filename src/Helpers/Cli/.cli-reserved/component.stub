@@ -1,0 +1,15 @@
+<?php
+
+namespace App\Components{subNamespace};
+
+use Cube\View\ViewComponent;
+
+class {className} extends ViewComponent
+{
+    protected string $template = 'components.{name}';
+
+    public function __construct()
+    {
+        //prepare component
+    }
+}

@@ -5,6 +5,7 @@ namespace Cube\Helpers\Cli;
 use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Commands\AppSetupCommand;
+use Cube\Commands\Components\CreateComponentCommand;
 use Cube\Commands\ConsoleCommand;
 use Cube\Commands\CubeVersionCommand;
 use Cube\Commands\EventDispatcherCommand;
@@ -40,6 +41,7 @@ class Cli
     protected $commands = array(
         RouterClearCacheCommand::class,
         MakeAppResourceCommand::class,
+        CreateComponentCommand::class,
         EventDispatcherCommand::class,
         MakeControllerCommand::class,
         MakeMiddlewareCommand::class,

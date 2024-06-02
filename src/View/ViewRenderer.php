@@ -1,6 +1,6 @@
 <?php
 
-namespace Cube\Helpers;
+namespace Cube\View;
 
 use Cube\Http\Env;
 use Cube\App\App;
@@ -11,7 +11,7 @@ use Twig\Loader\FilesystemLoader;
 use Twig\TwigFilter;
 use Twig\TwigFunction;
 
-class View
+class ViewRenderer
 {
     const EVENT_LOADED = 'viewLoaded';
 
@@ -42,7 +42,8 @@ class View
         'asset',
         'csrf_token',
         'csrf_form',
-        'route'
+        'route',
+        'component'
     );
 
     /**

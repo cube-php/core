@@ -20,6 +20,7 @@ class CliActions
     public const RESOURCE_TYPE_COMMANDS = 'Command';
     public const RESOURCE_TYPE_HELPER = 'helper';
     public const RESOURCE_TYPE_VALIDATION_RULE = 'Rule';
+    public const RESOURCE_TYPE_COMPONENT = 'Component';
 
     /**
      * Build & generate resouce
@@ -217,7 +218,7 @@ class CliActions
      */
     private static function getReservedTemplate($name)
     {
-        $path = __DIR__ . DIRECTORY_SEPARATOR . '.cli-reserved' . DIRECTORY_SEPARATOR . "{$name}.tpl";
+        $path = __DIR__ . DIRECTORY_SEPARATOR . '.cli-reserved' . DIRECTORY_SEPARATOR . "{$name}.stub";
 
         try {
             $file = new File($path);
