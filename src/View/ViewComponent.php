@@ -28,7 +28,9 @@ abstract class ViewComponent
             $context[$param->name] = $this->{$param->name};
         });
 
+        $context['_props'] = $context;
         $context['_attr'] = self::buildAttributes($this->attributes);
+        $context['_attrs'] = $this->attributes;
         $view = load_view($this->template, $context);
         return $view;
     }
