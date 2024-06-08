@@ -13,7 +13,11 @@ use Twig\TwigFunction;
 
 class ViewRenderer
 {
-    const EVENT_LOADED = 'viewLoaded';
+    /** @var string View is loaded */
+    public const EVENT_LOADED = 'viewLoaded';
+
+    /** @var string When view is ready */
+    public const EVENT_READY = 'viewReady';
 
     /**
      * Twig
@@ -135,7 +139,6 @@ class ViewRenderer
             }
         }
 
-
         $this->_twig = new Environment($loader, $view_options);
         $this->_twig->addGlobal('env', Env::all());
         $this->engageFunctions($this->_system_functions);
@@ -145,6 +148,18 @@ class ViewRenderer
 
         $this->engageFunctions($custom_functions);
         $this->engageFilters($custom_filters);
+
+        EventManager::dispatchEvent(self::EVENT_READY, $this);
+    }
+
+    /**
+     * Get twig
+     *
+     * @return Environment
+     */
+    public function getTwig(): Environment
+    {
+        return $this->_twig;
     }
 
     /**
