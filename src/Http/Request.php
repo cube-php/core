@@ -13,6 +13,7 @@ use Cube\Misc\FilesParser;
 use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
+use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\RequestValidator;
 
 class Request implements RequestInterface
@@ -391,6 +392,16 @@ class Request implements RequestInterface
         $stopped = false;
 
         foreach ($middlewares as $middleware) {
+
+            if (is_object($middleware)) {
+                if (!is_a($middleware, MiddlewareInterface::class)) {
+                    throw new InvalidArgumentException(
+                        sprintf('"%s" is not a middleware', $middleware::class)
+                    );
+                }
+
+                $result = $middleware->trigger($this);
+            }
 
             if (is_callable($middleware)) {
                 $result = $middleware($result);

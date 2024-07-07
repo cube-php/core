@@ -5,6 +5,11 @@ namespace Cube\Router;
 use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Misc\File;
+use Cube\Router\Attributes\Delete;
+use Cube\Router\Attributes\Get;
+use Cube\Router\Attributes\Patch;
+use Cube\Router\Attributes\Post;
+use Cube\Router\Attributes\Put;
 use Cube\Router\Attributes\Route;
 use Cube\Router\Attributes\RouteGroup;
 use Cube\Router\Route as RouterRoute;
@@ -94,9 +99,20 @@ class ControllerRoutesLoader
         $controllers = self::scan();
         $routes = array();
 
-        every($controllers, function ($path) use (&$routes) {
+        $route_verbs = array(
+            Delete::class,
+            Patch::class,
+            Post::class,
+            Get::class,
+            Put::class
+        );
 
+        $route_attributes = array(
+            Route::class,
+            ...$route_verbs
+        );
 
+        every($controllers, function ($path) use (&$routes, $route_verbs, $route_attributes) {
             $fileinfo = (object) pathinfo($path->file);
             $filename = $fileinfo->filename;
             $filext = $fileinfo->extension;
@@ -131,19 +147,42 @@ class ControllerRoutesLoader
                 function (ReflectionMethod $method) use (
                     &$routes,
                     $filename,
+                    $route_attributes,
                     $group_middlewares,
                     $group_path,
                     $group_name,
                     $subdirs,
+                    $route_verbs,
                 ) {
-                    $attributes = $method->getAttributes(Route::class);
+                    $attributes = $method->getAttributes();
 
                     if (!$attributes) {
                         return;
                     }
 
                     $attribute = $attributes[0];
+                    $name = $attribute->getName();
+
+                    if (!in_array($name, $route_attributes)) {
+                        return;
+                    }
+
                     $args = (object) $attribute->getArguments();
+
+                    if (in_array($name, $route_verbs)) {
+
+                        $attr_args = $attribute->getArguments();
+                        $is_named = !is_numeric(array_keys($attr_args)[0]);
+                        $rmethod = array_get_last(explode('\\', $name));
+
+                        $args = (object) array(
+                            'method' => strtoupper($rmethod),
+                            'path' => $is_named ? $args->path : $args->{0},
+                            'name' => $is_named ? $args->name ?? null : $args?->{1} ?? null,
+                            'use' => $is_named ? $args->use ?? null : $args?->{2} ?? null,
+                        );
+                    }
+
                     $path = $group_path ? $group_path . $args->path : $args->path;
 
                     $route = new RouterRoute(
