@@ -172,12 +172,12 @@ class ControllerRoutesLoader
                     if (in_array($name, $route_verbs)) {
 
                         $attr_args = $attribute->getArguments();
-                        $is_named = !is_numeric(array_keys($attr_args)[0]);
+                        $is_named = !is_numeric(array_keys($attr_args)[0] ?? 0);
                         $rmethod = array_get_last(explode('\\', $name));
 
                         $args = (object) array(
                             'method' => strtoupper($rmethod),
-                            'path' => $is_named ? $args->path : $args->{0},
+                            'path' => $is_named ? $args->path : $args->{0} ?? '/',
                             'name' => $is_named ? $args->name ?? null : $args?->{1} ?? null,
                             'use' => $is_named ? $args->use ?? null : $args?->{2} ?? null,
                         );
