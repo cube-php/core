@@ -55,28 +55,6 @@ class System
 
             throw new AppException("Unable to intialize system \n" . $e->getMessage(), true);
         }
-            
-    }
-
-    /**
-     * Load up all schemas
-     *
-     * @return void
-     */
-    public function schemas()
-    {
-        return DB::tables();
-    }
-
-    /**
-     * System function to drop table
-     *
-     * @param string $name Table name
-     * @return void
-     */
-    public function schemaDropTable($name)
-    {
-        DB::table($name)->drop();
     }
 
     /**

@@ -3,7 +3,6 @@
 namespace Cube\Modules\Db;
 
 use PDOStatement;
-use Cube\Http\Env;
 use Cube\Modules\DB;
 use Cube\Modules\Db\DBDelete;
 use Cube\Modules\Db\DBInsert;
@@ -26,19 +25,27 @@ class DBTable
 
     /**
      * Table name
-     * 
+     *
      * @var string
      */
-    private $name;
+    public readonly string $name;
+
+    /**
+     * Database connection
+     *
+     * @var DBConnection
+     */
+    public readonly DBConnection $connection;
 
     /**
      * Class constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(string $name, ?DBConnection $connection = null)
     {
-        $this->name = $table_name;
+        $this->name = $name;
+        $this->connection = $connection;
     }
 
     /**
@@ -50,7 +57,13 @@ class DBTable
      */
     public function addIndex($index_name, $field_name)
     {
-        return DB::statement(DBWordConstruct::alterTableAddIndex($this->name, $index_name, $field_name));
+        return $this->connection->query(
+            DBWordConstruct::alterTableAddIndex(
+                $this->name,
+                $index_name,
+                $field_name
+            )
+        );
     }
 
     /**
@@ -62,7 +75,7 @@ class DBTable
      */
     public function addField($structure)
     {
-        DB::statement(
+        $this->connection->query(
             DBWordConstruct::alterTableAdd(
                 $this->name,
                 $structure
@@ -92,7 +105,7 @@ class DBTable
     {
         $this->createTable();
         $callback(new DBTableBuilder($this));
-        return new self($this->name);
+        return new self($this->name, $this->connection);
     }
 
     /**
@@ -100,8 +113,9 @@ class DBTable
      * 
      * @return int
      */
-    public function count() {
-        
+    public function count()
+    {
+
         return $this->select(['count(*) as tcount'])->fetchOne()->tcount;
     }
 
@@ -125,7 +139,7 @@ class DBTable
      */
     public function delete()
     {
-        return new DBDelete($this->name);
+        return new DBDelete($this);
     }
 
     /**
@@ -135,7 +149,11 @@ class DBTable
      */
     public function describe()
     {
-        $stmt = DB::statement(DBWordConstruct::describe($this->name));
+        $stmt = $this->connection->query(
+            DBWordConstruct::describe(
+                $this->name
+            )
+        );
         return $stmt->fetchAll();
     }
 
@@ -146,11 +164,11 @@ class DBTable
      */
     public function drop()
     {
-        if(!$this->exists()) {
+        if (!$this->exists()) {
             return;
         }
 
-        DB::statement(DBWordConstruct::dropTable($this->name));
+        $this->connection->query(DBWordConstruct::dropTable($this->name));
     }
 
     /**
@@ -162,11 +180,11 @@ class DBTable
     public function dropConstraint(string $name)
     {
         $constraint_name = concat($this->name, '_', $name);
-        if(!DB::constraintExists($constraint_name)) {
+        if (!$this->connection->constraintExists($constraint_name)) {
             return;
         }
 
-        return DB::statement(
+        return $this->connection->query(
             DBWordConstruct::dropConstraint(
                 $this->name,
                 $constraint_name
@@ -182,7 +200,12 @@ class DBTable
      */
     public function dropIndex($index_name)
     {
-        return DB::statement(DBWordConstruct::dropIndex($this->name, $index_name));
+        return $this->connection->query(
+            DBWordConstruct::dropIndex(
+                $this->name,
+                $index_name
+            )
+        );
     }
 
     /**
@@ -192,7 +215,7 @@ class DBTable
      */
     public function exists()
     {
-        return DB::hasTable($this->name);
+        return $this->connection->hasTable($this->name);
     }
 
     /**
@@ -202,13 +225,13 @@ class DBTable
      */
     public function fields()
     {
-        $query = DB::statement('DESCRIBE ' . $this->name);
-        
-        if(!$query->rowCount()) return array();
+        $query = $this->connection->query('DESCRIBE ' . $this->name);
+
+        if (!$query->rowCount()) return array();
 
         $fields = array();
 
-        while($fetch = $query->fetch()) {
+        while ($fetch = $query->fetch()) {
             $fields[] = $fetch->Field;
         }
 
@@ -246,7 +269,7 @@ class DBTable
      */
     public function insert(array $entry)
     {
-        $insert = new DBInsert($this->name);
+        $insert = new DBInsert($this);
         return $insert->entry($entry);
     }
 
@@ -259,7 +282,7 @@ class DBTable
      */
     public function replace(array $entry)
     {
-        $insert = new DBReplace($this->name);
+        $insert = new DBReplace($this);
         return $insert->entry($entry);
     }
 
@@ -272,11 +295,11 @@ class DBTable
      */
     public function removeField($name)
     {
-        if(!$this->hasField($name)) {
+        if (!$this->hasField($name)) {
             return $this->fields();
         }
 
-        DB::statement(
+        $this->connection->query(
             DBWordConstruct::alterTableRemove(
                 $this->name,
                 $name
@@ -285,7 +308,7 @@ class DBTable
 
         return $this->fields();
     }
-    
+
     /**
      * Drop temporary field used in the
      * create table sentence
@@ -304,7 +327,12 @@ class DBTable
      */
     public function rename($new_name)
     {
-        return DB::statement(DBWordConstruct::renameTable($this->name, $new_name));
+        return $this->connection->query(
+            DBWordConstruct::renameTable(
+                $this->name,
+                $new_name
+            )
+        );
     }
 
     /**
@@ -314,21 +342,7 @@ class DBTable
      */
     public function select(array $fields)
     {
-        return new DBSelect($this->name, $fields);
-    }
-
-    /**
-     * Raw select statement
-     *
-     * @param string $statement Sql statement
-     * @param string $param Sql parameters
-     *
-     * @return DBSelect
-     */
-    public function selectRaw($statement, $params = [])
-    {
-        $builder = new DBSelect;
-        return $builder->raw($statement, $params);
+        return new DBSelect($this, $fields);
     }
 
     /**
@@ -350,7 +364,7 @@ class DBTable
      */
     public function truncate()
     {
-        DB::statement(
+        $this->connection->query(
             DBWordConstruct::truncateTable($this->name)
         );
     }
@@ -362,9 +376,9 @@ class DBTable
      * 
      * @return DBUpdate
      */
-    public function update(array $entry)
+    public function update(array $entry): DBUpdate
     {
-        $update = new DBUpdate($this->name);
+        $update = new DBUpdate($this);
         return $update->entry($entry);
     }
 
@@ -375,9 +389,9 @@ class DBTable
      */
     private function createTable()
     {
-        if($this->exists()) return;
+        if ($this->exists()) return;
 
-        $charset = Env::get('DB_CHARSET');
+        $charset = $this->connection->getCharset();
 
         #Create temporary structure
         $builder = new DBSchemaBuilder($this, $this->temp_field_name, false);
@@ -386,7 +400,7 @@ class DBTable
         #Create table with temporary field
         #Which will be removed immediately
         #The specified fields are added
-        DB::statement(
+        $this->connection->query(
             DBWordConstruct::createTable(
                 $this->name,
                 $structure,

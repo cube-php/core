@@ -3,7 +3,6 @@
 namespace Cube\Modules\Db;
 
 use Cube\Exceptions\DBException;
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBTable;
 
 class DBTableForeignKey
@@ -70,11 +69,11 @@ class DBTableForeignKey
     {
         $structure = $this->getStructure();
 
-        if(!$structure) {
+        if (!$structure) {
             return;
         }
 
-        DB::statement($structure);
+        $this->table->connection->query($structure);
     }
 
     /**
@@ -121,26 +120,34 @@ class DBTableForeignKey
      */
     protected function getStructure(): ?string
     {
-        if(!$this->reference || !$this->reference_key) {
+        if (!$this->reference || !$this->reference_key) {
             throw new DBException('No model referenced for foreign key');
         }
 
         $constraint_name = concat($this->table->getName(), '_', $this->field_name);
 
-        if(DB::constraintExists($constraint_name)) {
+        if ($this->table->connection->constraintExists($constraint_name)) {
             return null;
         }
 
         $structure = concat(
-            'ALTER TABLE ', $this->table->getName(),
-            ' ADD CONSTRAINT ', $constraint_name,
-            ' FOREIGN KEY (', $this->field_name, ') REFERENCES ',
+            'ALTER TABLE ',
+            $this->table->getName(),
+            ' ADD CONSTRAINT ',
+            $constraint_name,
+            ' FOREIGN KEY (',
+            $this->field_name,
+            ') REFERENCES ',
             $this->reference,
-            '(', $this->reference_key, ')',
-            ' ON DELETE ', $this->on_delete_option,
-            ' ON UPDATE ', $this->on_update_option
+            '(',
+            $this->reference_key,
+            ')',
+            ' ON DELETE ',
+            $this->on_delete_option,
+            ' ON UPDATE ',
+            $this->on_update_option
         );
-        
+
         return $structure;
     }
 }

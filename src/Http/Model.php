@@ -8,6 +8,8 @@ use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
 use Cube\Interfaces\ModelInterface;
 use Cube\Misc\ModelCollection;
+use Cube\Modules\Db\DBConnection;
+use Cube\Modules\Db\DBConnector;
 use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
 use Cube\Traits\Onceable;
@@ -50,6 +52,13 @@ class Model implements ModelInterface
      * @var string
      */
     protected static $primary_key = 'id';
+
+    /**
+     * Mysql connection
+     *
+     * @var string
+     */
+    protected static string $connection = DBConnector::DEFAULT_CONNECTION_NAME;
 
     /**
      * Property type cast
@@ -532,7 +541,7 @@ class Model implements ModelInterface
      */
     public static function createEntry(array $entry)
     {
-        $entry_id = DB::table(static::$schema)->insert($entry);
+        $entry_id = self::query()->insert($entry);
         static::onCreate($entry_id);
 
         return $entry_id;
@@ -564,7 +573,7 @@ class Model implements ModelInterface
      */
     public static function delete(): DBDelete
     {
-        return DB::table(static::$schema)->delete();
+        return self::query()->delete();
     }
 
     /**
@@ -642,7 +651,7 @@ class Model implements ModelInterface
      */
     public static function findByPrimaryKeyAndRemove($primary_key)
     {
-        return DB::table(static::$schema)
+        return self::query()
             ->delete()
             ->where(static::getPrimaryKey(), $primary_key)
             ->fulfil();
@@ -658,7 +667,7 @@ class Model implements ModelInterface
      */
     public static function findByPrimaryKeyAndUpdate($primary_key, array $update)
     {
-        return DB::table(static::$schema)
+        return self::query()
             ->update($update)
             ->where(static::getPrimaryKey(), $primary_key)
             ->fulfil();
@@ -763,7 +772,7 @@ class Model implements ModelInterface
     public static function getCount(): int
     {
         $key = static::getPrimaryKey();
-        $res = DB::table(static::$schema)
+        $res = self::query()
             ->select(['count(' . $key . ') tcount'])
             ->fetchOne();
 
@@ -781,7 +790,7 @@ class Model implements ModelInterface
     {
         $key = static::getPrimaryKey();
 
-        return DB::table(static::$schema)
+        return self::query()
             ->select(['count(' . $key . ') tcount'])
             ->where($field, $value)
             ->fetchOne()
@@ -796,7 +805,7 @@ class Model implements ModelInterface
     public static function getCountQuery()
     {
         $key = static::getPrimaryKey();
-        return DB::table(static::$schema)
+        return self::query()
             ->select(["count({$key}) as count"]);
     }
 
@@ -856,7 +865,7 @@ class Model implements ModelInterface
      */
     public static function getSumByField(string $field)
     {
-        return DB::table(static::$schema)->sum($field);
+        return self::query()->sum($field);
     }
 
     /**
@@ -876,7 +885,10 @@ class Model implements ModelInterface
      */
     public static function query(): DBTable
     {
-        return DB::table(static::$schema);
+        return new DBTable(
+            static::$schema,
+            static::getConnection()
+        );
     }
 
     /**
@@ -923,7 +935,7 @@ class Model implements ModelInterface
     public static function select(...$args): DBSelect
     {
         $select = new DBSelect(
-            static::$schema,
+            static::query(),
             count($args) ? $args : self::fields(),
             get_called_class()
         );
@@ -943,7 +955,7 @@ class Model implements ModelInterface
         $selectable_fields = array_diff($all_fields, $fields);
 
         $select = new DBSelect(
-            static::$schema,
+            static::query(),
             $selectable_fields,
             get_called_class()
         );
@@ -1136,5 +1148,15 @@ class Model implements ModelInterface
         }
 
         return $rows;
+    }
+
+    /**
+     * Get model connection
+     *
+     * @return DBConnection
+     */
+    private static function getConnection(): DBConnection
+    {
+        return DBConnection::connection(static::$connection);
     }
 }

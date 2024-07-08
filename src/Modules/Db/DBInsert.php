@@ -8,14 +8,17 @@ use Cube\Modules\Db\DBQueryBuilder;
 class DBInsert extends DBQueryBuilder
 {
 
+    private DBTable $table;
+
     /**
      * Constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(DBTable $table)
     {
-        $this->joinSql('INSERT INTO', $table_name);
+        $this->table = $table;
+        $this->joinSql('INSERT INTO', $table->name);
     }
 
     /**
@@ -39,8 +42,9 @@ class DBInsert extends DBQueryBuilder
      */
     private function finish()
     {
-        $db = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
-        return DB::lastInsertId();
+        $connection = $this->table->connection;
+        $connection->query($this->getSqlQuery(), $this->getSqlParameters());
+        return $connection->lastInsertId();
     }
 
     /**

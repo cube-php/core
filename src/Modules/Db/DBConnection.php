@@ -2,143 +2,61 @@
 
 namespace Cube\Modules\Db;
 
+use Cube\Exceptions\DBException;
 use PDO;
 use PDOStatement;
-use PDOException;
-
-use Cube\App\App;
-use Cube\Exceptions\DBException;
+use Throwable;
 
 class DBConnection
 {
-    /**
-     * Set whether database has initiated connection
-     *
-     * @var boolean
-     */
-    private static $_connected = false;
-
-    /**
-     * Database instance
-     * 
-     * @var \PDO
-     */
-    private static $_instance = null;
-
-    /**
-     * Database connection
-     * 
-     * @var \PDO
-     */
-    private $connection;
-
-    /**
-     * Database configuration
-     * 
-     * @var array
-     */
-    private $config;
-
-    /**
-     * Class constructor
-     * 
-     * Creates the PDO connection
-     */
-    private function __construct()
+    public function __construct(protected DBConnectorItem $item)
     {
-        $config = $this->config = App::getConfig('database');
-        $options = $config['options'] ?? [];
-
-        if(!is_array($options)) {
-            throw new DBException('Invalid database configuration options');
-        }
-        
-        $driver = $config['driver'] ?? '';
-        $hostname = $config['hostname'] ?? '';
-
-        $username = $config['username'] ?? '';
-        $password = $config['password'] ?? '';
-        
-        $dbname = $config['dbname'] ?? '';
-        $charset = $config['charset'] ?? '';
-        $port = $config['port'] ?? '';
-
-        $dsn = "{$driver}:host={$hostname};dbname={$dbname};charset={$charset}";
-
-        if($port) {
-            $dsn .= ";port={$port}";
-        }
-
-        $default_opts = array(
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        );
-
-        if(count($options)) {
-            every($options, function($value, $key) use (&$default_opts) {
-                $default_opts[$key] = $value;
-            });
-        }
-        
-        try {
-
-            $this->connection = new PDO($dsn, $username, $password, $default_opts);
-            static::$_connected = true;
-
-        } catch (PDOException $e) {
-            throw new DBException('Unable to establish database connection. Error: "' . $e->getMessage() . '"', 500);
-        }
     }
 
-    /**
-     * Prevent duplication of connection
-     * 
-     */
-    private function __clone() { }
-
-    /**
-     * Get database instance
-     * 
-     * @return self
-     */
-    public static function getInstance()
-    {
-        if(!static::$_instance) {
-            static::$_instance = new self;
-        }
-        
-        return static::$_instance;
-    }
-
-    /**
-     * Close connection
-     *
-     * @return void
-     */
-    public function close()
-    {
-        $this->connection = null;
-        static::$_connected = false;
-    }
-
-    /**
-     * Return config
-     * 
-     * @return array
-     */
-    public function getConfig()
-    {
-        return $this->config;
-    }
-    
     /**
      * Return connection
-     * 
-     * @return \PDO
+     *
+     * @return PDO
      */
-    public function getConnection()
+    public function getConnection(): PDO
     {
-        return $this->connection;
+        return $this->item->connection;
+    }
+
+    /**
+     * Get character encoding format
+     *
+     * @return string
+     */
+    public function getCharset(): string
+    {
+        return $this->item->charset;
+    }
+
+    /**
+     * Return whether database is connected
+     *
+     * @return boolean
+     */
+    public function isConnected(): bool
+    {
+        return $this->item->is_connected;
+    }
+
+    /**
+     * Check if constraint exists
+     *
+     * @param string $constraint_name
+     * @return boolean
+     */
+    public function constraintExists(string $constraint_name): bool
+    {
+        $query = $this->query(
+            DBWordConstruct::constraintsExist(),
+            [$constraint_name]
+        )->fetch();
+
+        return !!$query->tcount;
     }
 
     /**
@@ -150,23 +68,22 @@ class DBConnection
      */
     public function getDataType($item)
     {
-        switch($item)
-        {
+        switch ($item) {
             case is_bool($item):
                 return PDO::PARAM_BOOL;
-            break;
+                break;
 
             case is_int($item):
                 return PDO::PARAM_INT;
-            break;
+                break;
 
             case is_null($item):
                 return PDO::PARAM_NULL;
-            break;
+                break;
 
             default:
                 return PDO::PARAM_STR;
-            break;
+                break;
         }
     }
 
@@ -176,23 +93,21 @@ class DBConnection
      * @param string $sql Query to run
      * @param array $params Query parameters
      * 
-     * @return \PDOStatement
+     * @return PDOStatement
      */
-    public function query($sql, array $params = [])
+    public function query($sql, array $params = []): PDOStatement
     {
-        if(!$this->connection) {
-            throw new DBException('Connection failed');
+        if (!$this->item->is_connected) {
+            throw new DBException('Database connection failed');
         }
 
-        $stmt = $this->connection->prepare($sql);
-        
-        if(count($params)) {
+        $connection = $this->getConnection();
+        $stmt = $connection->prepare($sql);
 
-            foreach($params as $index => &$value)
-            {
-                $index++;
-                $stmt->bindValue($index, $value, $this->getDataType($value));
-            }
+        if (count($params)) {
+            every($params, function ($value, $index) use ($stmt) {
+                $stmt->bindValue($index + 1, $value, $this->getDataType($value));
+            });
         }
 
         $stmt->execute();
@@ -200,12 +115,130 @@ class DBConnection
     }
 
     /**
-     * Returns whether database is connected
+     * Escape string
      *
+     * @param string $string
+     * @return string
+     */
+    public function escape(string $string)
+    {
+        return $this->getConnection()->quote($string);
+    }
+
+    /**
+     * Get last insert id
+     *
+     * @return int
+     */
+    public function lastInsertId(): int
+    {
+        return (int) $this->getConnection()->lastInsertId();
+    }
+
+    /**
+     * List all tables
+     *
+     * @return string[]
+     */
+    public function tables()
+    {
+        $dbname = $this->item->dbname;
+        $query = $this->query(
+            DBWordConstruct::selectTables(),
+            [$dbname]
+        );
+
+        if (!$query->rowCount()) {
+            return array();
+        }
+
+        $results = $query->fetchAll();
+        $data = array();
+
+        every($results, function ($result) use (&$data) {
+            $table = (array) $result;
+            $table_data = array_change_key_case($table, CASE_LOWER);
+            $data[] = $table_data['table_name'];
+        });
+
+        return $data;
+    }
+
+    /**
+     * Check if table exists in database
+     *
+     * @param string $name
      * @return boolean
      */
-    public static function isConnected()
+    public function hasTable(string $name)
     {
-        return static::$_connected;
+        return !!in_array($name, $this->tables());
+    }
+
+    /**
+     * Start database transaction
+     *
+     * @return void
+     */
+    public function startTransaction()
+    {
+        $this->query('START TRANSACTION;');
+    }
+
+    /**
+     * Commit database transaction
+     *
+     * @return void
+     */
+    public function commit()
+    {
+        $this->query('COMMIT;');
+    }
+
+    /**
+     * Rollback database transaction
+     *
+     * @return void
+     */
+    public function rollback()
+    {
+        $this->query('ROLLBACK;');
+    }
+
+    /**
+     * Run database transaction operation
+     * Auto rollback when an exception is thrown and auto commit if not
+     *
+     * @param callable $fn
+     * @return mixed
+     */
+    public function transaction(callable $fn): mixed
+    {
+        $this->startTransaction();
+
+        try {
+            $result = $fn();
+        } catch (Throwable $e) {
+            $this->rollback();
+            throw $e;
+        }
+
+        $this->commit();
+        return $result;
+    }
+
+    /**
+     * Get connection from nanme
+     *
+     * @param string $name
+     * @return self
+     */
+    public static function connection(?string $name = null): self
+    {
+        return new self(
+            item: DBConnector::connection(
+                $name ?? DBConnector::DEFAULT_CONNECTION_NAME
+            )
+        );
     }
 }

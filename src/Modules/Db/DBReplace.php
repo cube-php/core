@@ -8,14 +8,17 @@ use Cube\Modules\Db\DBQueryBuilder;
 class DBReplace extends DBQueryBuilder
 {
 
+    private DBTable $table;
+
     /**
      * Constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(DBTable $table)
     {
-        $this->joinSql('REPLACE INTO', $table_name);
+        $this->table = $table;
+        $this->joinSql('REPLACE INTO', $table->name);
     }
 
     /**
@@ -38,8 +41,13 @@ class DBReplace extends DBQueryBuilder
      */
     private function finish()
     {
-        $db = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
-        return DB::lastInsertId();
+        $connection = $this->table->connection;
+        $connection->query(
+            $this->getSqlQuery(),
+            $this->getSqlParameters()
+        );
+
+        return $connection->lastInsertId();
     }
 
     /**

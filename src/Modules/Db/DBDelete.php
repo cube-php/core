@@ -2,20 +2,21 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBQueryBuilder;
 
 class DBDelete extends DBQueryBuilder
 {
+    private DBTable $table;
 
     /**
      * Class constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(DBTable $table)
     {
-        $this->joinSql('DELETE FROM', $table_name);
+        $this->table = $table;
+        $this->joinSql('DELETE FROM', $table->name);
     }
 
     /**
@@ -25,7 +26,11 @@ class DBDelete extends DBQueryBuilder
      */
     public function fulfil()
     {
-        $query = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
+        $query = $this->table->connection->query(
+            $this->getSqlQuery(),
+            $this->getSqlParameters()
+        );
+
         return $query->rowCount();
     }
 }
