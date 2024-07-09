@@ -592,6 +592,21 @@ class Model implements ModelInterface
     }
 
     /**
+     * Fetch data using passed primary key value and lock for updates
+     * 
+     * @param string|int $primary_key
+     * @param array $fields Fields to retrieve
+     * 
+     * @return $this
+     */
+    public static function findAndLock($primary_key)
+    {
+        return static::lock()
+            ->where(static::getPrimaryKey(), $primary_key)
+            ->fetchOne();
+    }
+
+    /**
      * Fetch all data using passed field value
      *
      * @param string $field Field name
@@ -1023,6 +1038,16 @@ class Model implements ModelInterface
     }
 
     /**
+     * Get model connection
+     *
+     * @return DBConnection
+     */
+    public static function getConnection(): DBConnection
+    {
+        return DBConnection::connection(static::$connection);
+    }
+
+    /**
      * Method gets called when a new entry is created
      *
      * @param mixed $id
@@ -1148,15 +1173,5 @@ class Model implements ModelInterface
         }
 
         return $rows;
-    }
-
-    /**
-     * Get model connection
-     *
-     * @return DBConnection
-     */
-    private static function getConnection(): DBConnection
-    {
-        return DBConnection::connection(static::$connection);
     }
 }
