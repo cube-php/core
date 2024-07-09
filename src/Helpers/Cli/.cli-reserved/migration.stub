@@ -3,12 +3,12 @@
 namespace App\Migrations;
 
 use Cube\Interfaces\MigrationInterface;
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBTableBuilder;
+use Cube\Modules\Migration;
 
-class {className} implements MigrationInterface
+class {className} extends Migration implements MigrationInterface
 {
-    private const NAME = '{name}';
+    protected static string $name = '{name}';
 
     /**
      * Action to create migration
@@ -17,7 +17,7 @@ class {className} implements MigrationInterface
      */
     public static function up()
     {
-        DB::table(self::NAME)
+        static::getTable()
             ->build(function (DBTableBuilder $builder) {
                 $builder->field('id')->int()->increment();
             });
@@ -30,7 +30,7 @@ class {className} implements MigrationInterface
      */
     public static function empty()
     {
-        DB::table(self::NAME)->truncate();
+        static::getTable()->truncate();
     }
 
     /**
@@ -40,6 +40,6 @@ class {className} implements MigrationInterface
      */
     public static function down()
     {
-        DB::table(self::NAME)->drop();
+        static::getTable()->drop();
     }
 }

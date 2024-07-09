@@ -173,7 +173,7 @@ class DBSchemaBuilder
 
         $this->add_field = $add_field;
 
-        if(!$this->table->exists() && $this->add_field) {
+        if (!$this->table->exists() && $this->add_field) {
             throw new InvalidArgumentException($this->table->getName() . ' Not found');
         }
     }
@@ -182,7 +182,7 @@ class DBSchemaBuilder
     {
         $this->position = $position;
         $this->position_row_name = $row_name;
-        
+
         return $this;
     }
 
@@ -198,9 +198,8 @@ class DBSchemaBuilder
     public function __call($name, $args)
     {
 
-        if($this->type)
-            throw new InvalidArgumentException
-                ('Data type "' .$this->type. '" has already been specified for field "' . $this->name . '"');
+        if ($this->type)
+            throw new InvalidArgumentException('Data type "' . $this->type . '" has already been specified for field "' . $this->name . '"');
 
         $data_types = static::$data_types;
         $name = strtolower($name);
@@ -208,11 +207,11 @@ class DBSchemaBuilder
         $num_args = count($args);
 
         #if the specified data is not identified throw exception
-        if(!in_array($name, $allowed)) {
+        if (!in_array($name, $allowed)) {
             throw new \Exception('Unknown data type ' . $name);
         }
 
-        if($num_args) $args = array_map([$this, 'passCheck'], $args);
+        if ($num_args) $args = array_map([$this, 'passCheck'], $args);
 
         #The only args that can be passed in is length so...
         $length = $num_args ? implode(',', $args) : null;
@@ -240,17 +239,17 @@ class DBSchemaBuilder
 
         #Developer doesn't want the field added
         #Perhaps just wants the structure
-        if(!$this->add_field) return;
+        if (!$this->add_field) return;
 
         #Do nothing if the field name already exists
-        if($this->table->hasField($this->name)) return;
+        if ($this->table->hasField($this->name)) return;
 
         $has_after_rule = $this->position && $this->position_row_name;
 
-        if($this->table->hasField('created_at') && $this->name !== 'updated_at' && !$has_after_rule) {
+        if ($this->table->hasField('created_at') && $this->name !== 'updated_at' && !$has_after_rule) {
 
             $table_fields = $this->table->fields();
-            $created_at_index = array_find_index($table_fields, function($name) {
+            $created_at_index = array_find_index($table_fields, function ($name) {
                 return $name === 'created_at';
             });
 
@@ -266,7 +265,7 @@ class DBSchemaBuilder
         #Temporary field should be removed
         $temp_field = $this->table->temp_field_name;
 
-        if($this->name !==  $temp_field && $this->table->hasField($temp_field)) {
+        if ($this->name !==  $temp_field && $this->table->hasField($temp_field)) {
             $this->table->removeTempField();
         }
     }
@@ -303,7 +302,7 @@ class DBSchemaBuilder
      */
     public function default($default_value)
     {
-        $this->default = DB::escape($default_value);
+        $this->default = $this->table->connection->escape($default_value);
         return $this;
     }
 
@@ -329,7 +328,7 @@ class DBSchemaBuilder
         $this->nullable = true;
         return $this;
     }
-    
+
     /**
      * Set schema as primary key
      * 
@@ -337,7 +336,7 @@ class DBSchemaBuilder
      */
     public function primary()
     {
-        if(!$this->type) {
+        if (!$this->type) {
             $this->int();
         }
 
@@ -386,28 +385,27 @@ class DBSchemaBuilder
      */
     public function getStructure()
     {
-
         $structure = [$this->name, $this->type];
 
         #Add length structure
-        if($this->length) $structure[] = concat('(', $this->length, ')');
+        if ($this->length) $structure[] = concat('(', $this->length, ')');
 
         #Let's check for attributes
-        if($this->attribute) $structure[] = $this->attribute;
+        if ($this->attribute) $structure[] = $this->attribute;
 
         #Check if field is nullable
         $structure[] .= ($this->nullable) ? 'null' : 'not null';
 
         #Check for default value
-        if($this->default) $structure[] .= 'default ' . $this->default;
+        if ($this->default) $structure[] .= 'default ' . $this->default;
 
         #Check if primary key
-        if($this->primary) $structure[] .= 'primary key';
+        if ($this->primary) $structure[] .= 'primary key';
 
         #Check for auto increment
-        if($this->increment) $structure[] .= 'auto_increment';
+        if ($this->increment) $structure[] .= 'auto_increment';
 
-        if($this->position) {
+        if ($this->position) {
             $is_before = $this->position === self::POSITION_BEFORE;
             $structure[] = $is_before ? 'FIRST' : 'AFTER';
             $structure[] = $is_before ? '' : $this->position_row_name;

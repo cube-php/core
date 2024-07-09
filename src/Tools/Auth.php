@@ -15,6 +15,7 @@ use Cube\Http\Cookie;
 use Cube\Misc\EventManager;
 use Cube\Exceptions\AuthException;
 use Cube\Interfaces\ModelInterface;
+use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\SessionManager;
 
@@ -49,6 +50,11 @@ class Auth
      * Users model class
      */
     public const CONFIG_MODEL = 'instance';
+
+    /**
+     * Database connection to use for authentication
+     */
+    public const CONFIG_CONNECTION = 'connection';
 
     /**
      * No. of days it will take an auth token to expire
@@ -105,6 +111,9 @@ class Auth
         $schema = $config['schema'] ?? null;
         $config_combination = (array) $config['combination'];
 
+        /** @var ModelInterface */
+        $instance = $config[self::CONFIG_MODEL];
+
         if (!$schema) {
             throw new AuthException('Auth schema field is undefined');
         }
@@ -141,8 +150,7 @@ class Auth
         $auth_field_name = $auth_field_name ?: $default_field_name;
         $secret_key_name = $config_combination['secret_key'];
 
-        $query = DB::table($schema)
-            ->select([$primary_key, $secret_key_name])
+        $query = $instance::select($primary_key, $secret_key_name)
             ->where($auth_field_name, $field)
             ->fetchOne();
 
@@ -368,11 +376,32 @@ class Auth
 
         $token = generate_token(32);
         $expires_at = gettime(time() + getdays($days));
+        $table = static::getDbTable();
+
+        $query = $table->select(['user_id'])
+            ->where('user_id', $user_id)
+            ->fetchOne();
+
+        $params = array(
+            'user_id' => $user_id,
+            'device_id' => DeviceIdentifier::getDeviceId(),
+            'token' => $token,
+            'expires_at' => $expires_at
+        );
+
+        if ($query) {
+            $table->update($params)
+                ->where('user_id', $user_id)
+                ->fulfil();
+
+            return $token;
+        }
 
         static::getDbTable()->insert([
             'user_id' => $user_id,
             'device_id' => DeviceIdentifier::getDeviceId(),
             'token' => $token,
+            'created_at' => getnow(),
             'expires_at' => $expires_at
         ]);
 
@@ -389,7 +418,7 @@ class Auth
     {
         #Check if cookie table exists
         #If not create the table with it's fields
-        if (!DB::hasTable(static::$_cookie_token_dbname)) {
+        if (!static::getConnection()->hasTable(static::$_cookie_token_dbname)) {
             static::getDbTable()
                 ->build(function ($table) {
                     $table->field('id')->int()->increment();
@@ -430,7 +459,7 @@ class Auth
             'expires_at'
         );
 
-        $cookie_table = DB::table(static::$_cookie_token_dbname);
+        $cookie_table = static::getDbTable();
         $data = $cookie_table
             ->select($fields)
             ->where('token', $token)
@@ -460,7 +489,22 @@ class Auth
      */
     private static function getDbTable(): DBTable
     {
-        return DB::table(static::$_cookie_token_dbname);
+        return new DBTable(
+            static::$_cookie_token_dbname,
+            static::getConnection()
+        );
+    }
+
+    /**
+     * Get DB Connection
+     *
+     * @return DBConnection
+     */
+    private static function getConnection(): DBConnection
+    {
+        $config = static::getConfig();
+        $connection_name = $config[self::CONFIG_CONNECTION] ?? null;
+        return DBConnection::connection($connection_name);
     }
 
     /**

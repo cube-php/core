@@ -14,12 +14,14 @@ use ReflectionClass;
 
 class DBSelect extends DBQueryBuilder
 {
+    private DBTable $table;
+
     /**
      * Model class name
      *
      * @var string|null
      */
-    public $model = null;
+    public readonly ?string $model;
 
     /**
      * Lock for update
@@ -35,12 +37,13 @@ class DBSelect extends DBQueryBuilder
      * @param array $fields
      * @param string|null $model
      */
-    public function __construct($table_name = '', $fields = [], ?string $model = null)
+    public function __construct(DBTable $table, $fields = [], ?string $model = null)
     {
         $this->model = $model;
 
-        if ($table_name) {
-            $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table_name);
+        if ($table) {
+            $this->table = $table;
+            $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table->name);
         }
     }
 
@@ -292,7 +295,7 @@ class DBSelect extends DBQueryBuilder
         $sql = $this->getSqlQuery();
         $params = $this->getSqlParameters();
 
-        $stmt = DB::statement($sql, $params);
+        $stmt = $this->table->connection->query($sql, $params);
         $wrapper = $this->bundle;
 
         if (!$stmt->rowCount()) {

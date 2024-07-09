@@ -4,13 +4,14 @@ namespace Cube\Modules;
 
 use Cube\App\App;
 use Cube\Modules\DB;
+use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBTable;
 use Cube\Tools\Auth;
 use SessionHandlerInterface;
 
 class SessionManager implements SessionHandlerInterface
 {
-    protected const TABLE_NAME = 'sessions';
+    protected static string $schema_name = 'sessions';
 
     /**
      * Set if other session manager activities can proceed
@@ -24,7 +25,8 @@ class SessionManager implements SessionHandlerInterface
      * 
      * Check if the session table has been created
      */
-    public function __construct() {
+    public function __construct()
+    {
         /**
          * Switched the initialization to be powered by the 
          * Command line to free up system
@@ -50,9 +52,9 @@ class SessionManager implements SessionHandlerInterface
      */
     public function destroy($session_id): bool
     {
-        DB::table(self::TABLE_NAME)
+        self::getTable()
             ->delete()
-            ->where('sess_id', $session_id)
+            ->where('id', $session_id)
             ->fulfil();
         return true;
     }
@@ -64,12 +66,12 @@ class SessionManager implements SessionHandlerInterface
      * 
      * @return bool
      */
-    #[\ReturnTypeWillChange] 
+    #[\ReturnTypeWillChange]
     public function gc($maxlifetime): bool
     {
         $old = time() - $maxlifetime;
 
-        DB::table(self::TABLE_NAME)
+        self::getTable()
             ->delete()
             ->where('UNIX_TIMESTAMP(last_update)', '<', $old)
             ->fulfil();
@@ -97,13 +99,13 @@ class SessionManager implements SessionHandlerInterface
      */
     public function read($session_id): string
     {
-        $session = DB::table('sessions')
-                ->select(['sess_data'])
-                ->where('sess_id', $session_id)
-                ->fetchOne();
+        $session = self::getTable()
+            ->select(['data'])
+            ->where('id', $session_id)
+            ->fetchOne();
 
-        if($session) {
-            return base64_decode($session->sess_data);
+        if ($session) {
+            return base64_decode($session->data);
         }
 
         return '';
@@ -119,14 +121,14 @@ class SessionManager implements SessionHandlerInterface
      */
     public function write($session_id, $session_data): bool
     {
-        DB::table('sessions')
-                ->replace([
-                    'sess_id' => $session_id,
-                    'user_id' => Auth::id(),
-                    'last_update' => date('Y-m-d H:i:s'),
-                    'sess_data' => base64_encode($session_data),
-                    'created_at' => getnow()
-                ]);
+        self::getTable()
+            ->replace([
+                'id' => $session_id,
+                'user_id' => Auth::id(),
+                'last_update' => date('Y-m-d H:i:s'),
+                'data' => base64_encode($session_data),
+                'created_at' => getnow()
+            ]);
 
         return true;
     }
@@ -174,7 +176,7 @@ class SessionManager implements SessionHandlerInterface
         $config = App::getConfig('app');
         $session = $config['session'] ?? 'default';
 
-        if($session === 'database') {
+        if ($session === 'database') {
             return static::$can_run = true;
         }
 
@@ -188,7 +190,22 @@ class SessionManager implements SessionHandlerInterface
      */
     private static function getTable(): DBTable
     {
-        return DB::table(self::TABLE_NAME);
+        return new DBTable(
+            self::$schema_name,
+            self::getConnection()
+        );
+    }
+
+    /**
+     * Get Database connection
+     *
+     * @return DBConnection
+     */
+    private static function getConnection(): DBConnection
+    {
+        $config = App::getConfig('app');
+        $connection_name = $config['session_connection'] ?? null;
+        return DBConnection::connection($connection_name);
     }
 
     /**
@@ -198,9 +215,9 @@ class SessionManager implements SessionHandlerInterface
      */
     private function up()
     {
-        self::getTable()->build(function($table) {
-            $table->field('sess_id')->varchar()->primary();
-            $table->field('sess_data')->text();
+        self::getTable()->build(function ($table) {
+            $table->field('id')->varchar()->primary();
+            $table->field('data')->text();
             $table->field('user_id')->int()->nullable();
             $table->field('last_update')->datetime();
         });

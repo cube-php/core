@@ -15,7 +15,7 @@ class DBWordConstruct
      */
     public static function alterTableAdd($table_name, $structure)
     {
-        return 'ALTER TABLE ' . $table_name . ' ADD ' .$structure;
+        return 'ALTER TABLE ' . $table_name . ' ADD ' . $structure;
     }
 
     /**
@@ -41,7 +41,7 @@ class DBWordConstruct
      */
     public static function alterTableRemove($table_name, $field_name)
     {
-        return 'ALTER TABLE ' . $table_name . ' DROP ' .$field_name;
+        return 'ALTER TABLE ' . $table_name . ' DROP ' . $field_name;
     }
 
     /**
@@ -89,8 +89,10 @@ class DBWordConstruct
     public static function dropConstraint(string $table_name, string $name)
     {
         return concat(
-            'ALTER TABLE ', $table_name,
-            ' DROP FOREIGN KEY ', $name
+            'ALTER TABLE ',
+            $table_name,
+            ' DROP FOREIGN KEY ',
+            $name
         );
     }
 
@@ -139,6 +141,21 @@ class DBWordConstruct
      */
     public static function truncateTable($table_name)
     {
-        return 'TRUNCATE '. $table_name;
+        return 'TRUNCATE ' . $table_name;
+    }
+
+    /**
+     * Select table
+     *
+     * @return string
+     */
+    public static function selectTables()
+    {
+        return 'SELECT table_name FROM information_schema.tables WHERE table_schema = ?';
+    }
+
+    public static function constraintsExist()
+    {
+        return 'SELECT count(CONSTRAINT_NAME) tcount FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = ?';
     }
 }

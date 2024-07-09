@@ -7,25 +7,26 @@ use Cube\Modules\Db\DBQueryBuilder;
 
 class DBUpdate extends DBQueryBuilder
 {
+    private DBTable $table;
 
     /**
      * Constructor
      * 
      * @param string $table_name
      */
-    public function __construct($table_name)
+    public function __construct(DBTable $table)
     {
-        $this->joinSql('UPDATE', $table_name);
+        $this->table = $table;
+        $this->joinSql('UPDATE', $table->name);
     }
 
     /**
      * Create insert entry
      * 
      * @param string[] $params
-     * 
-     * @return int
+     * @return self
      */
-    public function entry($params)
+    public function entry($params): self
     {
         $params['updated_at'] = getnow();
         $this->make($params);
@@ -37,9 +38,13 @@ class DBUpdate extends DBQueryBuilder
      * 
      * @return int
      */
-    public function fulfil()
+    public function fulfil(): int
     {
-        $db = DB::statement($this->getSqlQuery(), $this->getSqlParameters());
+        $db = $this->table->connection->query(
+            $this->getSqlQuery(),
+            $this->getSqlParameters()
+        );
+
         return $db->rowCount();
     }
 
@@ -47,16 +52,15 @@ class DBUpdate extends DBQueryBuilder
      * Make query
      * 
      * @param string[] $params Parameters to make query from
-     * 
-     * @return 
+     * @return void
      */
     private function make($params)
     {
         $keys = array_keys($params);
         $values = array_values($params);
         $placeholders = [];
-        
-        foreach($keys as $key) $placeholders[] = "{$key} = ?";
+
+        foreach ($keys as $key) $placeholders[] = "{$key} = ?";
 
         $fields = implode(',', $placeholders);
         $this->bindParam($values);
