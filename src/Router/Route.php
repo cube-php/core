@@ -471,9 +471,10 @@ class Route
      */
     public function use($wares)
     {
-        if (is_array($wares)) {
+        if (is_array($wares) && count($wares)) {
             foreach ($wares as $ware) {
-                $this->_middlewares[] = class_exists($ware) ? new $ware() : $ware;
+                $this->_middlewares[] = (is_string($ware) && class_exists($ware))
+                    ? new $ware() : $ware;
             }
             return $this;
         }
