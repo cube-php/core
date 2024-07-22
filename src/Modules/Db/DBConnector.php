@@ -44,7 +44,7 @@ class DBConnector
         $username = $options['username'] ?? null;
         $password = isset($options['password']) ? $options['password'] : null;
         $dbname = $options['dbname'] ?? null;
-        $charset = $options['charset'] ?? 'utf-8';
+        $charset = $options['charset'] ?? 'utf8';
         $port = $options['port'] ?? '3306';
         $custom_options = $options['options'] ?? [];
 
@@ -109,7 +109,25 @@ class DBConnector
         return $item;
     }
 
-    public function close()
+    /**
+     * Get all active connections
+     *
+     * @return array
+     */
+    public static function getAllConnection(): array
     {
+        return static::$connections;
+    }
+
+    /**
+     * Close all database connections
+     *
+     * @return void
+     */
+    public static function closeAll()
+    {
+        every(static::$connections, function ($conn, $key) {
+            unset(static::$connections[$key]);
+        });
     }
 }

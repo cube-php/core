@@ -182,7 +182,7 @@ class DBConnection
      */
     public function startTransaction()
     {
-        $this->query('START TRANSACTION;');
+        $this->getConnection()->beginTransaction();
     }
 
     /**
@@ -192,7 +192,7 @@ class DBConnection
      */
     public function commit()
     {
-        $this->query('COMMIT;');
+        $this->getConnection()->commit();
     }
 
     /**
@@ -202,7 +202,7 @@ class DBConnection
      */
     public function rollback()
     {
-        $this->query('ROLLBACK;');
+        $this->getConnection()->rollBack();
     }
 
     /**
