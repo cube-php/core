@@ -3,16 +3,17 @@
 namespace Cube\Http;
 
 use Cube\Exceptions\ModelException;
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
 use Cube\Interfaces\ModelInterface;
 use Cube\Misc\ModelCollection;
+use Cube\Misc\PaginatedModelQueryResult;
 use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBConnector;
 use Cube\Modules\Db\DBUpdate;
 use Cube\Modules\Db\DBDelete;
 use Cube\Traits\Onceable;
+use Dammynex\Pagenator\Pagenator;
 use InvalidArgumentException;
 use ReflectionClass;
 
@@ -891,6 +892,44 @@ class Model implements ModelInterface
     public static function lock(): DBSelect
     {
         return self::select()->lock();
+    }
+
+    /**
+     * Run paginated query
+     *
+     * @param integer $page
+     * @param integer $limit
+     * @param callable $fn
+     * @return PaginatedModelQueryResult
+     */
+    public static function paginated(int $page, int $limit, callable $fn)
+    {
+        $queries = array(
+            static::getCountQuery(),
+            static::select()
+        );
+
+        list($query1, $query2) = multi_query($queries, $fn);
+        $total = $query1->getCount();
+
+        $pager = new Pagenator(
+            items_count: $total,
+            current_page: $page,
+            perpage: $limit
+        );
+
+        $query2->orderByDesc(static::$primary_key);
+
+        /** @var ModelCollection */
+        $result = $query2->fetch(
+            offset: $pager->getOffset(),
+            limit: $limit
+        );
+
+        return new PaginatedModelQueryResult(
+            pager: $pager,
+            result: $result
+        );
     }
 
     /**

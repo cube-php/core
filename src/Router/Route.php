@@ -4,7 +4,7 @@ namespace Cube\Router;
 
 use Cube\App\App;
 use Closure;
-
+use Cube\Exceptions\AppException;
 use InvalidArgumentException;
 
 use Cube\Router\RouteParser;
@@ -13,6 +13,7 @@ use Cube\Http\Response;
 use Cube\Http\AnonController;
 use Cube\Http\Model;
 use Cube\Misc\ModelCollection;
+use Cube\Misc\PaginatedModelQueryResult;
 use Stringable;
 
 class Route
@@ -371,7 +372,12 @@ class Route
         $this->_parseController();
 
         if ($this->_is_callble_controller) {
-            $controller = Closure::bind($this->_controller, new AnonController(), AnonController::class);
+            $controller = Closure::bind(
+                $this->_controller,
+                new AnonController(),
+                AnonController::class
+            );
+
             return $this->_analyzeControllerResult($controller, $request, $response);
         }
 
@@ -390,7 +396,10 @@ class Route
         $middleware_fn_name = '__middleware';
 
         if (is_callable([$controller, $middleware_fn_name])) {
-            $result = call_user_func_array([$controller, $middleware_fn_name], [$request, $response]);
+            $result = call_user_func_array(
+                [$controller, $middleware_fn_name],
+                [$request, $response]
+            );
 
             if ($result instanceof Response) {
                 return $result;
@@ -471,9 +480,10 @@ class Route
      */
     public function use($wares)
     {
-        if (is_array($wares)) {
+        if (is_array($wares) && count($wares)) {
             foreach ($wares as $ware) {
-                $this->_middlewares[] = class_exists($ware) ? new $ware() : $ware;
+                $this->_middlewares[] = (is_string($ware) && class_exists($ware))
+                    ? new $ware() : $ware;
             }
             return $this;
         }
@@ -537,6 +547,12 @@ class Route
         if ($result instanceof ModelCollection) {
             return $response->json(
                 model2array($result)
+            );
+        }
+
+        if ($result instanceof PaginatedModelQueryResult) {
+            return $response->json(
+                $result->toResponse()
             );
         }
 
