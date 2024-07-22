@@ -36,10 +36,7 @@ class InputValidatorItem
      */
     public function apply($rules)
     {
-        $rules_list = is_array($rules)
-            ? $this->processRules($rules)
-            : array_map('trim', explode('|', $rules));
-
+        $rules_list = $this->processRules(is_string($rules) ? [$rules] : $rules);
         $this->rules = array_merge($this->rules, $rules_list);
         $this->runValidation($rules_list);
     }
@@ -98,18 +95,37 @@ class InputValidatorItem
     {
         $rules_list = [];
         every($rules, function ($value, $index) use (&$rules_list) {
-            $has_message = !is_numeric($index);
 
             if (is_callable($value)) {
                 return $rules_list[] = $value;
             }
 
-            if (!$has_message) {
-                $processed_rules = explode('|', $value);
-                return $rules_list = array_merge($rules_list, $processed_rules);
+            if (is_array($value)) {
+                return $rules_list[] = array(
+                    $index => $value
+                );
             }
 
-            return $rules_list[] = concat($index, ':', $value);
+            $multi_rules = explode('|', $value);
+
+            if (!count($multi_rules)) {
+                return $rules_list[] = $value;
+            }
+
+            every($multi_rules, function ($rule) use (&$rules_list) {
+                $data = explode(':', $rule);
+
+                if (count($data) > 1) {
+                    $args = array_slice($data, 1);
+                    return $rules_list[] = array(
+                        $data[0] => $args
+                    );
+                }
+
+                $rules_list[] = array(
+                    $rule => []
+                );
+            });
         });
 
         return array_merge($this->rules, $rules_list);
@@ -131,7 +147,7 @@ class InputValidatorItem
     /**
      * Compile rule
      *
-     * @param string|callable $rule
+     * @param array|callable $rule
      * @return mixed
      */
     private function compileRule($rule)
@@ -140,9 +156,9 @@ class InputValidatorItem
             return call_user_func($rule, $this);
         }
 
-        $rule_vars = explode(':', $rule);
-        $rule_class_id = $rule_vars[0];
-        $args = array_slice($rule_vars, 1);
+        $rule_class_id = array_keys($rule)[0];
+        $args = $rule[$rule_class_id];
+
         $rule_class_name = RequestValidator::getRule($rule_class_id);
 
         if (!is_callable([$rule_class_name, 'rule'])) {
