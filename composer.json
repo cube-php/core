@@ -22,6 +22,7 @@
     "twig/twig": "^3.2",
     "symfony/console": "^5.2",
     "symfony/process": "^5.2",
-    "symfony/cache": "^5.2"
+    "symfony/cache": "^5.2",
+    "dammynex/pagenator": "^0.1.4"
   }
 }

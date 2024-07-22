@@ -4,8 +4,48 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a8905d9a692f0f891fcff63acc6333ab",
+    "content-hash": "9c6da50c7d93391f1d42ea571ec2b207",
     "packages": [
+        {
+            "name": "dammynex/pagenator",
+            "version": "0.1.4",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dammynex/pagenator.git",
+                "reference": "0757d1c59acb2fc6e476878cd09a3468ab22c573"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dammynex/pagenator/zipball/0757d1c59acb2fc6e476878cd09a3468ab22c573",
+                "reference": "0757d1c59acb2fc6e476878cd09a3468ab22c573",
+                "shasum": ""
+            },
+            "require-dev": {
+                "pestphp/pest": "^0.3.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Dammynex\\Pagenator\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Salawu Oluwadamilola Ezekiel",
+                    "email": "damilolaoffical@gmail.com"
+                }
+            ],
+            "description": "Simple PHP Pager library",
+            "support": {
+                "issues": "https://github.com/dammynex/pagenator/issues",
+                "source": "https://github.com/dammynex/pagenator/tree/v0.1.4"
+            },
+            "time": "2021-09-12T20:45:48+00:00"
+        },
         {
             "name": "psr/cache",
             "version": "2.0.0",
