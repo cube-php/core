@@ -34,9 +34,12 @@ class InputValidatorItem
      * @param array|string $rules
      * @return void
      */
-    public function apply($rules)
+    public function apply(string|array $rules)
     {
-        $rules_list = $this->processRules(is_string($rules) ? [$rules] : $rules);
+        $rules_list = $this->processRules(
+            is_string($rules) ? [$rules] : $rules
+        );
+
         $this->rules = array_merge($this->rules, $rules_list);
         $this->runValidation($rules_list);
     }
