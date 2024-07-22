@@ -260,6 +260,7 @@ class ControllerRoutesLoader
                 parent_names: [],
             );
 
+            $middlewares = $data->middlewares;
             $namespace = $data->namespace ?? null;
             $name = $data->name ?? null;
 
@@ -269,6 +270,10 @@ class ControllerRoutesLoader
 
             if ($namespace) {
                 $route->setNamespace($namespace);
+            }
+
+            if ($middlewares) {
+                $route->use($middlewares);
             }
 
             $routes[] = $route;
