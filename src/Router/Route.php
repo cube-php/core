@@ -473,7 +473,7 @@ class Route
     {
         if (is_array($wares)) {
             foreach ($wares as $ware) {
-                $this->_middlewares[] = $ware;
+                $this->_middlewares[] = class_exists($ware) ? new $ware() : $ware;
             }
             return $this;
         }
@@ -492,11 +492,26 @@ class Route
         return array(
             'namespace' => array_slice($this->_namespace, 2),
             'controller' => $this->getController(),
-            'middlewares' => $this->_middlewares,
+            'middlewares' => $this->getParsedMiddlewares(),
             'method' => $this->getMethod(),
             'path' => $this->getPath(),
             'name' => $this->getName()
         );
+    }
+
+    /**
+     * Parsed middlewares
+     *
+     * @return array
+     */
+    private function getParsedMiddlewares(): array
+    {
+        $middlewares = array();
+        every($this->_middlewares, function ($middleware) use (&$middlewares) {
+            $middlewares[] = is_object($middleware) ? $middleware::class : $middleware;
+        });
+
+        return $middlewares;
     }
 
     /**
