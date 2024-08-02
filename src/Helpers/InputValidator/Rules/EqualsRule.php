@@ -11,7 +11,7 @@ class EqualsRule implements InputValidatorRuleInterface
 
     public static function rule(InputValidatorItem $validator, string $field, ?string $message = null)
     {
-        $validator->apply('required');
+        //$validator->apply('required');
         $validator_input = $validator->getInput();
 
         $request = $validator->getRequestValidator()->getRequest();
