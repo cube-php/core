@@ -150,7 +150,14 @@ class Uri implements UriInterface
      */
     public function getHost()
     {
-        return $this->_host;
+        $host = $this->_host;
+        $port = $this->getPort();
+
+        if ($port) {
+            $host .= ':' . $port;
+        }
+
+        return $host;
     }
 
     /**
@@ -160,13 +167,7 @@ class Uri implements UriInterface
      */
     public function getHostName()
     {
-        $url = $this->getScheme() . '://' . $this->getHost();
-
-        if ($this->getPort()) {
-            $url .= ':' . $this->getPort();
-        }
-
-        return $url;
+        return $this->getScheme() . '://' . $this->getHost();
     }
 
     /**
@@ -270,6 +271,11 @@ class Uri implements UriInterface
         }
 
         $config = App::getConfig('app');
+
+        if (!$config) {
+            return;
+        }
+
         $directory = $config['directory'];
         $url_data = (object) parse_url($url);
 

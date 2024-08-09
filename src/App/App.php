@@ -2,14 +2,17 @@
 
 namespace Cube\App;
 
+use Cube\Helpers\Response\ResponseEmitter;
 use Cube\Http\Env;
 use Cube\Http\Request;
+use Cube\Http\Response;
 use Cube\Http\Session;
+use Cube\Interfaces\RequestInterface;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
 use Cube\Modules\SessionManager;
+use Cube\Router\ControllerRoutesLoader;
 use Cube\Router\RouteCollection;
-use Throwable;
 
 class App
 {
@@ -45,6 +48,7 @@ class App
      * 
      * Events when route match is found
      * 
+     * @deprecated v0.1.23
      * @var string
      */
     const EVENT_ROUTE_MATCH_FOUND = 'onRouteMatchFound';
@@ -61,21 +65,21 @@ class App
      * 
      * @var string
      */
-    const EVENT_APP_ON_DEVELOPMENT  = 'onAppDevelopment';
+    const EVENT_APP_ON_DEVELOPMENT = 'onAppDevelopment';
 
     /**
      * Event when app is in production mode
      * 
      * @var string
      */
-    const EVENT_APP_ON_PRODUCTION  = 'onAppProduction';
+    const EVENT_APP_ON_PRODUCTION = 'onAppProduction';
 
     /**
      * Event when app crashes
      * 
      * @var string
      */
-    const EVENT_APP_ON_CRASH       = 'onAppCrash';
+    const EVENT_APP_ON_CRASH = 'onAppCrash';
 
     /**
      * Holds and generate all app paths
@@ -114,6 +118,7 @@ class App
     {
         self::$directory = new Directory($dir);
         self::$instance = $this;
+        $this->init();
     }
 
     /**
@@ -144,6 +149,7 @@ class App
         $this->initSessions();
         $this->loadComponent();
         $this->loadEvents();
+        $this->initRoutes();
 
         EventManager::dispatchEvent(self::EVENT_INITIALIZED, $this);
     }
@@ -163,19 +169,24 @@ class App
      *
      * @return void
      */
-    public function run()
+    public function run(?RequestInterface $request = null): void
     {
-        $this->init();
+        $response = $this->handle($request);
+        $emitter = new ResponseEmitter($response);
+        $emitter->emit();
+    }
 
-        try {
-            $this->initRoutes();
-        } catch (Throwable $e) {
-            if (App::isDevelopment()) {
-                throw $e;
-            }
-
-            EventManager::dispatchEvent(self::EVENT_APP_ON_CRASH, $e);
-        }
+    /**
+     * Handle request
+     *
+     * @param RequestInterface|null $request
+     * @return Response
+     */
+    public function handle(?RequestInterface $request = null): Response
+    {
+        $req = $request ?: Request::createHttpRequestFromGlobals();
+        $response = (new RouteCollection($req))->build();
+        return $response;
     }
 
     /**
@@ -313,45 +324,17 @@ class App
     }
 
     /**
-     * Force https
-     *
-     * @return Response|bool
-     */
-    private function checkForcedHttps()
-    {
-        $https = 'https';
-        $config = self::getConfig('app');
-        $force_https = $config['force_https'] ?? false;
-
-        if (!$force_https) {
-            return false;
-        }
-
-        $request = Request::getRunningInstance();
-        $url_scheme = strtolower($request->url()->getScheme());
-
-        if ($url_scheme === $https) {
-            return false;
-        }
-
-        $secure_uri = concat($https, '://', $request->url()->getFullUrl(false));
-        return redirect($secure_uri, [], true);
-    }
-
-    /**
      * Initialize routes
      *
      * @return void
      */
-    private function initRoutes()
+    public function initRoutes()
     {
-        $this->checkForcedHttps();
         $this->requireDirectoryFiles(
             $this->directory()->get(Directory::PATH_ROUTES)
         );
 
-        $routes = new RouteCollection();
-        $routes->build();
+        ControllerRoutesLoader::load();
     }
 
     /**

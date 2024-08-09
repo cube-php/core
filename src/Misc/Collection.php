@@ -86,11 +86,11 @@ class Collection extends ArrayObject implements CollectionInterface
      * 
      * @param string|int $key Index to find
      * 
-     * @return mixed[] | null
+     * @return mixed | null
      */
     public function get($key)
     {
-        return $this->all()[$key] ?? null;
+        return $this->all()[strtolower($key)] ?? null;
     }
 
     /**
@@ -102,7 +102,7 @@ class Collection extends ArrayObject implements CollectionInterface
      */
     public function has($name)
     {
-        return array_key_exists($name, $this->all());
+        return array_key_exists(strtolower($name), $this->all());
     }
 
     /**

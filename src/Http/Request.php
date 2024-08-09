@@ -5,7 +5,6 @@ namespace Cube\Http;
 use InvalidArgumentException;
 use Cube\Interfaces\RequestInterface;
 
-use Cube\Http\Server;
 use Cube\Http\Headers;
 use Cube\Http\Uri;
 
@@ -14,12 +13,11 @@ use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
 use Cube\Interfaces\MiddlewareInterface;
+use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
 
 class Request implements RequestInterface
 {
-    private static ?self $running_instance = null;
-
     /**
      * Request completed event
      * 
@@ -47,25 +45,11 @@ class Request implements RequestInterface
     public $_wares = array();
 
     /**
-     * Server
-     * 
-     * @var Server
-     */
-    private static $_server;
-
-    /**
-     * Header
-     * 
-     * @var Headers
-     */
-    private static $_headers;
-
-    /**
      * Url
      *
      * @var Uri
      */
-    private static $_url;
+    private ?Uri $uri = null;
 
     /**
      * Request body
@@ -86,16 +70,34 @@ class Request implements RequestInterface
      *
      * @var array|null
      */
-    private static $_resolved_middlewares = null;
+    private array $resolved_middlewares = [];
 
     /**
-     * Class constructor
-     * 
+     * Create a new request
+     *
+     * @param Collection $server
+     * @param Collection $header
+     * @param Collection $cookie
+     * @param Collection|null $get
+     * @param Collection|null $post
+     * @param Collection|null $files
+     * @param Collection|null $tmpfiles
+     * @param string $content
      */
-    public function __construct()
-    {
-        self::$running_instance = $this;
+    public function __construct(
+        protected Collection $server,
+        protected Collection $header,
+        protected Collection $cookie,
+        protected ?Collection $get = null,
+        protected ?Collection $post = null,
+        protected ?Collection $files = null,
+        protected ?Collection $tmpfiles = null,
+        protected string $content = ''
+    ) {
         $this->parseBody();
+        $previousRequest = Session::getAndRemove('cubeHttpRequest');
+        Session::set('previousCubeHttpRequest', $previousRequest);
+        Session::set('cubeHttpRequest', $this);
     }
 
     /**
@@ -108,13 +110,17 @@ class Request implements RequestInterface
      */
     public function __call($method, $args)
     {
+        if (property_exists($this, $method)) {
+            return $this->{$method};
+        }
+
         $ware = array_key_exists($method, $this->_wares);
 
         if (!$ware) {
             throw new InvalidArgumentException('Custom method "' . $method . '" not assigned');
         }
 
-        return call_user_func($this->_wares[$method], $args);
+        return $this->_wares[$method];
     }
 
     /**
@@ -166,6 +172,16 @@ class Request implements RequestInterface
     }
 
     /**
+     * Get HTTP Cookies
+     *
+     * @return Collection
+     */
+    public function getCookies(): Collection
+    {
+        return $this->cookie;
+    }
+
+    /**
      * Return parsed request body
      *
      * @return string JSON parsed string
@@ -178,31 +194,21 @@ class Request implements RequestInterface
     /**
      * Return request headers
      *
-     * @return Headers
+     * @return Collection
      */
-    public function getHeaders()
+    public function getHeaders(): Collection
     {
-        if (static::$_headers) {
-            return static::$_headers;
-        }
-
-        static::$_headers = new Headers();
-        return static::$_headers;
+        return $this->header;
     }
 
     /**
      * Return request server variables
      *
-     * @return Server;
+     * @return Collection;
      */
-    public function getServer()
+    public function getServer(): Collection
     {
-        if (static::$_server) {
-            return static::$_server;
-        }
-
-        static::$_server = new Server();
-        return static::$_server;
+        return $this->server;
     }
 
     /**
@@ -347,7 +353,7 @@ class Request implements RequestInterface
             throw new InvalidArgumentException('The specifed method name is a reserved method name');
         }
 
-        $this->_wares[$name] = $fn;
+        $this->_wares[$name] = $fn();
         return $this;
     }
 
@@ -358,16 +364,21 @@ class Request implements RequestInterface
      */
     public function url()
     {
-        if (static::$_url) {
-            return static::$_url;
+        if ($this->uri) {
+            return $this->uri;
         }
 
-        $scheme = $this->getServer()->isHTTPs() ? 'https' : 'http';
+        $is_https = ((string) $this->get->get('https') === 'on');
+        $scheme = $is_https ? 'https' : 'http';
         $host = $this->getServer()->get('http_host');
         $uri = $this->getServer()->get('request_uri');
 
-        static::$_url = new Uri($scheme . '://' . $host . $uri);
-        return static::$_url;
+        if ($this->get->count()) {
+            $uri .= '?' . http_build_query($this->get->getArrayCopy());
+        }
+
+        $this->uri = new Uri($scheme . '://' . $host . $uri);
+        return $this->uri;
     }
 
     /**
@@ -449,24 +460,14 @@ class Request implements RequestInterface
     }
 
     /**
-     * Get running request instance
-     *
-     * @return self
-     */
-    public static function getRunningInstance(): self
-    {
-        return self::$running_instance ??= new self();
-    }
-
-    /**
      * Get resolved middlewares
      *
      * @return array
      */
     protected function getMiddlewareResolved()
     {
-        if (static::$_resolved_middlewares) {
-            return static::$_resolved_middlewares;
+        if ($this->resolved_middlewares) {
+            return $this->resolved_middlewares;
         }
 
         $wares = App::getRunningInstance()->getConfig('middleware');
@@ -481,7 +482,7 @@ class Request implements RequestInterface
             }
         });
 
-        static::$_resolved_middlewares = $wares;
+        $this->resolved_middlewares = $wares;
         return $wares;
     }
 
@@ -492,10 +493,13 @@ class Request implements RequestInterface
      */
     private function parseBody()
     {
-        $body_content = file_get_contents('php://input');
-        $body = (!$body_content && count($_POST))
-            ? json_encode($_POST)
-            : $body_content;
+        if (strtoupper($this->getMethod()) === 'GET') {
+            return $this->_body = '';
+        }
+
+        $content = $this->content;
+        $post = $this->post?->all() ?? [];
+        $body = (!!count($post)) ? json_encode($post) : $content;
 
         $this->_body = $body;
         $is_json = str($body)->isJson();
@@ -504,6 +508,35 @@ class Request implements RequestInterface
             $is_json
                 ? http_build_query(json_decode($body, true))
                 : $body
+        );
+    }
+
+    /**
+     * Get current request
+     *
+     * @return self|null
+     */
+    public static function getCurrentRequest(): ?self
+    {
+        return Session::get('cubeHttpRequest');
+    }
+
+    /**
+     * Create new request from globals
+     *
+     * @return self
+     */
+    public static function createHttpRequestFromGlobals(): self
+    {
+        return new self(
+            new Collection($_SERVER),
+            new Collection(new Headers()),
+            new Collection($_COOKIE),
+            new Collection($_GET),
+            new Collection($_POST),
+            new Collection($_FILES),
+            null,
+            (string) file_get_contents('php://input'),
         );
     }
 }

@@ -27,7 +27,7 @@ class Session
      */
     private function __construct()
     {
-        if(SessionManager::isReady()) {
+        if (SessionManager::isReady()) {
             $handler = new SessionManager();
             session_set_save_handler($handler, true);
         }
@@ -41,8 +41,8 @@ class Session
          * Start session
          */
         session_start();
-        
-        if(!self::has(self::$_cookie_name)) {
+
+        if (!self::has(self::$_cookie_name)) {
             self::set(self::$_cookie_name, generate_token(30));
         }
     }
@@ -54,7 +54,7 @@ class Session
      */
     public static function createInstance()
     {
-        if(!static::$_instance) {
+        if (!static::$_instance) {
             static::$_instance = new self;
         }
 
@@ -82,7 +82,7 @@ class Session
      */
     public static function get($name)
     {
-        if(!static::has($name)) {
+        if (!static::has($name)) {
             return null;
         }
 
@@ -108,7 +108,8 @@ class Session
      * 
      * @return string
      */
-    public static function name() {
+    public static function name()
+    {
         return session_name();
     }
 
@@ -132,7 +133,7 @@ class Session
      */
     public static function remove($name)
     {
-        if(!static::has($name)) {
+        if (!static::has($name)) {
             return false;
         }
 

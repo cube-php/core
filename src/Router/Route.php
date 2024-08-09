@@ -563,6 +563,12 @@ class Route
         if (is_array($result)) {
             return $response->json($result);
         }
+
+        if (!$result) {
+            return $response->write('');
+        }
+
+        throw new AppException('Response not returned');
     }
 
     /**
@@ -601,6 +607,10 @@ class Route
             $this->_is_callble_controller = true;
             $this->_controller = $controller;
             return true;
+        }
+
+        if (is_array($controller)) {
+            return $controller;
         }
 
         $controller_vars = explode('.', $controller);

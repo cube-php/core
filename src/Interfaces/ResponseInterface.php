@@ -2,6 +2,8 @@
 
 namespace Cube\Interfaces;
 
+use Cube\Misc\Collection;
+
 interface ResponseInterface
 {
     public function withAddedHeader($name, $value);
@@ -19,4 +21,16 @@ interface ResponseInterface
     public function redirect($path, array $query_params = [], $external_location = false);
 
     public function view($path, array $options = []);
+
+    public function getHeaders(): Collection;
+
+    public function getHttpStatusCode(): int;
+
+    public function getHttpReason(): string;
+
+    public function getProtocol(): string;
+
+    public function getBody();
+
+    public function getCookies(): array;
 }
