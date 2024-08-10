@@ -73,6 +73,13 @@ class Request implements RequestInterface
     private array $resolved_middlewares = [];
 
     /**
+     * Middlewares that have been called
+     *
+     * @var array
+     */
+    private array $called_middlewares = [];
+
+    /**
      * Create a new request
      *
      * @param Collection $server
@@ -260,6 +267,16 @@ class Request implements RequestInterface
     }
 
     /**
+     * Get list of used middlewares
+     *
+     * @return array
+     */
+    public function getMiddlewares(): array
+    {
+        return $this->called_middlewares;
+    }
+
+    /**
      * Check if a custom method exists on request
      *
      * @param string $name
@@ -400,7 +417,6 @@ class Request implements RequestInterface
 
         $wares = $this->getMiddlewareResolved();
         $result = $this;
-        $stopped = false;
 
         foreach ($middlewares as $middleware) {
 
@@ -411,10 +427,12 @@ class Request implements RequestInterface
                     );
                 }
 
-                $result = $middleware->trigger($this);
+                $this->called_middlewares[] = $middleware::class;
+                $result = $middleware->trigger($result);
             }
 
             if (is_callable($middleware)) {
+                $this->called_middlewares[] = $middleware;
                 $result = $middleware($result);
             }
 
@@ -424,6 +442,7 @@ class Request implements RequestInterface
                 $key = $vars[0];
                 $args = $vars[1] ?? null;
                 $class = $wares[$key] ?? null;
+                $this->called_middlewares[] = $class;
 
                 if (!$class) {
                     throw new InvalidArgumentException('Middleware "' . $key . '" is not assigned');
@@ -434,13 +453,8 @@ class Request implements RequestInterface
             }
 
             if ($result instanceof Response) {
-                $stopped = true;
                 break;
             }
-        }
-
-        if ($stopped) {
-            return $result;
         }
 
         return $result;

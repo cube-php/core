@@ -12,6 +12,7 @@ use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
 use Cube\Http\Model;
+use Cube\Interfaces\RequestInterface;
 use Cube\Misc\ModelCollection;
 use Cube\Misc\PaginatedModelQueryResult;
 use Stringable;
@@ -349,15 +350,11 @@ class Route
         return $this->_has_optional_parameter;
     }
 
-    /**
-     * Call the controller
-     * 
-     * @return void
-     */
-    public function initController(Request $request, Response $response)
+    public function handle(Request $request)
     {
-
         $embed_request = App::getConfig('view', 'embed_request') ?? false;
+        $response = new Response();
+
         if ($embed_request) {
             $response->req = $request;
         }
@@ -369,8 +366,9 @@ class Route
         }
 
         #Parse controller
-        $this->_parseController();
+        $this->parseController();
 
+        #Parse anonymous controller
         if ($this->_is_callble_controller) {
             $controller = Closure::bind(
                 $this->_controller,
@@ -384,25 +382,35 @@ class Route
         $class = $this->_controller['class_name'];
         $method = $this->_controller['method_name'];
 
+        /**
+         * Create controller instance
+         * This is to be able to invoke middleware assigned in __construct
+         */
         $controller = new $class($request, $response);
-        $controller_middlewares_result = $request->useMiddleware(
+        $request = $request->useMiddleware(
             $controller->getMiddlewares()
         );
 
-        if ($controller_middlewares_result instanceof Response) {
-            return $controller_middlewares_result;
+        if ($request instanceof Response) {
+            return $request;
+        }
+
+        $request = $this->engageMiddleware($request);
+
+        if ($request instanceof Response) {
+            return $request;
         }
 
         $middleware_fn_name = '__middleware';
 
         if (is_callable([$controller, $middleware_fn_name])) {
-            $result = call_user_func_array(
+            $request = call_user_func_array(
                 [$controller, $middleware_fn_name],
                 [$request, $response]
             );
 
-            if ($result instanceof Response) {
-                return $result;
+            if ($request instanceof Response) {
+                return $request;
             }
         }
 
@@ -410,7 +418,11 @@ class Route
             throw new InvalidArgumentException("{$class}::{$method}() on route \"{$this->getPath()}\" is not a valid callable method");
         }
 
-        return $this->_analyzeControllerResult([$controller, $method], $request, $response);
+        return $this->_analyzeControllerResult(
+            [$controller, $method],
+            $request,
+            $response
+        );
     }
 
     /**
@@ -598,9 +610,8 @@ class Route
      *
      * @return bool
      */
-    private function _parseController()
+    private function parseController()
     {
-
         $controller = $this->_controller;
 
         if (is_callable($controller)) {

@@ -101,20 +101,16 @@ class RouteCollection
         }
 
         $response = $matchedRoute->parseResponse(new Response());
-        $request = $matchedRoute->engageMiddleware($this->request);
-
-        if ($request instanceof Response) {
-            return $request;
-        }
-
-        //Initialize controller
-        return $route->initController($request, $response);
+        $result = $route->handle($request, $response);
 
         //Dispatch event when request is completed
         EventManager::dispatchEvent(
             Request::EVENT_COMPLETED,
             $this->request
         );
+
+        //Initialize controller
+        return $result;
     }
 
     /**
