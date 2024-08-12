@@ -197,11 +197,12 @@ class App
     public function handle(?RequestInterface $request = null): Response
     {
         $request = $request ?: Request::createHttpRequestFromGlobals();
+        $handler = self::$exceptions_handler;
 
         try {
             $response = (new RouteCollection($request))->build();
         } catch (Throwable $e) {
-            return self::$exceptions_handler->handle($e, $request);
+            return $handler->handle($request, $e);
         }
 
         return $response;
