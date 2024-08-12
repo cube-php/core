@@ -227,7 +227,9 @@ class Request implements RequestInterface
      */
     public function getUploadedFiles($index = null)
     {
-        $parser = new FilesParser($_FILES);
+        $parser = new FilesParser(
+            $this->files->getArrayCopy()
+        );
         $parsed_files = $parser->parse();
 
         if (!$index) return $parsed_files;
