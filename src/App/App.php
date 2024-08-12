@@ -2,6 +2,7 @@
 
 namespace Cube\App;
 
+use Closure;
 use Cube\Helpers\Response\ResponseEmitter;
 use Cube\Http\Env;
 use Cube\Http\Request;
@@ -13,6 +14,8 @@ use Cube\Misc\EventManager;
 use Cube\Modules\SessionManager;
 use Cube\Router\ControllerRoutesLoader;
 use Cube\Router\RouteCollection;
+use Error;
+use Throwable;
 
 class App
 {
@@ -103,6 +106,13 @@ class App
     private static $caches = array();
 
     /**
+     * Exceptions handler
+     *
+     * @var AppExceptionsHandler
+     */
+    private static AppExceptionsHandler $exceptions_handler;
+
+    /**
      * Check if app is running via cli
      * 
      * @var boolean
@@ -118,6 +128,7 @@ class App
     {
         self::$directory = new Directory($dir);
         self::$instance = $this;
+        self::$exceptions_handler = new AppExceptionsHandler();
         $this->init();
     }
 
@@ -144,6 +155,7 @@ class App
     public function init()
     {
         $this->loadConfig();
+        $this->initExceptionHandlers();
         $this->setTimezone();
         $this->initHelpers();
         $this->initSessions();
@@ -184,8 +196,14 @@ class App
      */
     public function handle(?RequestInterface $request = null): Response
     {
-        $req = $request ?: Request::createHttpRequestFromGlobals();
-        $response = (new RouteCollection($req))->build();
+        $request = $request ?: Request::createHttpRequestFromGlobals();
+
+        try {
+            $response = (new RouteCollection($request))->build();
+        } catch (Throwable $e) {
+            return self::$exceptions_handler->handle($e, $request);
+        }
+
         return $response;
     }
 
@@ -292,7 +310,7 @@ class App
      *
      * @return bool
      */
-    public function initHelpers()
+    private function initHelpers()
     {
         $custom_helpers_dir = concat(
             $this->getPath(Directory::PATH_APP),
@@ -324,11 +342,25 @@ class App
     }
 
     /**
+     * Init exception handler
+     *
+     * @return void
+     */
+    private function initExceptionHandlers()
+    {
+        $exception = static::getConfig('exception');
+
+        if (is_callable($exception)) {
+            $exception(self::$exceptions_handler);
+        }
+    }
+
+    /**
      * Initialize routes
      *
      * @return void
      */
-    public function initRoutes()
+    private function initRoutes()
     {
         $this->requireDirectoryFiles(
             $this->directory()->get(Directory::PATH_ROUTES)
@@ -382,7 +414,7 @@ class App
 
         $data = $config[$name];
 
-        if (!is_array($data)) {
+        if (!is_array($data) && !is_callable($data)) {
             return null;
         }
 
