@@ -41,8 +41,8 @@ class FilesParser
         $this->files = $files;
 
         $key = array_keys($files)[0] ?? null;
-        if($key) {
-            
+        if ($key) {
+
             $multiChecker = $files[$key]['name'] ?? null;
             $this->is_multi = !($multiChecker && !is_array($multiChecker));
         }
@@ -56,20 +56,16 @@ class FilesParser
     public function build()
     {
 
-        $walker = function($arr, $fileInfoKey, callable $walker)
-        {
+        $walker = function ($arr, $fileInfoKey, callable $walker) {
             $ret = array();
 
-            foreach($arr as $k => $v)
-            {
-                if(is_array($v)) {
+            foreach ($arr as $k => $v) {
+                if (is_array($v)) {
 
                     $ret[$k] = $walker($v, $fileInfoKey, $walker);
-
                 } else {
 
                     $ret[$k][$fileInfoKey] = $v;
-
                 }
             }
 
@@ -78,18 +74,17 @@ class FilesParser
 
         $files = array();
 
-        foreach($this->files as $name => $values)
-        {
-            if(!isset($files[$name])) $files[$name] = array();
+        foreach ($this->files as $name => $values) {
+            if (!isset($files[$name])) $files[$name] = array();
 
-            if(!is_array($values['error'])) {
+            $is_array = isset($values['error']) ? is_array($values['error']) : false;
+
+            if ($is_array) {
 
                 $files[$name] = $values;
-
             } else {
 
-                foreach($values as $fileInfoKey => $subArray)
-                {
+                foreach ($values as $fileInfoKey => $subArray) {
                     $files[$name] = array_replace_recursive(
                         $files[$name],
                         $walker($subArray, $fileInfoKey, $walker)
@@ -108,13 +103,12 @@ class FilesParser
      */
     public function reparse($data)
     {
-        if(!is_array($data)) return $data;
+        if (!is_array($data)) return $data;
 
-        if(!$this->isAssociativeArray($data)) return $data;
+        if (!$this->isAssociativeArray($data)) return $data;
 
-        foreach($data as $key => $val)
-        {
-            if($this->isFileArray($val)) {
+        foreach ($data as $key => $val) {
+            if ($this->isFileArray($val)) {
                 return [$val];
             }
 
@@ -132,13 +126,12 @@ class FilesParser
     public function parseIndex($array)
     {
         $root = [];
-        
-        foreach($array as $key => $value)
-        {
 
-            if(!isset($root[$key])) $root[$key] = array();
+        foreach ($array as $key => $value) {
 
-            if(
+            if (!isset($root[$key])) $root[$key] = array();
+
+            if (
                 !(
                     is_array($value) &&
                     $this->isAssociativeArray($value) &&
@@ -162,12 +155,11 @@ class FilesParser
      */
     public function parse2index()
     {
-        $root = $filelist = [];
+        $filelist = [];
         $data = $this->build();
         $mainlist = $this->reparse($data);
-        
-        foreach($mainlist as $file)
-        {
+
+        foreach ($mainlist as $file) {
             $filelist[] = new UploadedFile($file);
         }
 
@@ -182,7 +174,7 @@ class FilesParser
     public function parse()
     {
 
-        if(!$this->is_multi && count($this->files)) {
+        if (!$this->is_multi && count($this->files)) {
 
             $key = array_keys($this->files)[0];
             return array($key => new UploadedFile($this->files[$key]));
@@ -198,7 +190,7 @@ class FilesParser
      */
     private function isAssociativeArray($data)
     {
-        if(!is_array($data)) return false;
+        if (!is_array($data)) return false;
         return (array_keys($data) !== range(0, count($data) - 1));
     }
 
