@@ -32,7 +32,6 @@ class AppExceptionsHandler
     public function __construct()
     {
         $this->handlers = new Collection();
-        $this->setDefault();
     }
 
     /**
@@ -67,13 +66,10 @@ class AppExceptionsHandler
      */
     public function handle(RequestInterface $request, Throwable $exception): Response
     {
-        if (App::isDevelopment()) {
-            throw $exception;
-        }
-
+        $this->setDefault($request, $exception);
         $on_exception = $this->on_exception;
 
-        if ($on_exception) {
+        if ($on_exception && App::isDevelopment()) {
             $on_exception($request, $exception);
         }
 
@@ -102,12 +98,16 @@ class AppExceptionsHandler
      *
      * @return void
      */
-    private function setDefault()
+    private function setDefault(Request $request, Throwable $exception)
     {
-        $this->default(
-            fn () => response()
+        $this->default(function () use ($exception) {
+            if (App::isDevelopment()) {
+                throw $exception;
+            }
+
+            response()
                 ->withStatusCode(Response::HTTP_SERVICE_UNAVAILABLE)
-                ->write(h('center', null, 'Service Unavailable'))
-        );
+                ->write(h('center', null, 'Service Unavailable'));
+        });
     }
 }
