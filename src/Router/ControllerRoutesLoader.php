@@ -30,7 +30,7 @@ class ControllerRoutesLoader
 
         every(
             $routes,
-            fn (RouterRoute $route) => RouteCollection::attachRoute($route)
+            fn(RouterRoute $route) => RouteCollection::attachRoute($route)
         );
     }
 
@@ -183,7 +183,8 @@ class ControllerRoutesLoader
                         );
                     }
 
-                    $path = $group_path ? $group_path . $args->path : $args->path;
+                    $path = ($group_path && $group_path !== '/')
+                        ? $group_path . $args->path : $args->path;
 
                     $route = new RouterRoute(
                         controller: concat($filename, '.', $method->getName()),
