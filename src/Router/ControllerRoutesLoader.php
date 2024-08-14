@@ -156,6 +156,10 @@ class ControllerRoutesLoader
                 ) {
                     $attributes = $method->getAttributes();
 
+                    //Check if RouteGroup's path has trailing slash
+                    $group_path = ($group_path && str_ends_with($group_path, '/'))
+                        ? substr($group_path, 0, -1) : $group_path;
+
                     if (!$attributes) {
                         return;
                     }
@@ -183,8 +187,7 @@ class ControllerRoutesLoader
                         );
                     }
 
-                    $path = ($group_path && $group_path !== '/')
-                        ? $group_path . $args->path : $args->path;
+                    $path = $group_path ? $group_path . $args->path : $args->path;
 
                     $route = new RouterRoute(
                         controller: concat($filename, '.', $method->getName()),
