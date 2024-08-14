@@ -35,6 +35,7 @@ abstract class Controller
             );
         }
 
+        //TODO: Invoke middleware on assignment
         $this->middlewares[] = $data;
     }
 

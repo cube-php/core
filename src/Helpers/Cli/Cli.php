@@ -71,7 +71,6 @@ class Cli
     public function __construct(App $app)
     {
         $app->setIsRunningViaTerminal(true);
-        $app->init();
         $this->app = $app;
     }
 

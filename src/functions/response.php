@@ -1,6 +1,9 @@
 <?php
 
+use Cube\Http\Request;
 use Cube\Http\Response;
+use Cube\Http\Uri;
+use Cube\View\ViewRenderer;
 
 /**
  * Http functions here
@@ -17,8 +20,29 @@ use Cube\Http\Response;
  * @param boolean $is_external
  * @return Response
  */
-function redirect($path, $params = [], $is_external = false) {
+function redirect($path, $params = [], $is_external = false)
+{
     return response()->redirect($path, $params, $is_external);
+}
+
+/**
+ * Redirect to previous url
+ *
+ * @return Response
+ */
+function back(): Response
+{
+    $request = Request::getCurrentRequest();
+    $ref = $request->getServer()->get('http_referer');
+    $host = $request->getServer()->get('http_host');
+
+    if (!$ref) {
+        return $host;
+    }
+
+    $uri = new Uri($ref);
+    $rdr_uri = ($host === $uri->getHost()) ? $ref : $request->url()->getFullUrl();
+    return redirect($rdr_uri, [], true);
 }
 
 /**
@@ -27,8 +51,9 @@ function redirect($path, $params = [], $is_external = false) {
  * @param boolean $new_instance Set if a new instance of response is needed
  * @return Response
  */
-function response($new_instance = false) {
-    return (Response::getInstance($new_instance));
+function response(): Response
+{
+    return new Response();
 }
 
 /**
@@ -40,8 +65,9 @@ function response($new_instance = false) {
  * @param boolean $new_instance Set if a new instance of response is needed
  * @return Response
  */
-function view($tpl, $context = [], $run_render = true, $new_instance = false) {
-    return response($new_instance)->view($tpl, $context, $run_render);
+function view($tpl, $context = [])
+{
+    return load_view($tpl, $context);
 }
 
 /**
@@ -51,6 +77,8 @@ function view($tpl, $context = [], $run_render = true, $new_instance = false) {
  * @param array $context
  * @return Response
  */
-function load_view($tpl, array $context = []): string {
-    return view($tpl, $context, false, true);
+function load_view($tpl, array $context = []): string
+{
+    $renderer = new ViewRenderer();
+    return $renderer->render($tpl, $context);
 }

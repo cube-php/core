@@ -10,6 +10,7 @@ use Cube\View\ViewRenderer;
 
 use Cube\Http\Headers;
 use Cube\Http\Session;
+use Cube\Misc\Collection;
 
 class Response implements ResponseInterface
 {
@@ -78,14 +79,6 @@ class Response implements ResponseInterface
     public const HTTP_LOOP_DETECTED = 508;
     public const HTTP_NOT_EXTENDED = 510;
     public const HTTP_NETWORK_AUTHENTICATION_REQUIRED = 511;
-
-
-    /**
-     * View context
-     *
-     * @var array
-     */
-    private $_view_context = [];
 
     /**
      * Response codes
@@ -167,48 +160,54 @@ class Response implements ResponseInterface
     );
 
     /**
-     * Headers
-     * 
-     * @var \Cube\Http\Headers;
-     */
-    private $_header;
-
-    /**
      * Response body content
      * 
      * @var string
      */
-    private $_body = '';
+    private $body = '';
 
     /**
-     * Set whether headers have been output
-     * 
-     * @var bool
-     */
-    private $_has_render_headers = false;
-
-    /**
-     * View
+     * Headers
      *
-     * @var View
+     * @var Collection
      */
-    private $_view;
+    private Collection $headers;
 
     /**
-     * Response instance
+     * View context
      *
-     * @var self
+     * @var array
      */
-    private static $_instance;
+    private $view_context = [];
+
+    /**
+     * Http protocol
+     *
+     * @var string
+     */
+    private string $protocol = '1.1';
+
+    /**
+     * Http status code
+     *
+     * @var integer
+     */
+    private int $status_code = self::HTTP_OK;
+
+    /**
+     * Cookies
+     *
+     * @var array
+     */
+    private array $cookies = array();
 
     /**
      * Response Constructor
      * 
      */
-    private function __construct()
+    public function __construct()
     {
-        $this->_header = new Headers;
-        $this->_view = new ViewRenderer(App::getPath(Directory::PATH_VIEWS));
+        $this->headers = new Collection();
     }
 
     /**
@@ -221,17 +220,7 @@ class Response implements ResponseInterface
      */
     public function __set($name, $value)
     {
-        $this->_view_context[$name] = $value;
-    }
-
-    /**
-     * Return body when response is treated as sring
-     * 
-     * @return string
-     */
-    public function __toString()
-    {
-        return $this->_body;
+        $this->view_context[$name] = $value;
     }
 
     /**
@@ -255,6 +244,100 @@ class Response implements ResponseInterface
     }
 
     /**
+     * Response body
+     *
+     * @return mixed
+     */
+    public function getBody()
+    {
+        return $this->body;
+    }
+
+    /**
+     * Get cookies
+     *
+     * @return array
+     */
+    public function getCookies(): array
+    {
+        return array_merge(
+            Cookie::getQueue(),
+            $this->cookies
+        );
+    }
+
+    /**
+     * Get response headers
+     *
+     * @return Collection
+     */
+    public function getHeaders(): Collection
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Get response protocol
+     *
+     * @return string
+     */
+    public function getProtocol(): string
+    {
+        return $this->protocol;
+    }
+
+    /**
+     * Get response status code
+     *
+     * @return integer
+     */
+    public function getHttpStatusCode(): int
+    {
+        return $this->status_code;
+    }
+
+    /**
+     * Get response http reason
+     *
+     * @return string
+     */
+    public function getHttpReason(): string
+    {
+        return self::$response_codes[$this->getHttpStatusCode()];
+    }
+
+    /**
+     * Add cooke
+     *
+     * @param string $name
+     * @param string $value
+     * @param integer $expires
+     * @param string $path
+     * @return self
+     */
+    public function withCookie(
+        string $name,
+        string $value,
+        int $expires = 0,
+        string $path = '/',
+        string $domain = '',
+        bool $secure = false,
+        bool $httponly = false
+    ) {
+        $this->cookies[] = (object) array(
+            'name' => $name,
+            'value' => $value,
+            'expires' => $expires,
+            'path' => $path,
+            'domain' => $domain,
+            'secure' => $secure,
+            'httponly' => $httponly
+        );
+
+        return $this;
+    }
+
+    /**
      * Add new header to previously added header
      * 
      * @param string|int $name Header field name
@@ -264,10 +347,10 @@ class Response implements ResponseInterface
      */
     public function withAddedHeader($name, $value)
     {
-        $old_value = $this->_header->get($name) ?? '';
+        $old_value = $this->headers->get($name) ?? '';
         $new_value = $old_value . ', ' . $value;
 
-        $this->_header->set($name, $new_value);
+        $this->headers->set($name, $new_value);
         return $this;
     }
 
@@ -281,7 +364,7 @@ class Response implements ResponseInterface
      */
     public function withHeader($name, $value)
     {
-        $this->_header->set($name, $value);
+        $this->headers->set($name, $value);
         return $this;
     }
 
@@ -308,7 +391,7 @@ class Response implements ResponseInterface
      */
     public function withoutHeader($name)
     {
-        $this->_header->remove($name);
+        $this->headers->remove($name);
         return $this;
     }
 
@@ -330,7 +413,8 @@ class Response implements ResponseInterface
 
         $reason = ($reason) ? $reason : (static::$response_codes[$code] ?? '');
 
-        $this->_header->raw("HTTP/1.1 {$code} {$reason}");
+        $this->protocol = '1.1';
+        $this->status_code = $code;
         return $this;
     }
 
@@ -343,19 +427,8 @@ class Response implements ResponseInterface
      */
     public function write(...$args)
     {
-
         $string = implode($args);
-
-        #Check if headers have been output
-        #Else output headers
-        if (!$this->_has_render_headers) {
-            $this->_header->render();
-            $this->_has_render_headers = true;
-        }
-
-        $this->_body .= $string;
-
-        echo $string;
+        $this->body .= $string;
         return $this;
     }
 
@@ -369,7 +442,6 @@ class Response implements ResponseInterface
      */
     public function json($data, ?int $status_code = null)
     {
-
         $this->withHeader('Content-Type', 'application/json');
         $data = json_encode($data);
 
@@ -392,7 +464,7 @@ class Response implements ResponseInterface
     {
         $redirect_location = $external_location ? $path : url($path, $query_params);
         return $this
-            ->withStatusCode(301)
+            ->withStatusCode(Response::HTTP_TEMPORARY_REDIRECT)
             ->withHeader('location', $redirect_location)
             ->write(null);
     }
@@ -422,7 +494,7 @@ class Response implements ResponseInterface
      * @param string $origin
      * @return self
      */
-    public function setOrigin($origin)
+    public function setOrigin($origin): self
     {
         $this->withHeader('Access-Control-Allow-Origin', $origin);
         return $this;
@@ -436,36 +508,12 @@ class Response implements ResponseInterface
      * 
      * @return self
      */
-    public function view($path, array $context = [], $run_render = true)
+    public function view($path, array $context = [], $run_render = true): self
     {
-        $resolved_context = array_merge($this->_view_context, $context);
-        $rendered_content = $this->_view->render($path, $resolved_context);
-
-        if (!$run_render) {
-            return $rendered_content;
-        }
-
-        echo $rendered_content;
+        $resolved_context = array_merge($this->view_context, $context);
+        $renderer = new ViewRenderer();
+        $rendered_content = $renderer->render($path, $resolved_context);
+        $this->write($rendered_content);
         return $this;
-    }
-
-    /**
-     * Get response interface
-     *
-     * @param boolean $force_new Set if a fresh instance of response is needed
-     * @return self
-     */
-    public static function getInstance($force_new = false)
-    {
-        if ($force_new) {
-            return new self();
-        }
-
-        if (static::$_instance) {
-            return static::$_instance;
-        }
-
-        static::$_instance = new self();
-        return static::$_instance;
     }
 }

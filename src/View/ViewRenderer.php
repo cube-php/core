@@ -51,14 +51,14 @@ class ViewRenderer
     );
 
     /**
-     * View constructor
-     *
-     * @param string $path
+     * Constructor
      */
-    public function __construct(string $path = '')
+    public function __construct()
     {
         $this->_config = App::getConfig('view');
-        $this->setBasePath($path);
+        $this->setBasePath(
+            App::getPath(Directory::PATH_VIEWS)
+        );
     }
 
     /**

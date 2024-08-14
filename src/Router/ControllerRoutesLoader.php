@@ -30,7 +30,7 @@ class ControllerRoutesLoader
 
         every(
             $routes,
-            fn (RouterRoute $route) => RouteCollection::attachRoute($route)
+            fn(RouterRoute $route) => RouteCollection::attachRoute($route)
         );
     }
 
@@ -155,6 +155,10 @@ class ControllerRoutesLoader
                     $route_verbs,
                 ) {
                     $attributes = $method->getAttributes();
+
+                    //Check if RouteGroup's path has trailing slash
+                    $group_path = ($group_path && str_ends_with($group_path, '/'))
+                        ? substr($group_path, 0, -1) : $group_path;
 
                     if (!$attributes) {
                         return;

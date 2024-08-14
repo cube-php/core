@@ -4,6 +4,8 @@ namespace Cube\Http;
 
 class Cookie
 {
+    protected static $queue_name = 'cube::HttpCookiesQueue';
+
     /**
      * Set new cookie
      * 
@@ -14,11 +16,49 @@ class Cookie
      * 
      * @return bool
      */
-    public static function set(string $name, string $value, $expires = null, $path = '/'): bool
-    {
-        $expires = $expires ?? getdays(7);
-        setcookie($name, $value, (time() + $expires), $path);
+    public static function set(
+        string $name,
+        string $value,
+        int $expires = 0,
+        $path = '/',
+        string $domain = '',
+        bool $secure = false,
+        bool $httponly = false
+    ): bool {
+        $cookies = self::getQueue();
+        $cookies[] = (object) array(
+            'name' => $name,
+            'value' => $value,
+            'expires' => $expires,
+            'path' => $path,
+            'domain' => $domain,
+            'secure' => $secure,
+            'httponly' => $httponly
+        );
+
+        Session::set(static::$queue_name, $cookies);
         return true;
+    }
+
+    /**
+     * Get queue
+     *
+     * @return array
+     */
+    public static function getQueue(): array
+    {
+        $cookies = Session::getAndRemove(static::$queue_name) ?? [];
+        return $cookies;
+    }
+
+    /**
+     * Clear cookie queue
+     *
+     * @return void
+     */
+    public static function clearQueue(): void
+    {
+        Session::remove(self::$queue_name);
     }
 
     /**
@@ -32,7 +72,7 @@ class Cookie
      */
     public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool
     {
-        if(static::has($name)) {
+        if (static::has($name)) {
             return true;
         }
 
@@ -53,7 +93,7 @@ class Cookie
     {
         $data = Cookie::get($name);
 
-        if($data) {
+        if ($data) {
             return $data;
         }
 
@@ -71,7 +111,7 @@ class Cookie
      */
     public static function has($name)
     {
-        return isset($_COOKIE[$name]);
+        return Request::getCurrentRequest()->getCookies()->has($name);
     }
 
     /**
@@ -82,11 +122,11 @@ class Cookie
      */
     public static function get($name)
     {
-        if(!static::has($name)) {
+        if (!static::has($name)) {
             return null;
         }
 
-        return $_COOKIE[$name];
+        return Request::getCurrentRequest()->getCookies()->get($name);
     }
 
     /**

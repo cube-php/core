@@ -3,9 +3,11 @@
 namespace Cube\Router;
 
 use Cube\App\App;
+use Cube\Exceptions\RouteNotFoundException;
 use Cube\Router\Route;
 use Cube\Http\Request;
 use Cube\Http\Response;
+use Cube\Interfaces\RequestInterface;
 use Cube\Misc\EventManager;
 
 class RouteCollection
@@ -33,95 +35,82 @@ class RouteCollection
     private static $_attached_routes = array();
 
     /**
-     * Request interface
-     * 
-     * @var Request
-     */
-    private $_request;
-
-    /**
      * Class constructor
      * 
      */
-    public function __construct()
+    public function __construct(protected RequestInterface $request)
     {
-        $this->_request = Request::getRunningInstance();
-        ControllerRoutesLoader::load();
     }
 
     /**
      * Build all routes
      * 
-     * @return void
+     * @return Response
      */
     public function build()
     {
-        $path_match_found = false;
-        $raw_current_url = (string) $this->_request->url()->getPath();
+        $request = $this->request;
+
+        $raw_current_url = (string) $request->url()->getPath();
         $current_url = $this->trimPath($raw_current_url);
+
+        /** @var Route|null */
+        $matchedRoute = null;
+        $routePathAttributes = '';
 
         foreach (static::$_attached_routes as $route) {
 
-            if ($path_match_found) {
-                break;
+            if ($request->getMethod() !== $route->getMethod()) {
+                continue;
             }
 
-            #Get route regex path
             $regex_path = $route->path()->regexp();
-
-            #Test current url
             $test = preg_match("#^{$regex_path}$#", $current_url, $matches);
 
-            #Match found!!!
             if ($test) {
-
-                $path_match_found = true;
-                $path_attributes = array_slice($matches, 1);
-                $route_attributes = $route->getAttributes();
-
-                array_walk($route_attributes, function ($attribute, $index) use ($path_attributes, $route) {
-
-                    $name = $attribute;
-                    $value = $path_attributes[$index] ?? null;
-
-                    if ($route->hasOptionalParameter()) {
-                        $value = substr($value, 0, strlen($value) - 1);
-                    }
-
-                    $this->_request->setAttribute($name, $value);
-                });
-
-                //Dispatch event when route is found
-                EventManager::dispatchEvent(
-                    App::EVENT_ROUTE_MATCH_FOUND,
-                    $this->_request
-                );
-
-                #Get parsed response
-                $response = $route->parseResponse(Response::getInstance());
-
-                #Engage Middlewares
-                $request = $route->engageMiddleware($this->_request);
-
-                if ($request instanceof Response) {
-                    return true;
-                }
-
-                //Initialize controller
-                $route->initController($request, $response);
-
-                //Dispatch event when request is completed
-                EventManager::dispatchEvent(
-                    Request::EVENT_COMPLETED,
-                    $this->_request
-                );
-
-                return true;
+                $matchedRoute = $route;
+                $routePathAttributes = array_slice($matches, 1);
+                break;
             }
         }
 
-        #Oh no, no matches
-        EventManager::dispatchEvent(App::EVENT_ROUTE_NO_MATCH_FOUND, $this->_request);
+        if (!$matchedRoute) {
+
+            EventManager::dispatchEvent(
+                App::EVENT_ROUTE_MATCH_FOUND,
+                $this->request
+            );
+
+            throw new RouteNotFoundException($this->request);
+        }
+
+        $route_attributes = $route->getAttributes();
+
+        if ($routePathAttributes) {
+            array_walk($route_attributes, function ($attribute, $index) use ($route) {
+
+                $name = $attribute;
+                $value = $path_attributes[$index] ?? null;
+
+                if ($route->hasOptionalParameter()) {
+                    $value = substr($value, 0, strlen($value) - 1);
+                }
+
+                $this->request->setAttribute($name, $value);
+            });
+        }
+
+        $response = $matchedRoute->parseResponse(new Response());
+        $result = $route->handle($request, $response);
+
+        //Dispatch event when request is completed
+        EventManager::dispatchEvent(
+            Request::EVENT_COMPLETED,
+            $this->request
+        );
+
+        //Initialize controller
+        return $result;
     }
 
     /**
@@ -167,13 +156,6 @@ class RouteCollection
     {
         #Attach route to all routes
         static::$_routes[] = $route;
-
-        $request = Request::getRunningInstance();
-
-        #attach on request method
-        if ($route->getMethod() && $request->getMethod() !== $route->getMethod()) {
-            return $route;
-        }
         static::$_attached_routes[] = $route;
         return $route;
     }
