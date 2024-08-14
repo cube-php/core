@@ -105,7 +105,7 @@ class AppExceptionsHandler
                 throw $exception;
             }
 
-            response()
+            return response()
                 ->withStatusCode(Response::HTTP_SERVICE_UNAVAILABLE)
                 ->write(h('center', null, 'Service Unavailable'));
         });
