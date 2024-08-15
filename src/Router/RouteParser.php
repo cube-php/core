@@ -58,15 +58,16 @@ class RouteParser
      */
     public function regexp()
     {
-        $regexp_path = '';
         $rawpath = $this->_route->getPath();
-
         $path = $this->compileRegularPath($rawpath);
         $path = $this->compileStrictPathParams($path);
 
-        return $this->_addRemoveTrailingSlash($path, $this->_route->hasOptionalParameter());
+        return $this->_addRemoveTrailingSlash(
+            $path,
+            $this->_route->hasOptionalParameter()
+        );
     }
-    
+
     /**
      * Compile regular path conditions
      * 
@@ -79,16 +80,18 @@ class RouteParser
 
         #check for regular path conditions
         $regular_path = preg_match_all('#(\{(.*?)\})#', $path, $matches);
-        
-        if(!$regular_path) return $path;
+
+        if (!$regular_path) {
+            return $path;
+        }
 
         $newpath = $path;
 
-        foreach($matches[1] as $index => $match) {
+        foreach ($matches[1] as $index => $match) {
 
             #remove brackets
             $regexps = static::$regex;
-            $match_without_brackets = str_replace(['{','}'], '', $match);
+            $match_without_brackets = str_replace(['{', '}'], '', $match);
             $last_char = substr($match_without_brackets, -1, 1);
 
             $is_optional = $last_char === '?';
@@ -96,11 +99,11 @@ class RouteParser
             $match_vars_count = count($match_vars);
             $isRegularPath = preg_match('/\:/', $match);
 
-            if(!$isRegularPath) {
+            if (!$isRegularPath) {
                 continue;
             }
 
-            if($match_vars_count < 2 || $match_vars_count > 2) {
+            if ($match_vars_count < 2 || $match_vars_count > 2) {
                 throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
             }
 
@@ -114,15 +117,15 @@ class RouteParser
             $is_optional = $last_char === '?';
 
             #Specify attribute's index to route
-            $this->_route->setAttribute($parameter_name);
+            $this->_route->setAttribute($parameter_name, $parameter_raw_value);
             $this->_route->setHasOptionalParameter($is_optional);
 
-            if(array_key_exists($parameter_raw_value, $regexps)){
+            if (array_key_exists($parameter_raw_value, $regexps)) {
                 $regexp = $is_optional ? static::$regex_opt : $regexps;
                 $parameter_value = $regexp[$parameter_raw_value] ?? null;
             }
 
-            if(!$parameter_value) {
+            if (!$parameter_value) {
                 $parameter_value = '(' . $parameter_raw_value . ')';
             }
 
@@ -144,17 +147,17 @@ class RouteParser
         #check for strict parameters
         $strict_parameters = preg_match_all('#\{([^\/]+)\}#', $path, $matches);
 
-        if(!$strict_parameters) return $path;
+        if (!$strict_parameters) return $path;
 
         $newpath = $path;
 
-        foreach($matches[0] as $index => $match) {
+        foreach ($matches[0] as $index => $match) {
 
             $parameter_name = str_replace(['{', '}'], '', $match);
             $last_char = substr($parameter_name, -1, 1);
             $is_optional = $last_char === '?';
 
-            if($is_optional) {
+            if ($is_optional) {
                 $parameter_name = substr($parameter_name, 0, strlen($parameter_name) - 1);
             }
 
@@ -176,12 +179,21 @@ class RouteParser
      */
     private function _addRemoveTrailingSlash($path, $is_optional = false)
     {
-        if(!$is_optional) {
+        if (!$is_optional) {
             #Enforce trailing slash
             return (substr($path, -1, 1) === '/') ? $path : $path . '/';
         }
 
         #Remove trailing slash
         return (substr($path, -1, 1) === '/') ? substr($path, 0, strlen($path) - 1) : $path;
+    }
+
+    public static function attributeCast(string $value, ?string $type = null)
+    {
+        return match ($type) {
+            '*bool' => strtolower($value) === 'true',
+            '*int' => (int) $value,
+            default => (string) $value
+        };
     }
 }
