@@ -154,6 +154,19 @@ class File
     }
 
     /**
+     * Get extension from filename
+     *
+     * @param string $filename
+     * @return string
+     */
+    public static function getExtensionFromName(string $filename): string
+    {
+        $data = explode('.', $filename);
+        $count = count($data);
+        return $data[$count - 1];
+    }
+
+    /**
      * Close opened file resource
      * 
      * @return
