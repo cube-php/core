@@ -38,9 +38,7 @@ class RouteCollection
      * Class constructor
      * 
      */
-    public function __construct(protected RequestInterface $request)
-    {
-    }
+    public function __construct(protected RequestInterface $request) {}
 
     /**
      * Build all routes
@@ -56,7 +54,7 @@ class RouteCollection
 
         /** @var Route|null */
         $matchedRoute = null;
-        $routePathAttributes = '';
+        $routePathAttributes = [];
 
         foreach (static::$_attached_routes as $route) {
 
@@ -87,10 +85,13 @@ class RouteCollection
         $route_attributes = $route->getAttributes();
 
         if ($routePathAttributes) {
-            array_walk($route_attributes, function ($attribute, $index) use ($route) {
+            array_walk($route_attributes, function ($attribute, $index) use ($route, $routePathAttributes) {
 
-                $name = $attribute;
-                $value = $path_attributes[$index] ?? null;
+                $name = $attribute->name;
+                $value = RouteParser::attributeCast(
+                    $routePathAttributes[$index],
+                    $attribute->type,
+                );
 
                 if ($route->hasOptionalParameter()) {
                     $value = substr($value, 0, strlen($value) - 1);

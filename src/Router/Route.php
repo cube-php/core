@@ -12,7 +12,6 @@ use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
 use Cube\Http\Model;
-use Cube\Interfaces\RequestInterface;
 use Cube\Misc\ModelCollection;
 use Cube\Misc\PaginatedModelQueryResult;
 use Stringable;
@@ -289,12 +288,17 @@ class Route
      * Set attributes found in route path
      * 
      * @param string $name Attribute field name
+     * @param string $type Attribute field type
      * 
      * @return void
      */
-    public function setAttribute($name)
+    public function setAttribute($name, $type = null)
     {
-        $this->_attributes[] = $name;
+        $this->_attributes[] = (object) array(
+            'name' => $name,
+            'type' => $type
+        );
+
         return $this;
     }
 
@@ -350,6 +354,12 @@ class Route
         return $this->_has_optional_parameter;
     }
 
+    /**
+     * Handle request
+     *
+     * @param Request $request
+     * @return Response
+     */
     public function handle(Request $request)
     {
         $embed_request = App::getConfig('view', 'embed_request') ?? false;
