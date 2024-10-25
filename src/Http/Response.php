@@ -464,7 +464,7 @@ class Response implements ResponseInterface
     {
         $redirect_location = $external_location ? $path : url($path, $query_params);
         return $this
-            ->withStatusCode(Response::HTTP_TEMPORARY_REDIRECT)
+            ->withStatusCode(Response::HTTP_FOUND)
             ->withHeader('location', $redirect_location)
             ->write(null);
     }
