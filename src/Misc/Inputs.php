@@ -14,8 +14,8 @@ class Inputs extends Collection
      */
     public function __construct($content)
     {
-        parse_str($content, $data);
-        foreach($data as $index => $value) {
+        is_string($content) ? parse_str($content, $data) : $data = $content;
+        foreach ($data as $index => $value) {
             $this->set($index, $value);
         }
     }
@@ -32,11 +32,11 @@ class Inputs extends Collection
         $vars = explode('.', trim($key));
         $value = $this->all();
 
-        foreach($vars as $var) {
+        foreach ($vars as $var) {
             $value = $value[$var] ?? null;
         }
 
-        if(!is_array($value)) return new Input($value, $var);
+        if (!is_array($value)) return new Input($value, $var);
         return $value;
     }
 }
