@@ -520,11 +520,8 @@ class Request implements RequestInterface
         $this->_body = $body;
         $is_json = str($body)->isJson();
 
-        $this->_processed_body = new Inputs(
-            $is_json
-                ? http_build_query(json_decode($body, true))
-                : $body
-        );
+        $inputs = $is_json ? json_decode($body, true) : $body;
+        $this->_processed_body = new Inputs($inputs);
     }
 
     /**
