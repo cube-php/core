@@ -47,7 +47,7 @@ class DBQueryBuilder
      * @var string
      */
     protected $_value_prefix = '@';
-    
+
     /**
      * Class to string
      * 
@@ -83,7 +83,7 @@ class DBQueryBuilder
     {
         return $this->between('AND', $field, $values);
     }
-    
+
     /**
      * And exists statement
      * 
@@ -170,7 +170,7 @@ class DBQueryBuilder
      * @return DBUpdate|DBSelect|DBDelete
      */
     public function having(...$args)
-    { 
+    {
         $args = $this->parseArgs($args);
         return $this->joinSql(null, 'HAVING', $args->field, $args->operator, $args->value);
     }
@@ -287,7 +287,7 @@ class DBQueryBuilder
      */
     public function where(...$args)
     {
-        if($this->has_called_where) {
+        if ($this->has_called_where) {
             return call_user_func_array([$this, 'and'], $args);
         }
 
@@ -306,6 +306,11 @@ class DBQueryBuilder
      */
     public function whereBetween($field, $values)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andBetween'], [$field, $values]);
+        }
+
+        $this->has_called_where = true;
         return $this->between('WHERE', $field, $values);
     }
 
@@ -317,6 +322,11 @@ class DBQueryBuilder
      */
     public function whereExists($group)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andExists'], [$group]);
+        }
+
+        $this->has_called_where = true;
         return $this->exists('WHERE', $group);
     }
 
@@ -329,6 +339,11 @@ class DBQueryBuilder
      */
     public function whereIn($field, $group)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andIn'], [$field, $group]);
+        }
+
+        $this->has_called_where = true;
         return $this->in('WHERE', $field, $group);
     }
 
@@ -341,6 +356,11 @@ class DBQueryBuilder
      */
     public function whereLike($field, $keyword)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andLike'], [$field, $keyword]);
+        }
+
+        $this->has_called_where = true;
         return $this->like('WHERE', $field, $keyword);
     }
 
@@ -353,6 +373,11 @@ class DBQueryBuilder
      */
     public function whereNotIn($field, $group)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andNotIn'], [$field, $group]);
+        }
+
+        $this->has_called_where = true;
         return $this->notIn('WHERE', $field, $group);
     }
 
@@ -364,6 +389,11 @@ class DBQueryBuilder
      */
     public function whereNotNull($field)
     {
+        if ($this->has_called_where) {
+            return call_user_func_array([$this, 'andNotNull'], [$field]);
+        }
+
+        $this->has_called_where = true;
         return $this->notNull('WHERE', $field);
     }
 
@@ -390,7 +420,7 @@ class DBQueryBuilder
     {
         $prefix = $this->has_called_where ? 'AND' : 'WHERE';
         $this->has_called_where = true;
-        
+
         return $this->raw(
             concat($prefix, ' ', $statement),
             $params
@@ -421,9 +451,8 @@ class DBQueryBuilder
      */
     protected function between($key, $field, $values)
     {
-        if(count($values) !== 2) {
-            throw new InvalidArgumentException
-                ('Where between values should contain an array with two fields');
+        if (count($values) !== 2) {
+            throw new InvalidArgumentException('Where between values should contain an array with two fields');
         }
 
         $col1 = $this->addParam($values[0]);
@@ -443,7 +472,7 @@ class DBQueryBuilder
      */
     protected function exists($key, $group)
     {
-        $this->joinSql(null, $key,'EXISTS', null);
+        $this->joinSql(null, $key, 'EXISTS', null);
         $group(new DBQueryGroup($this));
 
         return $this;
@@ -492,7 +521,7 @@ class DBQueryBuilder
         $this->{$key}(concat($this->_value_prefix, $field), 'IS', 'NULL');
         return $this;
     }
-    
+
     /**
      * SQL NOT IN statement initiator
      * 
@@ -535,17 +564,15 @@ class DBQueryBuilder
         $this->joinSql(null, $key, null);
         $num_args = count($args);
 
-        if(!$num_args or $num_args > 3) {
-            throw new InvalidArgumentException
-                ('The number of arguments for method "whereGroup" should not exceed 3');
+        if (!$num_args or $num_args > 3) {
+            throw new InvalidArgumentException('The number of arguments for method "whereGroup" should not exceed 3');
         }
 
-        if($num_args == 1 && !is_callable($args[0])) {
-            throw new InvalidArgumentException
-                ('whereGroup has only one argument and it should be a function');
+        if ($num_args == 1 && !is_callable($args[0])) {
+            throw new InvalidArgumentException('whereGroup has only one argument and it should be a function');
         }
 
-        if($num_args == 1) {
+        if ($num_args == 1) {
             $args[0](new DBOrWhere($this));
             return $this;
         }
@@ -577,7 +604,7 @@ class DBQueryBuilder
      */
     protected function bindParam(array $value)
     {
-        foreach($value as $val) {
+        foreach ($value as $val) {
             $this->addParam($val);
         }
     }
@@ -625,9 +652,8 @@ class DBQueryBuilder
     {
         $num_args = count($args);
 
-        if($num_args < 2 || $num_args > 3) {
-            throw new InvalidArgumentException
-                ('Arguments should not be less than 2 and not exceed 3');
+        if ($num_args < 2 || $num_args > 3) {
+            throw new InvalidArgumentException('Arguments should not be less than 2 and not exceed 3');
         }
 
         $has_operator = $num_args == 3;
@@ -657,19 +683,18 @@ class DBQueryBuilder
      */
     private function parseInGroup($group)
     {
-        if(!is_callable($group) && !is_array($group)) {
-            throw new InvalidArgumentException
-                ('whereNotIn\'s 2nd argument must either be an array or a callback function');
+        if (!is_callable($group) && !is_array($group)) {
+            throw new InvalidArgumentException('whereNotIn\'s 2nd argument must either be an array or a callback function');
         }
 
-        if(is_callable($group)) {
+        if (is_callable($group)) {
             $group(new DBQueryGroup($this));
         }
 
-        if(is_array($group)) {
+        if (is_array($group)) {
             $this->joinSql('(', implode(', ', $group), ')');
         }
-        
+
         return $this;
     }
 }
