@@ -15,6 +15,7 @@ use Cube\App\App;
 use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
+use Cube\Http\UploadedFile;
 
 class Request implements RequestInterface
 {
@@ -80,6 +81,13 @@ class Request implements RequestInterface
     private array $called_middlewares = [];
 
     /**
+     * parsed uploaded files
+     *
+     * @var UploadedFile[]
+     */
+    private array $uploaded_files = array();
+
+    /**
      * Create a new request
      *
      * @param Collection $server
@@ -105,6 +113,10 @@ class Request implements RequestInterface
         $previousRequest = Session::getAndRemove('cubeHttpRequest');
         Session::set('previousCubeHttpRequest', $previousRequest);
         Session::set('cubeHttpRequest', $this);
+
+        $this->uploaded_files =  (new FilesParser(
+            $this->files->getArrayCopy()
+        ))->parse();
     }
 
     /**
@@ -225,12 +237,9 @@ class Request implements RequestInterface
      *
      * @return UploadedFile|array
      */
-    public function getUploadedFiles($index = null)
+    public function getUploadedFiles(string $index = '')
     {
-        $parser = new FilesParser(
-            $this->files->getArrayCopy()
-        );
-        $parsed_files = $parser->parse();
+        $parsed_files = $this->uploaded_files;
 
         if (!$index) return $parsed_files;
 

@@ -37,14 +37,12 @@ class FilesParser
      */
     public function __construct($files)
     {
-
         $this->files = $files;
+        $key = isset(array_keys($files)[0]) ? array_keys($files)[0] : null;
 
-        $key = array_keys($files)[0] ?? null;
         if ($key) {
-
             $multiChecker = $files[$key]['name'] ?? null;
-            $this->is_multi = !($multiChecker && !is_array($multiChecker));
+            $this->is_multi = ($multiChecker && is_array($multiChecker));
         }
     }
 
@@ -55,43 +53,26 @@ class FilesParser
      */
     public function build()
     {
-
-        $walker = function ($arr, $fileInfoKey, callable $walker) {
-            $ret = array();
-
-            foreach ($arr as $k => $v) {
-                if (is_array($v)) {
-
-                    $ret[$k] = $walker($v, $fileInfoKey, $walker);
-                } else {
-
-                    $ret[$k][$fileInfoKey] = $v;
-                }
-            }
-
-            return $ret;
-        };
-
         $files = array();
 
-        foreach ($this->files as $name => $values) {
-            if (!isset($files[$name])) $files[$name] = array();
+        every($this->files, function ($value, $key) use (&$files) {
 
-            $is_array = isset($values['error']) ? is_array($values['error']) : false;
-
-            if ($is_array) {
-
-                $files[$name] = $values;
-            } else {
-
-                foreach ($values as $fileInfoKey => $subArray) {
-                    $files[$name] = array_replace_recursive(
-                        $files[$name],
-                        $walker($subArray, $fileInfoKey, $walker)
-                    );
-                }
+            if (!isset($files[$key])) {
+                $files[$key] = array();
             }
-        }
+
+            every($value, function ($fileValue, $fileKey) use (&$files, $key) {
+
+                every($fileValue, function ($value, $index) use (&$files, $fileKey, $key) {
+
+                    if (!isset($files[$key][$index])) {
+                        $files[$key][$index] = array();
+                    }
+
+                    $files[$key][$index][$fileKey] = $value;
+                });
+            });
+        });
 
         return $files;
     }
@@ -173,14 +154,19 @@ class FilesParser
      */
     public function parse()
     {
-
         if (!$this->is_multi && count($this->files)) {
+            $keys = array_keys($this->files);
+            $files = array();
+            array_walk($keys, function ($key) use (&$files) {
+                $files[$key] = new UploadedFile($this->files[$key]);
+            });
 
-            $key = array_keys($this->files)[0];
-            return array($key => new UploadedFile($this->files[$key]));
+            return $files;
         }
 
-        return $this->parseIndex($this->build());
+        return $this->parseIndex(
+            $this->build()
+        );
     }
 
     /**
