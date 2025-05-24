@@ -40,7 +40,6 @@ class InputValidatorItem
             is_string($rules) ? [$rules] : $rules
         );
 
-        $this->rules = array_merge($this->rules, $rules_list);
         $this->runValidation($rules_list);
     }
 
