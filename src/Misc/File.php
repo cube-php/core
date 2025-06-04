@@ -171,7 +171,7 @@ class File
      * 
      * @return
      */
-    private function close()
+    public function close()
     {
         fclose($this->_file);
     }
