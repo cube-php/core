@@ -372,6 +372,13 @@ class Route
         #Check if route is registered with a view
         $view_file_path = $this->_isReturnView();
         if ($view_file_path) {
+
+            $request = $this->engageMiddleware($request);
+
+            if ($request instanceof Response) {
+                return $request;
+            }
+
             return $response->view($view_file_path);
         }
 
@@ -380,6 +387,13 @@ class Route
 
         #Parse anonymous controller
         if ($this->_is_callble_controller) {
+
+            $request = $this->engageMiddleware($request);
+
+            if ($request instanceof Response) {
+                return $request;
+            }
+
             $controller = Closure::bind(
                 $this->_controller,
                 new AnonController(),
