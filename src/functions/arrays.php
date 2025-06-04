@@ -186,3 +186,19 @@ if (!function_exists('array_find_all')) {
         return $result;
     }
 }
+
+if (!function_exists('array_prepend_all')) {
+    /**
+     * Prepend all items in an array with a value
+     *
+     * @param array $arr
+     * @param mixed $value
+     * @return array
+     */
+    function array_prepend_all(array $arr, $value): array
+    {
+        return array_map(function ($item) use ($value) {
+            return $value . $item;
+        }, $arr);
+    }
+}
