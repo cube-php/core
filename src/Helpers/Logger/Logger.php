@@ -19,16 +19,23 @@ class Logger implements LoggerInterface
      */
     private $_file;
 
-    public function __construct()
+    public function __construct(string $suffix = '')
     {
         $curdate = date('d_m_Y');
+        $filename = $suffix ? concat($curdate, '_', $suffix) : $curdate;
+
         $path = concat(
             App::getRunningInstance()->getPath(Directory::PATH_ROOT),
             '/logs'
         );
 
-        $filename = File::joinPath($path, "{$curdate}.log");
+        $filename = File::joinPath($path, $filename . '.log');
         $this->_file = new File($filename, true);
+    }
+
+    public function __destruct()
+    {
+        $this->_file->close();
     }
 
     /**
@@ -59,7 +66,7 @@ class Logger implements LoggerInterface
      * @param string $data
      * @return bool
      */
-    public function set(string $data) : bool
+    public function set(string $data): bool
     {
         $content_prefix = date('[g:i:sa]');
         $content = $content_prefix . ' ' . $data . PHP_EOL;
@@ -69,9 +76,22 @@ class Logger implements LoggerInterface
         return true;
     }
 
+    /**
+     * Static method to log content
+     *
+     * @param string $content
+     * @param string $suffix
+     * @return bool
+     */
+    public static function log(string $content, string $suffix = '')
+    {
+        $logger = new self($suffix);
+        return $logger->set($content);
+    }
+
     private function executeHandlers($content)
     {
-        foreach($this->handlers as $handler) {
+        foreach ($this->handlers as $handler) {
             $handler($content);
         }
 
