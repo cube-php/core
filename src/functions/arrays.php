@@ -13,11 +13,11 @@ if (!function_exists('array_get_first')) {
      * Get the first element of an array
      *
      * @param array $arr
-     * @return void
+     * @return mixed
      */
     function array_get_first(array $arr)
     {
-        return $arr[0];
+        return $arr[0] ?? null;
     }
 }
 
@@ -31,7 +31,7 @@ if (!function_exists('array_get_last')) {
     function array_get_last(array $arr)
     {
         $index = count($arr) - 1;
-        return $arr[$index];
+        return $arr[$index] ?? null;
     }
 }
 
