@@ -84,12 +84,12 @@ final class Env
         $content = file_get_contents($dev_env_file);
         $name = strtoupper($name);
         $pattern = '/^' . preg_quote($name, '/') . '\s*=\s*(.*)$/m';
-        $replacement = $name . '=' . (is_string($value) ? '"' . $value . '"' : $value) . PHP_EOL;
+        $replacement = $name . '=' . (is_string($value) ? '"' . $value . '"' : $value);
 
         if (preg_match($pattern, $content)) {
             $content = preg_replace($pattern, $replacement, $content);
         } else {
-            $content .= PHP_EOL . $replacement;
+            $content .= PHP_EOL . $replacement . PHP_EOL;
         }
 
         file_put_contents($dev_env_file, $content);
