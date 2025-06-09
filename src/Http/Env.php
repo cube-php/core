@@ -4,11 +4,12 @@ namespace Cube\Http;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Cube\Exceptions\AppException;
 use Cube\Misc\File;
 
 final class Env
 {
-    
+
     /**
      * Environment variables
      * 
@@ -60,6 +61,48 @@ final class Env
     }
 
     /**
+     * Set env
+     *
+     * @param string $name
+     * @param mixed $value
+     * @return void
+     */
+    public static function set(string $name, mixed $value)
+    {
+        if (App::isProduction()) {
+            throw new AppException('Cannot set environment variable in production mode');
+        }
+
+        $root = App::getPath(Directory::PATH_ROOT);
+        $dev_env_file = $root . DIRECTORY_SEPARATOR . '.env.dev';
+
+        if (!file_exists($dev_env_file)) {
+            $file = new File($dev_env_file, true);
+            $file->close();
+        }
+
+        $content = file_get_contents($dev_env_file);
+        $name = strtoupper($name);
+        $pattern = '/^' . preg_quote($name, '/') . '\s*=\s*(.*)$/m';
+        $replacement = $name . '=' . (is_string($value) ? '"' . $value . '"' : $value) . PHP_EOL;
+
+        if (preg_match($pattern, $content)) {
+            $content = preg_replace($pattern, $replacement, $content);
+        } else {
+            $content .= PHP_EOL . $replacement;
+        }
+
+        file_put_contents($dev_env_file, $content);
+        static::$_has_loaded_extras = false; // Reset extras cache
+        static::$_extra_vars = []; // Reset extras vars
+        static::$_main_vars = []; // Reset main vars
+        static::$_has_loaded_main = false; // Reset main vars cache
+        static::load(); // Reload main vars
+        static::loadExtras(); // Reload extras vars
+        static::$_main_vars[strtolower($name)] = $value; // Update main vars
+    }
+
+    /**
      * Check if environment variable exists
      *
      * @param string $name
@@ -77,16 +120,17 @@ final class Env
      */
     private static function load()
     {
-        if(static::$_has_loaded_main) {
+        if (static::$_has_loaded_main) {
             return static::$_main_vars;
         }
 
         $root = App::getPath(Directory::PATH_ROOT);
         $env_file = $root . DIRECTORY_SEPARATOR . '.env';
 
-        if(!file_exists($env_file)) {
+        if (!file_exists($env_file)) {
             $file = new File($env_file, true);
             $file->write('');
+            $file->close();
         }
 
         $all_vars = parse_ini_file($env_file);
@@ -103,7 +147,7 @@ final class Env
      */
     private static function loadExtras()
     {
-        if(static::$_has_loaded_extras) {
+        if (static::$_has_loaded_extras) {
             return static::$_extra_vars;
         }
 
@@ -113,11 +157,11 @@ final class Env
 
         $all_vars = [];
 
-        if(file_exists($prod_env_file) && App::isProduction()) {
+        if (file_exists($prod_env_file) && App::isProduction()) {
             $all_vars = array_merge($all_vars, parse_ini_file($prod_env_file));
         }
 
-        if(file_exists($dev_env_file) && App::isDevelopment()) {
+        if (file_exists($dev_env_file) && App::isDevelopment()) {
             $all_vars = array_merge($all_vars, parse_ini_file($dev_env_file));
         }
 
