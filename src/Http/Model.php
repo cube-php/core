@@ -206,6 +206,15 @@ class Model implements ModelInterface
         $this->save();
     }
 
+    public function __toString(): string
+    {
+        return concat(
+            $this::class,
+            ' -> ',
+            json_encode($this->_data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        );
+    }
+
     /**
      * Save updates
      *
@@ -556,9 +565,7 @@ class Model implements ModelInterface
      */
     public static function createObjectEntry(array $entry)
     {
-        $classname = get_called_class();
-        $instance = new $classname();
-
+        $instance = new static();
         every($entry, function ($value, $key) use (&$instance) {
             $instance->{$key} = $value;
         });
@@ -745,8 +752,10 @@ class Model implements ModelInterface
     }
 
     /**
+     * @deprecated v0.1.29
      * Instance from data
      *
+     * @param Model|string $classname
      * @param object $data
      * @return $this
      */
@@ -768,6 +777,43 @@ class Model implements ModelInterface
             );
 
             if (in_array($key, $classname::$private_fields)) {
+                return $private_data[$key] = $casted_value;
+            }
+
+            $data[$key] = $casted_value;
+        });
+
+        $instance->_data = $data;
+        $instance->_data_private = $private_data;
+
+        return $instance;
+    }
+
+    /**
+     * Instance from data
+     *
+     * @param Model|string $classname
+     * @param object $data
+     * @return $this
+     */
+    public static function wrapData(object $data)
+    {
+        /** @var $this */
+        $instance = new static();
+        $instance->isNewInsance(false);
+
+        $fields = (array) $data;
+        $data = array();
+        $private_data = array();
+
+        array_walk($fields, function ($_, $key) use (&$instance, &$fields, &$data, &$private_data) {
+
+            $casted_value = $instance->checkCast(
+                $fields,
+                $key
+            );
+
+            if (in_array($key, $instance::$private_fields)) {
                 return $private_data[$key] = $casted_value;
             }
 
@@ -991,7 +1037,7 @@ class Model implements ModelInterface
         $select = new DBSelect(
             static::query(),
             count($args) ? $args : self::fields(),
-            get_called_class()
+            new static()
         );
 
         return $select;
@@ -1011,7 +1057,7 @@ class Model implements ModelInterface
         $select = new DBSelect(
             static::query(),
             $selectable_fields,
-            get_called_class()
+            new static()
         );
 
         return $select;
@@ -1180,14 +1226,12 @@ class Model implements ModelInterface
             );
         }
 
-        $casts = array(
-            self::CAST_TYPE_INT => (int) $value,
+        return match ($selected_cast_type) {
+            self::CAST_TYPE_BOOLEAN => (bool) $value,
             self::CAST_TYPE_FLOAT => (float) $value,
-            self::CAST_TYPE_STRING => (string) $value,
-            self::CAST_TYPE_BOOLEAN => (bool) $value
-        );
-
-        return $casts[$selected_cast_type];
+            self::CAST_TYPE_INT => (int) $value,
+            default => (string) $value,
+        };
     }
 
     /**
@@ -1211,6 +1255,6 @@ class Model implements ModelInterface
             return ['*'];
         }
 
-        return $rows;
+        return array_prepend_all($rows, self::getSchemaName() . '.');
     }
 }

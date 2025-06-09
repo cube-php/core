@@ -13,11 +13,11 @@ if (!function_exists('array_get_first')) {
      * Get the first element of an array
      *
      * @param array $arr
-     * @return void
+     * @return mixed
      */
     function array_get_first(array $arr)
     {
-        return $arr[0];
+        return $arr[0] ?? null;
     }
 }
 
@@ -31,7 +31,7 @@ if (!function_exists('array_get_last')) {
     function array_get_last(array $arr)
     {
         $index = count($arr) - 1;
-        return $arr[$index];
+        return $arr[$index] ?? null;
     }
 }
 
@@ -184,5 +184,21 @@ if (!function_exists('array_find_all')) {
         }
 
         return $result;
+    }
+}
+
+if (!function_exists('array_prepend_all')) {
+    /**
+     * Prepend all items in an array with a value
+     *
+     * @param array $arr
+     * @param mixed $value
+     * @return array
+     */
+    function array_prepend_all(array $arr, $value): array
+    {
+        return array_map(function ($item) use ($value) {
+            return $value . $item;
+        }, $arr);
     }
 }

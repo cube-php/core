@@ -1,6 +1,5 @@
 <?php
 
-use Cube\Http\Request;
 use Cube\App\App;
 use Cube\Exceptions\RouteException;
 use Cube\Router\RouteCollection;
@@ -45,13 +44,11 @@ function route(string $name, ?array $params = null, ?array $query = null)
  */
 function url($path = '', ?array $query = null): string
 {
-    $request = Request::getCurrentRequest();
-
     if (is_array($path)) {
         $path = sprintf('/%s', implode('/', $path));
     }
 
-    $repath = $request->url()->getHostName() . $path;
+    $repath = env('app_url') . $path;
 
     return $query ?
         $repath . '?' . http_build_query($query) : $repath;

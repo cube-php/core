@@ -280,7 +280,7 @@ class Uri implements UriInterface
         $url_data = (object) parse_url($url);
 
         #Let's get scheme
-        $this->_scheme = $url_data->scheme;
+        $this->_scheme = env('app_url_scheme') ?: $url_data->scheme;
 
         #Let's get host name
         $this->_host = $url_data->host;

@@ -91,7 +91,7 @@ class Str implements Stringable
     {
         $str = $this->string;
 
-        if($remove_chars) {
+        if ($remove_chars) {
             $str = preg_replace('/[^a-z0-9\s]+/i', ' ', $str);
             $str = preg_replace('/\s+/', ' ', $str);
         }
@@ -159,7 +159,7 @@ class Str implements Stringable
     {
         return strtoupper($this->string);
     }
-    
+
     /**
      * Return string in snake case
      *
@@ -174,12 +174,19 @@ class Str implements Stringable
     /**
      * Check if string includes substring
      *
-     * @param string $search
+     * @param string|array $search
      * @return boolean
      */
-    public function includes(string $search): bool
+    public function includes(string|array $search): bool
     {
-        return false !== stripos($this->string, $search);
+        $search = is_string($search) ? [$search] : $search;
+        foreach ($search as $item) {
+            if (false !== stripos($this->string, $item)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -191,6 +198,56 @@ class Str implements Stringable
     {
         json_decode($this->string);
         return !json_last_error();
+    }
+
+    /**
+     * Check if string is one of $values
+     *
+     * @param array $values
+     * @param boolean $case_sensitive
+     * @return boolean
+     */
+    public function isOneOf(array $values, bool $case_sensitive = false): bool
+    {
+        $choices = $case_sensitive ? $values : array_map('strtolower', $values);
+        return in_array(
+            strtolower($this->string),
+            $choices
+        );
+    }
+
+    /**
+     * Substring of string
+     * 
+     * @param int $start 
+     * @param null|int $length 
+     * @return string 
+     */
+    public function substr(int $start, ?int $length = null): string
+    {
+        return substr($this->string, $start, $length);
+    }
+
+    /**
+     * Check if string ends with $end
+     *
+     * @param string $start
+     * @return boolean
+     */
+    public function endsWith(string $end): bool
+    {
+        return str_ends_with($this->string, $end);
+    }
+
+    /**
+     * Check if string starts with $start
+     *
+     * @param string $start
+     * @return boolean
+     */
+    public function startsWith(string $start): bool
+    {
+        return str_starts_with($this->string, $start);
     }
 
     /**

@@ -2,15 +2,9 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\Exceptions\ModelException;
-use Cube\Http\Model;
 use Cube\Interfaces\ModelInterface;
 use Cube\Misc\ModelCollection;
-use InvalidArgumentException;
-
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBQueryBuilder;
-use ReflectionClass;
 
 class DBSelect extends DBQueryBuilder
 {
@@ -21,7 +15,7 @@ class DBSelect extends DBQueryBuilder
      *
      * @var string|null
      */
-    public readonly ?string $model;
+    public readonly ?ModelInterface $model;
 
     /**
      * Lock for update
@@ -37,7 +31,7 @@ class DBSelect extends DBQueryBuilder
      * @param array $fields
      * @param string|null $model
      */
-    public function __construct(DBTable $table, $fields = [], ?string $model = null)
+    public function __construct(DBTable $table, $fields = [], ?ModelInterface $model = null)
     {
         $this->model = $model;
 
@@ -155,16 +149,76 @@ class DBSelect extends DBQueryBuilder
     /**
      * Join On query
      * 
-     * @param string $field Field name
      * @param string $column_one
      * @param string $operator
      * @param string $column_two
      * 
      * @return self
      */
-    public function join($field, $column_one, $operator, $column_two)
+    public function crossJoin(callable $fn)
     {
-        $this->joinSql(null, 'JOIN', $column_one, $operator, $column_two);
+        $fn(new DBJoin($this, 'CROSS JOIN'));
+        return $this;
+    }
+
+    /**
+     * Join On query
+     * 
+     * @param string $column_one
+     * @param string $operator
+     * @param string $column_two
+     * 
+     * @return self
+     */
+    public function join(callable $fn)
+    {
+        $fn(new DBJoin($this));
+        return $this;
+    }
+
+    /**
+     * Inner Join On query
+     * 
+     * @param string $column_one
+     * @param string $operator
+     * @param string $column_two
+     * 
+     * @return self
+     */
+    public function innerJoin(callable $fn)
+    {
+        $fn(new DBJoin($this, 'INNER JOIN'));
+        return $this;
+    }
+
+    /**
+     * Left Join On query
+     * 
+     * @param string $column_one
+     * @param string $operator
+     * @param string $column_two
+     * 
+     * @return self
+     */
+    public function leftJoin(callable $fn)
+    {
+        $fn(new DBJoin($this, 'LEFT JOIN'));
+        return $this;
+    }
+
+    /**
+     * Right Join On query
+     * 
+     * @param string $column_one
+     * @param string $operator
+     * @param string $column_two
+     * 
+     * @return self
+     */
+    public function rightJoin(callable $fn)
+    {
+        $fn(new DBJoin($this, 'RIGHT JOIN'));
+        return $this;
     }
 
     /**
@@ -243,8 +297,12 @@ class DBSelect extends DBQueryBuilder
      * 
      * @return self
      */
-    public function randomize()
+    public function randomize(int $range = 0)
     {
+        if ($range) {
+            $this->sql_query = 'SELECT * FROM (' . $this->getSqlQuery() . ' LIMIT ' . $range . ') AS subquery';
+        }
+
         return $this->orderByRaw('RAND()');
     }
 
@@ -280,6 +338,22 @@ class DBSelect extends DBQueryBuilder
     }
 
     /**
+     * Set sql query
+     *
+     * @param string[] ...$args
+     * @return self
+     */
+    public function joinSql(...$args)
+    {
+        $new_args = every($args, function ($arg) {
+            return str_replace('$.', $this->table->name . '.', (string) $arg);
+        });
+
+        parent::joinSql(...$new_args);
+        return $this;
+    }
+
+    /**
      * Finish query
      * 
      * @return object|null
@@ -307,7 +381,7 @@ class DBSelect extends DBQueryBuilder
         if ($wrapper && is_array($fetched_data)) {
 
             $content = array_map(function ($item) use ($wrapper) {
-                return Model::fromData($wrapper, $item);
+                return $wrapper::wrapData($item);
             }, $fetched_data);
 
             return new ModelCollection($content);
@@ -323,23 +397,13 @@ class DBSelect extends DBQueryBuilder
      */
     private function wrapModel()
     {
-        $class_name = $this->model;
+        $model = $this->model;
 
-        if (!$class_name) {
+        if (!$model) {
             return;
         }
 
-        if (!class_exists($class_name)) {
-            throw new InvalidArgumentException('Cannot use undefined class "' . $class_name . '" ');
-        }
-
-        $reflector = new ReflectionClass($this->model);
-
-        if (!in_array(ModelInterface::class, $reflector->getInterfaceNames())) {
-            throw new ModelException('Invalid model');
-        }
-
-        $this->bundle = $class_name;
+        $this->bundle = $model;
         return $this;
     }
 }

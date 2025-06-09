@@ -12,9 +12,7 @@ class ResponseEmitter
      *
      * @param ResponseInterface $response
      */
-    public function __construct(public ResponseInterface $response)
-    {
-    }
+    public function __construct(public ResponseInterface $response) {}
 
     /**
      * Emit respinse

@@ -2,7 +2,6 @@
 
 namespace Cube\App;
 
-use Closure;
 use Cube\Helpers\Response\ResponseEmitter;
 use Cube\Http\Env;
 use Cube\Http\Request;
@@ -262,15 +261,15 @@ class App
      * require files from directory
      *
      * @param string $dirname
-     * @param boolean $cache
+     * @param boolean $should_cache
      * @return void
      */
-    private function requireDirectoryFiles($dirname, bool $cache = true)
+    private function requireDirectoryFiles($dirname, bool $should_cache = true)
     {
 
         $files = scandir($dirname);
 
-        array_walk($files, function ($name) use ($dirname, $cache) {
+        array_walk($files, function ($name) use ($dirname, $should_cache) {
             $path = $dirname . '/' . $name;
             $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
@@ -283,12 +282,11 @@ class App
 
             $name_vars = explode('.', $name);
             $fname = $name_vars[0];
+            $content = require_once $path;
 
-            if ($cache) {
-                return self::$caches[$cache_name][$fname] = require_once $path;
+            if ($should_cache && !isset(self::$caches[$cache_name][$fname])) {
+                return self::$caches[$cache_name][$fname] = $content;
             }
-
-            require_once $path;
         });
     }
 
