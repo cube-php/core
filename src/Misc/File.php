@@ -133,10 +133,10 @@ class File
     /**
      * Write content to file
      * 
-     * @param string|blob $content Content to write to file
+     * @param mixed $content Content to write to file
      * @return self
      */
-    public function write($content)
+    public function write(mixed $content = '')
     {
         fwrite($this->_file, $content);
         return $this;
