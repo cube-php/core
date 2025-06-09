@@ -11,7 +11,7 @@ class Session
      *
      * @var string
      */
-    private static $_cookie_name = 'CUBESESSID';
+    private static $_cookie_name = 'CUBESESSIDX';
 
     /**
      * Session instance

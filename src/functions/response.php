@@ -1,8 +1,7 @@
 <?php
 
-use Cube\Http\Request;
 use Cube\Http\Response;
-use Cube\Http\Uri;
+use Cube\Http\Session;
 use Cube\View\ViewRenderer;
 
 /**
@@ -32,17 +31,14 @@ function redirect($path, $params = [], $is_external = false)
  */
 function back(): Response
 {
-    $request = Request::getCurrentRequest();
-    $ref = $request->getServer()->get('http_referer');
-    $host = $request->getServer()->get('http_host');
+    $history = Session::get('cubeHttpUrlHistory');
 
-    if (!$ref) {
-        return $host;
+    if (!$history) {
+        return response()->redirect('/');
     }
 
-    $uri = new Uri($ref);
-    $rdr_uri = ($host === $uri->getHost()) ? $ref : $request->url()->getFullUrl();
-    return redirect($rdr_uri, [], true);
+    $url = $history[count($history) - 1] ?? env('app_url');
+    return redirect($url, [], true);
 }
 
 /**

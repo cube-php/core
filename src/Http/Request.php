@@ -110,10 +110,7 @@ class Request implements RequestInterface
         protected string $content = ''
     ) {
         $this->parseBody();
-        $previousRequest = Session::getAndRemove('cubeHttpRequest');
-        Session::set('previousCubeHttpRequest', $previousRequest);
-        Session::set('cubeHttpRequest', $this);
-
+        $this->updateHistory();
         $this->uploaded_files =  (new FilesParser(
             $this->files->getArrayCopy()
         ))->parse();
@@ -136,7 +133,7 @@ class Request implements RequestInterface
         $ware = array_key_exists($method, $this->_wares);
 
         if (!$ware) {
-            throw new InvalidArgumentException('Custom method "' . $method . '" not assigned');
+            return null;
         }
 
         return $this->_wares[$method];
@@ -509,6 +506,24 @@ class Request implements RequestInterface
 
         $this->resolved_middlewares = $wares;
         return $wares;
+    }
+
+    /**
+     * Update request url history
+     *
+     * @return void
+     */
+    private function updateHistory(): void
+    {
+        $history = Session::get('_cubeHttpUrlHistory_') ?? [];
+        $last_url = array_get_last($history) ?? '';
+
+        if ($last_url === $this->url()->getUrl()) {
+            return;
+        }
+
+        $history[] = $this->url()->getUrl();
+        Session::set('cubeHttpUrlHistory', $history);
     }
 
     /**
