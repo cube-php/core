@@ -9,9 +9,7 @@ use Throwable;
 
 class DBConnection
 {
-    public function __construct(protected DBConnectorItem $item)
-    {
-    }
+    public function __construct(protected DBConnectorItem $item) {}
 
     /**
      * Return connection
@@ -66,25 +64,29 @@ class DBConnection
      * 
      * @return int
      */
-    public function getDataType($item)
+    public function getDataType($item): int
     {
-        switch ($item) {
-            case is_bool($item):
-                return PDO::PARAM_BOOL;
-                break;
+        return match (true) {
+            is_integer($item) => PDO::PARAM_INT,
+            is_bool($item) => PDO::PARAM_INT,
+            is_null($item) => PDO::PARAM_NULL,
+            default => PDO::PARAM_STR
+        };
+    }
 
-            case is_int($item):
-                return PDO::PARAM_INT;
-                break;
-
-            case is_null($item):
-                return PDO::PARAM_NULL;
-                break;
-
-            default:
-                return PDO::PARAM_STR;
-                break;
-        }
+    /**
+     * Get data value based on type
+     *
+     * @param mixed $value
+     * @return mixed
+     */
+    public function getDataValue($value): mixed
+    {
+        return match ($this->getDataType($value)) {
+            PDO::PARAM_INT => (int) $value,
+            PDO::PARAM_NULL => null,
+            default => (string) $value
+        };
     }
 
     /**
@@ -106,7 +108,11 @@ class DBConnection
 
         if (count($params)) {
             every($params, function ($value, $index) use ($stmt) {
-                $stmt->bindValue($index + 1, $value, $this->getDataType($value));
+                $stmt->bindValue(
+                    $index + 1,
+                    $this->getDataValue($value),
+                    $this->getDataType($value)
+                );
             });
         }
 
