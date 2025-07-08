@@ -445,17 +445,23 @@ class Request implements RequestInterface
             }
 
             if (is_string($middleware)) {
+
                 $vars = explode(':', $middleware);
 
                 $key = $vars[0];
                 $args = $vars[1] ?? null;
                 $class = $wares[$key] ?? null;
-                $this->called_middlewares[] = $class;
 
                 if (!$class) {
                     throw new InvalidArgumentException('Middleware "' . $key . '" is not assigned');
                 }
 
+                if (is_array($class)) {
+                    $result = $this->useMiddleware($class);
+                    continue;
+                }
+
+                $this->called_middlewares[] = $class;
                 $args_value = $args ? explode(',', $args) : null;
                 $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
             }
