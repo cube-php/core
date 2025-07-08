@@ -372,6 +372,12 @@ class Model implements ModelInterface
 
                     $last_value = array_get_last($values);
                     $is_optional = str_ends_with($last_value, '?');
+                    $last_index = array_key_last($values);
+
+                    if ($is_optional) {
+                        $last_value = substr($last_value, 0, -1);
+                        $values[$last_index] = $last_value;
+                    }
 
                     $nested_value = $value;
                     $iterable_values = array_slice($values, 1);
