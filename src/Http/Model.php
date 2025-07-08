@@ -370,13 +370,26 @@ class Model implements ModelInterface
                         return $value;
                     }
 
+                    $last_value = array_get_last($values);
+                    $is_optional = str_ends_with($last_value, '?');
+
                     $nested_value = $value;
                     $iterable_values = array_slice($values, 1);
 
-                    every($iterable_values, function ($value) use (&$nested_value) {
+                    foreach ($iterable_values as $value) {
                         $data = (array) $nested_value;
-                        $nested_value = $data[$value];
-                    });
+                        $nested_value = $data[$value] ?? null;
+
+                        if (!$nested_value && !$is_optional) {
+                            throw new ModelException(
+                                concat('Property "', $value, '" not defined in "', get_called_class(), '::', $method_name, '"')
+                            );
+                        }
+
+                        if (!$nested_value && $is_optional) {
+                            return null;
+                        }
+                    }
 
                     return $nested_value;
                 };
