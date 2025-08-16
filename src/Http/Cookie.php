@@ -64,15 +64,16 @@ class Cookie
     /**
      * Set cookie if it does not exist
      *
+     * @param Request $request
      * @param string $name
      * @param string $value
      * @param int $expires
      * @param string $path
      * @return bool
      */
-    public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool
+    public static function setIfNotExists(Request $request, $name, $value, $expires = null, $path = '/'): bool
     {
-        if (static::has($name)) {
+        if (static::has($request, $name)) {
             return true;
         }
 
@@ -89,9 +90,9 @@ class Cookie
      * @param string $path
      * @return mixed
      */
-    public static function getOrSet($name, callable $fn, $expires = null, $path = '/')
+    public static function getOrSet(Request $request, $name, callable $fn, $expires = null, $path = '/')
     {
-        $data = Cookie::get($name);
+        $data = Cookie::get($request, $name);
 
         if ($data) {
             return $data;
@@ -106,12 +107,13 @@ class Cookie
     /**
      * Check if cookie exists
      *
+     * @param Request $request
      * @param string $name Cookie name
      * @return boolean
      */
-    public static function has($name)
+    public static function has(Request $request, $name)
     {
-        return Request::getCurrentRequest()->getCookies()->has($name);
+        return $request->getCookies()->has($name);
     }
 
     /**
@@ -120,13 +122,13 @@ class Cookie
      * @param string $name Cookie name
      * @return mixed|null
      */
-    public static function get($name)
+    public static function get(Request $request, $name)
     {
-        if (!static::has($name)) {
+        if (!static::has($request, $name)) {
             return null;
         }
 
-        return Request::getCurrentRequest()->getCookies()->get($name);
+        return $request->getCookies()->get($name);
     }
 
     /**
@@ -135,9 +137,9 @@ class Cookie
      * @param string $name Cookie key
      * @return mixed
      */
-    public static function getAndRemove($name)
+    public static function getAndRemove(Request $request, $name)
     {
-        $data = static::get($name);
+        $data = static::get($request, $name);
         static::remove($name);
 
         return $data;
