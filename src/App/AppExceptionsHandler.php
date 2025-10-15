@@ -66,15 +66,25 @@ class AppExceptionsHandler
      */
     public function handle(RequestInterface $request, Throwable $exception): Response
     {
-        $this->setDefault($request, $exception);
+        $is_dev = App::isDevelopment();
+
+        if (!$this->handlers->has('default')) {
+            $this->setDefault($request, $exception);
+        }
+
         $on_exception = $this->on_exception;
 
-        if ($on_exception && App::isDevelopment()) {
+        if ($on_exception && $is_dev) {
             $on_exception($request, $exception);
         }
 
         $class = get_class($exception);
         if (!$this->handlers->has($class)) {
+
+            if ($is_dev) {
+                throw $exception;
+            }
+
             return $this->handlers->get('default')($request, $exception);
         }
 
