@@ -478,21 +478,19 @@ class Model implements ModelInterface
     /**
      * Check if current instance is same as specified instance
      *
-     * @param ModelInterface $instance
+     * @param static $instance
+     * @throws InvalidArgumentException
      * @return boolean
      */
-    public function is(ModelInterface $instance): bool
+    public function is(self $instance): bool
     {
-        $this_model_class = get_class($this);
-        $instance_class = get_class($instance);
-
-        if ($this_model_class !== $instance_class) {
+        if (!($instance instanceof static)) {
             throw new InvalidArgumentException(
-                concat($this_model_class, ' Expected, ', $instance_class, ' Found Instead')
+                concat(static::class, ' Expected, ', $instance::class, ' Found Instead')
             );
         }
 
-        $key = self::$primary_key;
+        $key = static::getPrimaryKey();
         return $this->{$key} === $instance->{$key};
     }
 
@@ -1149,6 +1147,18 @@ class Model implements ModelInterface
     public static function getConnection(): DBConnection
     {
         return DBConnection::connection(static::$connection);
+    }
+
+    /**
+     * Run queries in a transaction
+     *
+     * @param callable $fn
+     * @return mixed
+     */
+    public static function transaction(callable $fn): mixed
+    {
+        $connection = static::getConnection();
+        return $connection->transaction($fn);
     }
 
     /**
