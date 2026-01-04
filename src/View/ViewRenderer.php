@@ -169,7 +169,7 @@ class ViewRenderer
      * @param array $datas Data to send to view
      * @return string
      */
-    public function render(string $path, array $datas = [])
+    public function render(string $path, array $datas = []): string
     {
         return $this->_twig->render(static::parsePathName($path), $datas);
     }

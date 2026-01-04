@@ -59,7 +59,7 @@ function response(): Response
  * @param array $context View context
  * @param boolean $run_render Whether to run render compiled view or return as string
  * @param boolean $new_instance Set if a new instance of response is needed
- * @return Response
+ * @return string|Response
  */
 function view($tpl, $context = [])
 {
@@ -71,7 +71,7 @@ function view($tpl, $context = [])
  *
  * @param string $tpl
  * @param array $context
- * @return Response
+ * @return string
  */
 function load_view($tpl, array $context = []): string
 {
