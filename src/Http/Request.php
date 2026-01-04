@@ -573,7 +573,7 @@ class Request implements RequestInterface
     {
         return new self(
             new Collection($_SERVER),
-            new Collection(new Headers()),
+            new Headers(),
             new Collection($_COOKIE),
             new Collection($_GET),
             new Collection($_POST),
