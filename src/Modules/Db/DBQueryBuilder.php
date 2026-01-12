@@ -66,6 +66,10 @@ class DBQueryBuilder
      */
     public function and(...$args)
     {
+        if (count($args) == 1 && is_callable($args[0])) {
+            return $this->whereGroup('AND', $args);
+        }
+
         $args = $this->parseArgs($args);
         $this->joinSql(null, 'AND', $args->field, $args->operator, $args->value);
         return $this;
@@ -199,6 +203,10 @@ class DBQueryBuilder
      */
     public function or(...$args)
     {
+        if (count($args) == 1 && is_callable($args[0])) {
+            return $this->whereGroup('OR', $args);
+        }
+
         $args = $this->parseArgs($args);
         $this->joinSql(null, 'OR', $args->field, $args->operator, $args->value);
         return $this;
@@ -308,9 +316,14 @@ class DBQueryBuilder
             return call_user_func_array([$this, 'and'], $args);
         }
 
+        $this->has_called_where = true;
+
+        if (count($args) == 1 && is_callable($args[0])) {
+            return $this->whereGroup('WHERE', $args);
+        }
+
         $args = $this->parseArgs($args);
         $this->joinSql(null, 'WHERE', $args->field, $args->operator, $args->value);
-        $this->has_called_where = true;
         return $this;
     }
 
