@@ -41,6 +41,7 @@ class Response implements ResponseInterface
 
     public const HTTP_BAD_REQUEST = 400;
     public const HTTP_UNATHORIZED = 401;
+    public const HTTP_UNAUTHORIZED = 401;
     public const HTTP_PAYMENT_REQUIRED = 402;
     public const HTTP_FORBIDDEN = 403;
     public const HTTP_NOT_FOUND = 404;
@@ -60,6 +61,7 @@ class Response implements ResponseInterface
     public const HTTP_IM_A_TEAPOT = 418;
     public const HTTP_MISDIRECTED_REQUEST = 421;
     public const HTTP_UNPORCESSABLE_ENTITY = 422;
+    public const HTTP_UNPROCESSABLE_ENTITY = 422;
     public const HTTP_LOCKED = 423;
     public const HTTP_FAILED_DEPENDENCY = 424;
     public const HTTP_UPGRADE_REQUIRED = 426;
