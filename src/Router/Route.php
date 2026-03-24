@@ -317,7 +317,7 @@ class Route
     /**
      * Return all attributes in route
      * 
-     * @return array[]
+     * @return object[]
      */
     public function getAttributes()
     {
