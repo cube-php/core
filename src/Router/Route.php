@@ -18,106 +18,42 @@ use Stringable;
 
 class Route
 {
-    public const ROUTE_NAME_IMPODER = '.';
+    public const string ROUTE_NAME_IMPODER = '.';
 
-    /**
-     * Prefix to register a view rather than a controller for route
-     *
-     * @var string
-     */
-    public const VIEW_PREFIX = '@';
+    public const string VIEW_PREFIX = '@';
 
-    /**
-     * Route's Controllers namespace
-     * 
-     * @var array
-     */
-    private const CONTROLLER_NAMESPACE = ['App', 'Controllers'];
+    private const array CONTROLLER_NAMESPACE = ['App', 'Controllers'];
 
-    /**
-     * Route's 
-     * 
-     * @var string
-     */
-    private const NAMESPACE_SEPARATOR = '\\';
+    private const string NAMESPACE_SEPARATOR = '\\';
 
-    /**
-     * Route method
-     * 
-     * @var string[]
-     */
-    private $_method = array();
+    private string $_method = '';
 
-    /**
-     * Route's name
-     *
-     * @var string
-     */
-    private $_name;
+    private string $_name = '';
 
-    /**
-     * Route path
-     * 
-     * @var string
-     */
-    private $_path;
+    private string $_path = '';
 
-    /**
-     * Route controller
-     * 
-     * @var string|Closure
-     */
-    private $_controller = array();
+    private string $_parsed_path;
 
-    /**
-     * Route's name space
-     *
-     * @var array
-     */
-    private $_namespace = self::CONTROLLER_NAMESPACE;
+    private string|array|Closure $_controller;
 
-    /**
-     * Route attributes
-     * 
-     * @var string[]
-     */
-    private $_attributes = [];
+    private bool $_is_parsed = false;
 
-    /**
-     * Set if the controller is a callable
-     *
-     * @var boolean
-     */
-    private $_is_callble_controller = false;
+    private array $_namespace = self::CONTROLLER_NAMESPACE;
 
-    /**
-     * Has optional parameter
-     *
-     * @var boolean
-     */
-    private $_has_optional_parameter = false;
+    /** @var RouteAttribute[] */
+    private array $_attributes = [];
 
-    /**
-     * Middlewares
-     * 
-     * @var string[]
-     */
-    private $_middlewares = [];
+    private bool $_is_callble_controller = false;
 
-    /**
-     * CORS status
-     *
-     * @var boolean
-     */
-    private $_enable_cors = true;
+    private bool $_has_optional_parameter = false;
 
-    private $_params_list = [];
+    /** @var string[] */
+    private array $_middlewares = [];
 
-    /**
-     * Route's parents' names
-     *
-     * @var array
-     */
+    private bool $_enable_cors = true;
+
+    private array $_params_list = [];
+
     private array $parent_names = [];
 
     /**
@@ -133,6 +69,7 @@ class Route
         $this->setMethod(strtolower((string) $method));
         $this->setPath($path);
         $this->setController($controller);
+        $this->_parsed_path = $path;
         $this->parent_names = $parent_names;
     }
 
@@ -290,17 +227,42 @@ class Route
      * @param string $name Attribute field name
      * @param string $type Attribute field type
      * 
-     * @return void
+     * @return self
      */
     public function setAttribute($name, $type = null)
     {
-        $this->_attributes[] = (object) array(
-            'name' => $name,
-            'type' => $type
-        );
+        //if (!$this->hasAttribute($name)) {
+        $this->_attributes[] = new RouteAttribute($name, $type);
+        //}
 
         return $this;
     }
+
+    /**
+     * Check if route has an attribute with specified name
+     * 
+     * @param string $name Attribute name
+     * 
+     * @return boolean
+     */
+    public function hasAttribute(string $name): bool
+    {
+        foreach ($this->_attributes as $attribute) {
+            if ($attribute->name === $name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Get attribute by name
+     * 
+     * @param string $name Attribute name
+     * 
+     * @return RouteAttribute|null
+     */
 
     /**
      * Set if route has optional parameter
@@ -317,7 +279,7 @@ class Route
     /**
      * Return all attributes in route
      * 
-     * @return array[]
+     * @return RouteAttribute[]
      */
     public function getAttributes()
     {
@@ -506,6 +468,27 @@ class Route
     public function path()
     {
         return new RouteParser($this);
+    }
+
+    /**
+     * Get route parse status
+     *
+     * @return boolean
+     */
+    public function isParsed(): bool
+    {
+        return $this->_is_parsed;
+    }
+
+    public function getParsedPath(): string
+    {
+        return $this->_parsed_path;
+    }
+
+    public function setParsedPath(string $path)
+    {
+        $this->_parsed_path = $path;
+        $this->_is_parsed = true;
     }
 
     /**
