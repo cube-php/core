@@ -100,7 +100,10 @@ class Cli
     private function loadExtras(Application $application)
     {
         $dir = self::getExtrasDir();
-        $content = json_decode(file_get_contents($dir));
+        $content = json_decode(
+            file_get_contents($dir),
+            true
+        );
 
         if (!$content) {
             return;
@@ -127,20 +130,24 @@ class Cli
     public static function addExtraPackageCommand(array $commands)
     {
         $dir = self::getExtrasDir();
-        $content = json_decode(file_get_contents($dir));
+        $content = json_decode(
+            file_get_contents($dir),
+            true
+        );
 
         if (!$content) {
             $content = [];
         }
 
-        every($commands, function ($class) use ($content, $dir) {
+        every($commands, function ($class) use (&$content, $dir) {
             if (in_array($class, $content)) {
                 return;
             }
 
             $content[] = $class;
-            file_put_contents($dir, json_encode($content));
         });
+
+        file_put_contents($dir, json_encode($content));
     }
 
     /**
@@ -152,7 +159,7 @@ class Cli
     public static function removeExtraPackageCommand(string $class)
     {
         $dir = self::getExtrasDir();
-        $content = json_decode(file_get_contents($dir));
+        $content = json_decode(file_get_contents($dir), true);
 
         if (!$content) {
             $content = [];
