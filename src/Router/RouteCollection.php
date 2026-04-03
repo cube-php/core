@@ -27,7 +27,7 @@ class RouteCollection
 
     public function __construct(protected RequestInterface $request) {}
 
-    public function build()
+    public function dispatch()
     {
         $request = $this->request;
         $matchedRoute = self::matchRoute($request);
@@ -118,8 +118,8 @@ class RouteCollection
         }
 
         static::$dynamic_routes[$method][] = [
+            'regex' => "#^{$route->path()->regexp()}$#",
             'route' => $route,
-            'regex' => $route->path()->regexp()
         ];
 
         return $route;
@@ -144,7 +144,7 @@ class RouteCollection
         }
 
         foreach (static::$dynamic_routes[$method] ?? [] as $entry) {
-            if (!preg_match("#^{$entry['regex']}$#", $uri, $matches)) {
+            if (!preg_match($entry['regex'], $uri, $matches)) {
                 continue;
             }
 
