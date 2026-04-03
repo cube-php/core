@@ -57,13 +57,14 @@ class ControllerRoutesLoader
         every(
             $routes,
             function (RouterRoute $route) use (&$data) {
-                $data[] = $route->toJSON();
+                $data[] = (object) $route->toJSON();
             }
         );
 
         $filename = self::getCacheFileDir();
-        file_put_contents($filename, json_encode($data));
+        $content = '<?php return ' . var_export($data, true) . ';';
 
+        file_put_contents($filename, $content);
         return true;
     }
 
@@ -294,7 +295,7 @@ class ControllerRoutesLoader
             Directory::PATH_CACHE
         );
 
-        return File::joinPath($cache_dir, 'router', 'routes.json');
+        return File::joinPath($cache_dir, 'router', 'routes.php');
     }
 
     /**
@@ -310,19 +311,13 @@ class ControllerRoutesLoader
             return null;
         }
 
-        $content = file_get_contents($dir);
+        $content = require $dir;
 
         if (!$content) {
             return null;
         }
 
-        $data = json_decode($content);
-
-        if (json_last_error()) {
-            return null;
-        }
-
-        return $data;
+        return $content;
     }
 
     /**
