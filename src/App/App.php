@@ -199,7 +199,7 @@ class App
         $handler = self::$exceptions_handler;
 
         try {
-            $response = (new RouteCollection($request))->build();
+            $response = (new RouteCollection($request))->dispatch();
         } catch (Throwable $e) {
             return $handler->handle($request, $e);
         }
