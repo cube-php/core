@@ -2,115 +2,66 @@
 
 namespace Cube\Router;
 
-use Cube\App\App;
 use Cube\Exceptions\RouteNotFoundException;
 use Cube\Router\Route;
 use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Interfaces\RequestInterface;
 use Cube\Misc\EventManager;
+use InvalidArgumentException;
 
 class RouteCollection
 {
 
-    /**
-     * Routes collection
-     * 
-     * @var Route[]
-     */
-    private static $_routes = array();
+    /** @var Route[] */
+    protected static $all_routes = array();
 
-    /**
-     * Named routes
-     *
-     * @var Route[]
-     */
+    /** @var array<string, array<string, Route>> */
+    protected static $static_routes = array();
+
+    /** @var array<string, array<int, array{route: Route, regex: string}>> */
+    protected static $dynamic_routes = array();
+
+    /** @var array */
     private static $_name_routes = array();
 
-    /**
-     * Routes on request method
-     * 
-     * @var Route[]
-     */
-    private static $_attached_routes = array();
-
-    /**
-     * Class constructor
-     * 
-     */
     public function __construct(protected RequestInterface $request) {}
 
-    /**
-     * Build all routes
-     * 
-     * @return Response
-     */
     public function build()
     {
         $request = $this->request;
-
-        $raw_current_url = (string) $request->url()->getPath();
-        $current_url = $this->trimPath($raw_current_url);
-
-        /** @var Route|null */
-        $matchedRoute = null;
-        $routePathAttributes = [];
-
-        foreach (static::$_attached_routes as $route) {
-
-            if ($request->getMethod() !== $route->getMethod()) {
-                continue;
-            }
-
-            $regex_path = $route->path()->regexp();
-            $test = preg_match("#^{$regex_path}$#", $current_url, $matches);
-
-            if ($test) {
-                $matchedRoute = $route;
-                $routePathAttributes = array_slice($matches, 1);
-                break;
-            }
-        }
+        $matchedRoute = self::matchRoute($request);
 
         if (!$matchedRoute) {
-
-            EventManager::dispatchEvent(
-                App::EVENT_ROUTE_MATCH_FOUND,
-                $this->request
-            );
-
             throw new RouteNotFoundException($this->request);
         }
 
+        $route = $matchedRoute->route;
         $route_attributes = $route->getAttributes();
+        $params = array_slice($matchedRoute->params, 1);
 
-        if ($routePathAttributes) {
-            array_walk($route_attributes, function (RouteAttribute $attribute, $index) use ($route, $routePathAttributes) {
+        every($route_attributes, function (RouteAttribute $attribute, $index) use ($route, $params) {
+            $name = $attribute->name;
+            $value = RouteParser::attributeCast(
+                $params[$index] ?? null,
+                $attribute->type,
+            );
 
-                $name = $attribute->name;
-                $value = RouteParser::attributeCast(
-                    $routePathAttributes[$index],
-                    $attribute->type,
-                );
+            if ($route->hasOptionalParameter()) {
+                $value = substr($value, 0, strlen($value) - 1);
+            }
 
-                if ($route->hasOptionalParameter()) {
-                    $value = substr($value, 0, strlen($value) - 1);
-                }
+            $this->request->setAttribute($name, $value);
+        });
 
-                $this->request->setAttribute($name, $value);
-            });
-        }
-
-        $response = $matchedRoute->parseResponse(new Response());
+        $response = $route->parseResponse(new Response());
         $result = $route->handle($request, $response);
 
-        //Dispatch event when request is completed
         EventManager::dispatchEvent(
             Request::EVENT_COMPLETED,
             $this->request
         );
 
-        //Initialize controller
         return $result;
     }
 
@@ -120,7 +71,7 @@ class RouteCollection
      * @param string $path
      * @return string
      */
-    public function trimPath($path)
+    public static function trimPath($path)
     {
         $path = preg_replace('#([\/]{1,})#', '/', $path);
         $last_char = strlen($path) == 1 ? $path : substr($path, -1, 1);
@@ -134,7 +85,7 @@ class RouteCollection
      */
     public static function all()
     {
-        return self::$_routes;
+        return self::$all_routes;
     }
 
     /**
@@ -155,10 +106,60 @@ class RouteCollection
      */
     public static function attachRoute(Route $route)
     {
-        #Attach route to all routes
-        static::$_routes[] = $route;
-        static::$_attached_routes[] = $route;
+        $method = strtoupper($route->getMethod());
+        $path = self::trimPath($route->getPath());
+
+        static::$all_routes[] = $route;
+        static::bindNamedRoute($route);
+
+        if (!str_contains($path, '{')) {
+            static::$static_routes[$method][$path] = $route;
+            return $route;
+        }
+
+        static::$dynamic_routes[$method][] = [
+            'route' => $route,
+            'regex' => $route->path()->regexp()
+        ];
+
         return $route;
+    }
+
+    /**
+     * Find route match
+     *
+     * @param RequestInterface $request
+     * @return RouteMatchResult|null
+     */
+    public static function matchRoute(RequestInterface $request): ?RouteMatchResult
+    {
+        $method = strtoupper($request->getMethod());
+        $uri = self::trimPath($request->url()->getPath());
+
+        if (isset(static::$static_routes[$method][$uri])) {
+            return new RouteMatchResult(
+                static::$static_routes[$method][$uri],
+                []
+            );
+        }
+
+        foreach (static::$dynamic_routes[$method] ?? [] as $entry) {
+            if (!preg_match("#^{$entry['regex']}$#", $uri, $matches)) {
+                continue;
+            }
+
+            $params = [];
+            foreach ($matches as $key => $value) {
+                $params[$key] = $value;
+            }
+
+            return new RouteMatchResult(
+                $entry['route'],
+                $params
+            );
+        }
+
+        return null;
     }
 
     /**
@@ -169,6 +170,24 @@ class RouteCollection
      */
     public static function bindNamedRoute(Route $route)
     {
-        self::$_name_routes[$route->getName()] = $route;
+        $name = $route->getName();
+
+        if (!$name) {
+            return;
+        }
+
+        if (isset(self::$_name_routes[$name])) {
+            throw new InvalidArgumentException("Route name '{$name}' is already in use.");
+        }
+
+        self::$_name_routes[$name] = $route;
+    }
+
+    public static function reset()
+    {
+        self::$all_routes = array();
+        self::$static_routes = array();
+        self::$dynamic_routes = array();
+        self::$_name_routes = array();
     }
 }
