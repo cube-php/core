@@ -9,7 +9,8 @@ use Cube\Helpers\Cli\Cli;
  * @param boolean $run_in_background
  * @return string|bool
  */
-function cube($command, bool $run_in_background = false) {
+function cube($command, bool $run_in_background = false)
+{
     return Cli::run(
         $command,
         $run_in_background
@@ -24,12 +25,13 @@ function cube($command, bool $run_in_background = false) {
  * @param boolean $run_in_background
  * @return string|bool
  */
-function console_command(string $command_name, ?array $args = [], bool $run_in_background = false) {
+function console_command(string $command_name, ?array $args = [], bool $run_in_background = false)
+{
+    $args_list = implode(' -a ', $args);
     $command = array(
         'run:console-command',
         $command_name,
-        '-a',
-        $args ? implode(' ', $args) : null
+        concat('-a ', $args_list)
     );
 
     return cube($command, $run_in_background);

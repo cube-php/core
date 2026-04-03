@@ -95,7 +95,7 @@ class InputValidatorItem
      */
     private function processRules(array $rules): array
     {
-        $rules_list = [];
+        $rules_list = array();
         every($rules, function ($value, $index) use (&$rules_list) {
 
             if (is_callable($value)) {

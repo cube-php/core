@@ -85,7 +85,7 @@ class RouteCollection
         $route_attributes = $route->getAttributes();
 
         if ($routePathAttributes) {
-            array_walk($route_attributes, function ($attribute, $index) use ($route, $routePathAttributes) {
+            array_walk($route_attributes, function (RouteAttribute $attribute, $index) use ($route, $routePathAttributes) {
 
                 $name = $attribute->name;
                 $value = RouteParser::attributeCast(

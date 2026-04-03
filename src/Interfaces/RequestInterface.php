@@ -23,4 +23,6 @@ interface RequestInterface
     public function setAttribute($name, $value);
 
     public function url();
+
+    public function setCUstomMethod(string $name, callable $callback);
 }

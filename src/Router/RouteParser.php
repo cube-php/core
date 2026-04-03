@@ -58,9 +58,17 @@ class RouteParser
      */
     public function regexp()
     {
+        if ($this->_route->isParsed()) {
+            return $this->_addRemoveTrailingSlash(
+                $this->_route->getParsedPath(),
+                $this->_route->hasOptionalParameter()
+            );
+        }
+
         $rawpath = $this->_route->getPath();
         $path = $this->compileRegularPath($rawpath);
         $path = $this->compileStrictPathParams($path);
+        $this->_route->setParsedPath($path);
 
         return $this->_addRemoveTrailingSlash(
             $path,
@@ -77,18 +85,17 @@ class RouteParser
      */
     private function compileRegularPath($path)
     {
-
         #check for regular path conditions
         $regular_path = preg_match_all('#(\{(.*?)\})#', $path, $matches);
 
         if (!$regular_path) {
+            $this->_route->setParsedPath($path);
             return $path;
         }
 
         $newpath = $path;
 
         foreach ($matches[1] as $index => $match) {
-
             #remove brackets
             $regexps = static::$regex;
             $match_without_brackets = str_replace(['{', '}'], '', $match);

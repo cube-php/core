@@ -19,72 +19,26 @@ use Cube\Http\UploadedFile;
 
 class Request implements RequestInterface
 {
-    /**
-     * Request completed event
-     * 
-     * @var string
-     */
-    public const EVENT_COMPLETED = 'onRequestCompleted';
+    public const string EVENT_COMPLETED = 'onRequestCompleted';
 
-    /**
-     * Middleware delimeter
-     */
-    public const MIDDLEWARE_ARGS_DELIMETER = ':';
+    public const string MIDDLEWARE_ARGS_DELIMETER = ':';
 
-    /**
-     * Request parameters
-     * 
-     * @var array
-     */
-    private $attributes = array();
+    private array $attributes = array();
 
-    /**
-     * Middlewares
-     * 
-     * @var string[]
-     */
+    /** @var string[] */
     public $_wares = array();
 
-    /**
-     * Url
-     *
-     * @var Uri
-     */
     private ?Uri $uri = null;
 
-    /**
-     * Request body
-     *
-     * @var mixed
-     */
-    private $_body;
+    private mixed $_body;
 
-    /**
-     * Input
-     *
-     * @var Inputs
-     */
-    private $_processed_body;
+    private Inputs $_processed_body;
 
-    /**
-     * All resolved middlewares
-     *
-     * @var array|null
-     */
-    private array $resolved_middlewares = [];
+    private ?array $resolved_middlewares = [];
 
-    /**
-     * Middlewares that have been called
-     *
-     * @var array
-     */
     private array $called_middlewares = [];
 
-    /**
-     * parsed uploaded files
-     *
-     * @var UploadedFile[]
-     */
+    /** @var UploadedFile[] */
     private array $uploaded_files = array();
 
     /**
