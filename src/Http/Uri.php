@@ -337,7 +337,10 @@ class Uri implements UriInterface
         $context = array();
 
         foreach ($data as $field => $value) {
-            $context[$field] = htmlspecialchars($value);
+            $context[$field] = match (true) {
+                is_string($value) => htmlspecialchars($value),
+                default => $value,
+            };
         }
 
         $this->_parsed_query = $context;
