@@ -31,16 +31,14 @@ class EventManager
     public static function __callStatic($name, $args)
     {
 
-        if(count($args) > 1) {
-            throw new InvalidArgumentException
-                ($name . ' should contain just 1 argument which is the callback function');
+        if (count($args) > 1) {
+            throw new InvalidArgumentException($name . ' should contain just 1 argument which is the callback function');
         }
 
         $callback = $args[0] ?? null;
 
-        if(!is_callable($callback)) {
-            throw new InvalidArgumentException
-                ($name . '\'s argument should is not a valid callback function');
+        if (!is_callable($callback)) {
+            throw new InvalidArgumentException($name . '\'s argument should is not a valid callback function');
         }
 
         return static::on($name, $callback);
@@ -49,25 +47,28 @@ class EventManager
     /**
      * Run all functions called on event
      * 
-     * @return void
+     * @return mixed
      */
     public static function dispatchEvent($handler, $arg = null)
     {
-        if(!static::hasAttachedEvents($handler)) return false;
+        if (!static::hasAttachedEvents($handler)) return false;
 
         $handles = static::$events[$handler];
+        $result = null;
 
-        foreach($handles as $function) {
-            if(is_callable($function)) {
-                $function($arg);
+        foreach ($handles as $function) {
+            if (is_callable($function)) {
+                $result = $function($arg);
                 continue;
             }
 
-            if(is_string($function)) {
-                $function::handle($arg);
+            if (is_string($function)) {
+                $result = $function::handle($arg);
                 continue;
             }
         }
+
+        return $result;
     }
 
     /**
@@ -93,17 +94,19 @@ class EventManager
      */
     public static function on($handler, $callback)
     {
-        if(!isset(static::$events[$handler])) static::$events[$handler] = array();
+        if (!isset(static::$events[$handler])) {
+            static::$events[$handler] = array();
+        }
 
-        if(is_callable($callback)) {
+        if (is_callable($callback)) {
             return static::$events[$handler][] = $callback;
         }
 
-        if(is_string($callback) && !class_exists($callback)) {
+        if (is_string($callback) && !class_exists($callback)) {
             throw new InvalidArgumentException("Class \"{$callback}\" does not exist");
         }
 
-        if(!method_exists($callback, 'handle')) {
+        if (!method_exists($callback, 'handle')) {
             throw new InvalidArgumentException("Class \"{$callback}\" does not have method \"handle\"");
         }
 

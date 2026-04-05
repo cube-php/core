@@ -6,6 +6,7 @@ use Cube\App\App;
 use Cube\Exceptions\DBException;
 use PDO;
 use PDOException;
+use Throwable;
 
 class DBConnector
 {
@@ -22,7 +23,12 @@ class DBConnector
     public static function connection(string $name = self::DEFAULT_CONNECTION_NAME): DBConnectorItem
     {
         if (isset(static::$connections[$name])) {
-            return static::$connections[$name];
+            try {
+                self::$connections[$name]->connection->query('SELECT 1');
+                return self::$connections[$name];
+            } catch (Throwable) {
+                unset(self::$connections[$name]);
+            }
         }
 
         $config = App::getConfig('database');
@@ -129,5 +135,23 @@ class DBConnector
         every(static::$connections, function ($conn, $key) {
             unset(static::$connections[$key]);
         });
+    }
+
+    /**
+     * Reset the state of all active connections for the current request
+     *
+     * @return void
+     */
+    public static function resetRequestState(): void
+    {
+        foreach (self::$connections as $name => $item) {
+            try {
+                if ($item->connection->inTransaction()) {
+                    $item->connection->rollBack();
+                }
+            } catch (Throwable) {
+                unset(self::$connections[$name]);
+            }
+        }
     }
 }

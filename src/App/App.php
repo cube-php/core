@@ -10,10 +10,10 @@ use Cube\Http\Session;
 use Cube\Interfaces\RequestInterface;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
+use Cube\Modules\Db\DBConnector;
 use Cube\Modules\SessionManager;
 use Cube\Router\ControllerRoutesLoader;
 use Cube\Router\RouteCollection;
-use Error;
 use Throwable;
 
 class App
@@ -180,7 +180,24 @@ class App
      *
      * @return void
      */
-    public function run(?RequestInterface $request = null): void
+    public function run(?RequestInterface $request = null): mixed
+    {
+        $runtime = EventManager::dispatchEvent(self::EVENT_BEFORE_RUN, $this);
+
+        if ($runtime) {
+            return $runtime($this, $request);
+        }
+
+        return $this->runApp($request);
+    }
+
+    /**
+     * Run app
+     *
+     * @param RequestInterface|null $request
+     * @return void
+     */
+    public function runApp(?RequestInterface $request = null)
     {
         $response = $this->handle($request);
         $emitter = new ResponseEmitter($response);
@@ -199,12 +216,20 @@ class App
         $handler = self::$exceptions_handler;
 
         try {
-            $response = (new RouteCollection($request))->dispatch();
+            return (new RouteCollection($request))->dispatch();
         } catch (Throwable $e) {
             return $handler->handle($request, $e);
         }
+    }
 
-        return $response;
+    /**
+     * Terminate app
+     *
+     * @return void
+     */
+    public function terminate()
+    {
+        DBConnector::resetRequestState();
     }
 
     /**
