@@ -19,10 +19,10 @@
     ]
   },
   "require": {
-    "twig/twig": "^3.2",
-    "symfony/console": "^5.2",
-    "symfony/process": "^5.2",
-    "symfony/cache": "^5.2",
-    "dammynex/pagenator": "^0.1.4"
+    "twig/twig": "^3.24",
+    "dammynex/pagenator": "^0.1.4",
+    "symfony/process": "^8.0",
+    "symfony/console": "^8.0",
+    "symfony/cache": "^8.0"
   }
 }
