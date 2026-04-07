@@ -84,7 +84,7 @@ class Cli
         $application = new Application();
 
         array_walk($this->commands, function ($class) use ($application) {
-            $application->add(new $class($this->app));
+            $application->addCommand(new $class($this->app));
         });
 
         $this->loadExtras($application);
@@ -115,7 +115,7 @@ class Cli
                 return self::removeExtraPackageCommand($class);
             }
 
-            $application->add(
+            $application->addCommand(
                 new $class($this->app)
             );
         });

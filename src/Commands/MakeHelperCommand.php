@@ -2,26 +2,27 @@
 
 namespace Cube\Commands;
 
-use Cube\App\Directory;
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:helper',
+    description: 'Create helper',
+    help: 'This command helps generate helper'
+)]
 class MakeHelperCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:helper';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create helper')
-            ->setHelp('This command helps generate helper')
             ->addArgument('name', InputArgument::REQUIRED, 'Helper name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 
@@ -43,9 +44,9 @@ class MakeHelperCommand extends BaseCommand
         }
 
         $output->writeln(
-            concat('<info>helper ', $name ,' created successfully</info>')
+            concat('<info>helper ', $name, ' created successfully</info>')
         );
-        
+
         return self::SUCCESS;
     }
 }

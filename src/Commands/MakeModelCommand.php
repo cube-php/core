@@ -2,28 +2,28 @@
 
 namespace Cube\Commands;
 
-use Cube\App\App;
-use Cube\App\Directory;
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:model',
+    description: 'Create a model',
+    help: 'This command helps create a model with boilerplate'
+)]
 class MakeModelCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:model';
-
-    public function configure()
+    public function configure(): void
     {
-        $this->
-            setDescription('Create a model')
-            ->setHelp('This command helps create a model with boilerplate')
+        $this
             ->addArgument('name', InputArgument::REQUIRED, 'Model name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 
@@ -33,9 +33,8 @@ class MakeModelCommand extends BaseCommand
                 $name,
                 CliActions::RESOURCE_TYPE_MODEL
             );
-        
-        } catch(CliActionException $e) {
-        
+        } catch (CliActionException $e) {
+
             $output->writeln([
                 '<fg=red>Unable to generate model</>',
                 concat('<fg=red>', $e->getMessage(), '</>')

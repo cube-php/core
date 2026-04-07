@@ -2,21 +2,19 @@
 
 namespace Cube\Commands;
 
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'version',
+    description: 'Get current core version',
+    help: 'This command helps get current core version'
+)]
 class CubeVersionCommand extends BaseCommand
 {
-    protected static $defaultName = 'version';
-
-    public function configure()
-    {
-        $this
-            ->setDescription('Get current core version');
-    }
-
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $dir = __DIR__ . '/../../composer.json';
 

@@ -4,24 +4,26 @@ namespace Cube\Commands;
 
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:controller',
+    description: 'Create a controller',
+    help: 'This command helps you create a controller'
+)]
 class MakeControllerCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:controller';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create a controller')
-            ->setHelp('This command helps you create a controller')
             ->addArgument('name', InputArgument::REQUIRED, 'Controller name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 
@@ -42,9 +44,9 @@ class MakeControllerCommand extends BaseCommand
         }
 
         $output->writeln(
-            concat('<info>controller ', $name ,' created successfully</info>')
+            concat('<info>controller ', $name, ' created successfully</info>')
         );
-        
+
         return Command::SUCCESS;
     }
 }

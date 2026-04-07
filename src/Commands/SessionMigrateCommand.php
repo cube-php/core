@@ -3,24 +3,27 @@
 namespace Cube\Commands;
 
 use Cube\Modules\SessionManager;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'session:migrate',
+    description: 'Create db migration for session',
+    help: 'This command creates the session table'
+)]
 class SessionMigrateCommand extends BaseCommand
 {
-    protected static $defaultName = 'session:migrate';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create db migration for session')
             ->setHelp('This command creates the session table');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('<fg=yellow>Setting up your app......</>');
-        
+
         (new SessionManager)->init();
 
         $output->writeln(

@@ -5,21 +5,24 @@ namespace Cube\Commands;
 use Cube\Exceptions\AppException;
 use Cube\Misc\EventManager;
 use Cube\Modules\System;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'app:setup',
+    description: 'Run app setup',
+    help: 'This command helps prepare and setup required components'
+)]
 class AppSetupCommand extends BaseCommand
 {
-    protected static $defaultName = 'app:setup';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Run app setup')
             ->setHelp('This command helps prepare and setup required components');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('<fg=yellow>Setting up your app......</>');
 

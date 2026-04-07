@@ -4,24 +4,26 @@ namespace Cube\Commands;
 
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:migration',
+    description: 'Create a migration',
+    help: 'This command creates a new migration'
+)]
 class MakeMigrationCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:migration';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create a migration')
-            ->setHelp('This command creates a new migration')
             ->addArgument('name', InputArgument::REQUIRED, 'Migration name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 
@@ -30,10 +32,10 @@ class MakeMigrationCommand extends BaseCommand
                 $name,
                 CliActions::RESOURCE_TYPE_MIGRATION
             );
-        } catch(CliActionException $e) {
+        } catch (CliActionException $e) {
             $output->writeln([
                 '<fg=red>Unable to make migration</>',
-                concat('<fg=red>', $e->getMessage() ,'</>')
+                concat('<fg=red>', $e->getMessage(), '</>')
             ]);
 
             return Command::FAILURE;
