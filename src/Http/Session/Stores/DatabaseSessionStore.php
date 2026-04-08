@@ -1,69 +1,71 @@
 <?php
 
-namespace Cube\Modules\Sessions;
+namespace Cube\Http\Session\Stores;
 
 use Cube\App\App;
+use Cube\Http\Session\SessionStoreInterface;
 use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBTable;
-use SessionHandlerInterface;
 
-class DBSessionManager implements SessionHandlerInterface
+class DatabaseSessionStore implements SessionStoreInterface
 {
     protected static string $schema_name = 'cube_sessions';
 
     public function __construct() {}
 
-    public function close(): bool
-    {
-        return true;
-    }
-
-    public function destroy($id): bool
+    /**
+     * Destroy session by id
+     *
+     * @param string $id Session id
+     * @return void
+     */
+    public function destroy(string $id): void
     {
         self::getTable()
             ->delete()
             ->where('id', $id)
             ->fulfil();
-        return true;
     }
 
-    public function gc($maxlifetime): int|false
-    {
-        $old = gettime(time() - $maxlifetime);
-
-        return self::getTable()
-            ->delete()
-            ->where('updated_at', '<', $old)
-            ->fulfil() ?? false;
-    }
-
-    public function open($save_path, $session_name): bool
-    {
-        return true;
-    }
-
-    public function read($session_id): string
+    /**
+     * Read session data by id
+     *
+     * @param string $id Session id
+     * @return array
+     */
+    public function read(string $session_id): array
     {
         $session = self::getTable()
             ->select(['data'])
             ->where('id', $session_id)
             ->fetchOne();
 
-        return $session ? base64_decode($session->data) : '';
+        return $session
+            ? json_decode(
+                base64_decode($session->data),
+                true
+            ) : [];
     }
 
-    public function write($id, $session_data): bool
+    /**
+     * Write session data by id
+     *
+     * @param string $id Session id
+     * @param array $session_data Session data
+     * @return void
+     */
+    public function write(string $id, array $session_data): void
     {
         self::getTable()
             ->insert([
-                'data' => base64_encode($session_data),
+                'data' => base64_encode(
+                    json_encode($session_data)
+                ),
                 'updated_at' => getnow(),
                 'created_at' => getnow(),
             ], [
                 'id' => $id
             ]);
-
-        return true;
     }
 
     public function init()
@@ -91,6 +93,7 @@ class DBSessionManager implements SessionHandlerInterface
         $table = self::getTable();
         $table->build(function ($table) {
             $table->field('id')->varchar()->primary();
+            $table->field('user_id')->int()->nullable();
             $table->field('data')->text();
             $table->field('created_at')->datetime();
             $table->field('updated_at')->datetime()->nullable();
@@ -98,5 +101,6 @@ class DBSessionManager implements SessionHandlerInterface
 
         $table->addIndex('idx_id', ['id']);
         $table->addIndex('idx_upd', ['updated_at']);
+        $table->addIndex('idx_user', ['user_id']);
     }
 }

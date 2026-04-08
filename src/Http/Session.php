@@ -2,53 +2,10 @@
 
 namespace Cube\Http;
 
-use Cube\App\App;
-use Cube\Modules\Sessions\DBSessionManager;
+use Cube\Http\Session\SessionHandler;
 
 class Session
 {
-    /**
-     * Session name
-     *
-     * @var string
-     */
-    private static $_cookie_name = 'CUBESESSIDX';
-
-    /**
-     * Session instance
-     *
-     * @var self
-     */
-    private static $configured = null;
-
-    /**
-     * Session constructor
-     * 
-     * 
-     */
-    public function __construct()
-    {
-        if (!self::$configured) {
-            $config = App::getConfig('app.session.handler', null);
-
-            match ($config) {
-                'database' => session_set_save_handler(
-                    new DBSessionManager(),
-                    true
-                ),
-                default => null
-            };
-
-            session_name(static::$_cookie_name);
-            self::$configured = true;
-        }
-
-        session_start();
-
-        if (!self::has(self::$_cookie_name)) {
-            self::set(self::$_cookie_name, generate_token(30));
-        }
-    }
 
     /**
      * Check if session exists
@@ -59,7 +16,7 @@ class Session
      */
     public static function has($name)
     {
-        return isset($_SESSION[$name]);
+        return self::handler()->has($name);
     }
 
     /**
@@ -75,7 +32,7 @@ class Session
             return null;
         }
 
-        return $_SESSION[$name];
+        return self::handler()->get($name);
     }
 
     /**
@@ -126,7 +83,7 @@ class Session
             return false;
         }
 
-        unset($_SESSION[$name]);
+        self::handler()->remove($name);
         return true;
     }
 
@@ -140,7 +97,11 @@ class Session
      */
     public static function set($name, $value)
     {
-        $_SESSION[$name] = $value;
-        return true;
+        self::handler()->put($name, $value);
+    }
+
+    protected static function handler(): SessionHandler
+    {
+        return app(SessionHandler::class);
     }
 }

@@ -2,6 +2,9 @@
 
 namespace Cube\Interfaces;
 
+use Cube\Http\Session\SessionHandler;
+use Cube\Misc\Collection;
+
 interface RequestInterface
 {
     public function getMethod();
@@ -16,9 +19,13 @@ interface RequestInterface
 
     public function getServer();
 
+    public function getCookies(): Collection;
+
     public function inputs();
 
     public function input(string | array $name, string $defaults = '');
+
+    public function session(): SessionHandler;
 
     public function setAttribute($name, $value);
 
