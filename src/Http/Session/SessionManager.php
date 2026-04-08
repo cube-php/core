@@ -21,7 +21,7 @@ class SessionManager
 
     public function start(RequestInterface $request): SessionHandler
     {
-        $id = $request->getCookies()->get($this->cookie_name);
+        $id = (string) $request->getCookies()->get($this->cookie_name);
         $data = $this->store->read($id);
 
         if (!$id) {
