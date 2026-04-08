@@ -952,9 +952,9 @@ class Model implements ModelInterface
      *
      * @return DBSelect
      */
-    public static function lock(): DBSelect
+    public static function lock(bool $skip_locked = false): DBSelect
     {
-        return self::select()->lock();
+        return self::select()->lock($skip_locked);
     }
 
     /**

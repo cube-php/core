@@ -2,14 +2,11 @@
 
 namespace Cube\Http;
 
-use Cube\App\App;
-use Cube\App\Directory;
+use Cube\Http\Cookie\CookieItem;
+use Cube\Http\Cookie\CookieJar;
 use InvalidArgumentException;
 use Cube\Interfaces\ResponseInterface;
 use Cube\View\ViewRenderer;
-
-use Cube\Http\Headers;
-use Cube\Http\Session;
 use Cube\Misc\Collection;
 
 class Response implements ResponseInterface
@@ -196,12 +193,6 @@ class Response implements ResponseInterface
      */
     private int $status_code = self::HTTP_OK;
 
-    /**
-     * Cookies
-     *
-     * @var array
-     */
-    private array $cookies = array();
 
     /**
      * Response Constructor
@@ -210,6 +201,10 @@ class Response implements ResponseInterface
     public function __construct()
     {
         $this->headers = new Collection();
+        app()->scoped(
+            CookieJar::class,
+            fn() => new CookieJar()
+        );
     }
 
     /**
@@ -218,7 +213,7 @@ class Response implements ResponseInterface
      * @param string $name Variable name
      * @param string $value Variable value
      * 
-     * @return
+     * @return void
      */
     public function __set($name, $value)
     {
@@ -262,10 +257,7 @@ class Response implements ResponseInterface
      */
     public function getCookies(): array
     {
-        return array_merge(
-            Cookie::getQueue(),
-            $this->cookies
-        );
+        return app(CookieJar::class)->all();
     }
 
     /**
@@ -326,14 +318,17 @@ class Response implements ResponseInterface
         bool $secure = false,
         bool $httponly = false
     ) {
-        $this->cookies[] = (object) array(
-            'name' => $name,
-            'value' => $value,
-            'expires' => $expires,
-            'path' => $path,
-            'domain' => $domain,
-            'secure' => $secure,
-            'httponly' => $httponly
+
+        app(CookieJar::class)->add(
+            new CookieItem(
+                name: $name,
+                value: $value,
+                expires: $expires,
+                path: $path,
+                domain: $domain,
+                secure: $secure,
+                httponly: $httponly
+            )
         );
 
         return $this;
@@ -367,20 +362,6 @@ class Response implements ResponseInterface
     public function withHeader($name, $value)
     {
         $this->headers->set($name, $value);
-        return $this;
-    }
-
-    /**
-     * Add new session to response
-     * 
-     * @param string $name Session name
-     * @param mixed $value Session value
-     * 
-     * @return self
-     */
-    public function withSession($name, $value)
-    {
-        Session::set($name, $value);
         return $this;
     }
 

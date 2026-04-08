@@ -1,7 +1,7 @@
 <?php
 
+use Cube\Http\Request;
 use Cube\Http\Response;
-use Cube\Http\Session;
 use Cube\View\ViewRenderer;
 
 /**
@@ -31,7 +31,7 @@ function redirect($path, $params = [], $is_external = false)
  */
 function back(): Response
 {
-    $history = Session::get('cubeHttpUrlHistory');
+    $history = app(Request::class)->session()->get('_history', []);
 
     if (!$history) {
         return response()->redirect('/');
@@ -49,7 +49,7 @@ function back(): Response
  */
 function response(): Response
 {
-    return new Response();
+    return app(Response::class);
 }
 
 /**

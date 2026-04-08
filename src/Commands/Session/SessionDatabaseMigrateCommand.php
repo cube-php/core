@@ -3,7 +3,7 @@
 namespace Cube\Commands\Session;
 
 use Cube\Commands\BaseCommand;
-use Cube\Modules\Sessions\DBSessionManager;
+use Cube\Http\Session\Stores\DatabaseSessionStore;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -24,7 +24,7 @@ class SessionDatabaseMigrateCommand extends BaseCommand
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('<fg=yellow>Setting up your app......</>');
-        (new DBSessionManager())->init();
+        (new DatabaseSessionStore())->init();
 
         $output->writeln(
             '<info>[✓]Session migration completed</info>'

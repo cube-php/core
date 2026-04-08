@@ -39,15 +39,16 @@ class ResponseEmitter
             setcookie(
                 $content->name,
                 $content->value,
-                $content->expires,
-                $content->path,
-                $content->domain,
-                $content->secure,
-                $content->httponly
+                [
+                    'expires' => $content->expires,
+                    'path' => $content->path,
+                    'domain' => $content->domain,
+                    'secure' => $content->secure,
+                    'httponly' => $content->httponly,
+                    'samesite' => $content->samesite
+                ]
             );
         });
-
-        Cookie::clearQueue();
     }
 
     /**

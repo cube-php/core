@@ -325,7 +325,7 @@ class Route
     public function handle(Request $request)
     {
         $embed_request = App::getConfig('view.embed_request', false);
-        $response = new Response();
+        $response = app(Response::class);
 
         if ($embed_request) {
             $response->req = $request;
@@ -368,10 +368,6 @@ class Route
         $class = $this->_controller['class_name'];
         $method = $this->_controller['method_name'];
 
-        /**
-         * Create controller instance
-         * This is to be able to invoke middleware assigned in __construct
-         */
         $controller = new $class($request, $response);
         $request = $request->useMiddleware(
             $controller->getMiddlewares()
@@ -554,6 +550,10 @@ class Route
     private function _analyzeControllerResult($controller, Request $request, Response $response)
     {
         $result = call_user_func_array($controller, [$request, $response]);
+        $request->getSessionManager()->persist(
+            $request->session(),
+            $response
+        );
 
         if ($result instanceof Response) {
             return $result;

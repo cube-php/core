@@ -54,7 +54,10 @@ class RouteCollection
             $this->request->setAttribute($name, $value);
         });
 
-        $response = $route->parseResponse(new Response());
+        $response = $route->parseResponse(
+            app(Response::class)
+        );
+
         $result = $route->handle($request, $response);
 
         EventManager::dispatchEvent(
