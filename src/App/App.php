@@ -407,7 +407,7 @@ class App
      */
     public static function getConfig(string $name, $default = null)
     {
-        $instance = self::getRunningInstance();
+        $instance = app(self::class);
         if (!isset($instance->caches['config'])) {
             $instance->loadConfig();
         }

@@ -1,0 +1,13 @@
+<?php
+
+namespace App\Jobs{subNamespace};
+
+use Cube\Interfaces\JobsInterface;
+
+class {className} implements JobsInterface
+{
+    public function handle()
+    {
+        //handle job
+    }
+}

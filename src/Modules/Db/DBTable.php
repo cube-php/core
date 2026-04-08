@@ -41,11 +41,22 @@ class DBTable
      * Class constructor
      * 
      * @param string $table_name
+     * @param DBConnection|null $connection
      */
     public function __construct(string $name, ?DBConnection $connection = null)
     {
         $this->name = $name;
         $this->connection = $connection;
+    }
+
+    /**
+     * Get database connection
+     * 
+     * @return DBConnection
+     */
+    public function getConnection(): DBConnection
+    {
+        return $this->connection;
     }
 
     /**

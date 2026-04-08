@@ -21,6 +21,7 @@ class CliActions
     public const RESOURCE_TYPE_HELPER = 'helper';
     public const RESOURCE_TYPE_VALIDATION_RULE = 'Rule';
     public const RESOURCE_TYPE_COMPONENT = 'Component';
+    public const RESOURCE_TYPE_JOB = 'Job';
 
     /**
      * Build & generate resouce

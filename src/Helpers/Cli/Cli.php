@@ -9,6 +9,9 @@ use Cube\Commands\Components\CreateComponentCommand;
 use Cube\Commands\ConsoleCommand;
 use Cube\Commands\CubeVersionCommand;
 use Cube\Commands\EventDispatcherCommand;
+use Cube\Commands\Jobs\JobQueueManagerCommand;
+use Cube\Commands\Jobs\JobQueueWorkerCommand;
+use Cube\Commands\Jobs\JobsMigrateCommand;
 use Cube\Commands\MakeAppResourceCommand;
 use Cube\Commands\MakeControllerCommand;
 use Cube\Commands\MakeEventCommand;
@@ -16,6 +19,7 @@ use Cube\Commands\MakeAssetCommand;
 use Cube\Commands\MakeConsoleCommand;
 use Cube\Commands\MakeExceptionCommand;
 use Cube\Commands\MakeHelperCommand;
+use Cube\Commands\MakeJobCommand;
 use Cube\Commands\MakeMiddlewareCommand;
 use Cube\Commands\MakeMigrationCommand;
 use Cube\Commands\MakeModelCommand;
@@ -25,7 +29,6 @@ use Cube\Commands\Router\RouterCacheCommand;
 use Cube\Commands\Router\RouterClearCacheCommand;
 use Cube\Commands\ServerCommand;
 use Cube\Commands\Session\SessionDatabaseMigrateCommand;
-use Cube\Commands\SessionMigrateCommand;
 use Cube\Commands\ViewClearCacheCommand;
 use Cube\Exceptions\CubeCliException;
 use Cube\Http\Env;
@@ -44,24 +47,28 @@ class Cli
         RouterClearCacheCommand::class,
         MakeAppResourceCommand::class,
         CreateComponentCommand::class,
+        JobQueueManagerCommand::class,
         EventDispatcherCommand::class,
         MakeControllerCommand::class,
         MakeMiddlewareCommand::class,
         ViewClearCacheCommand::class,
+        JobQueueWorkerCommand::class,
         MakeMigrationCommand::class,
         MakeExceptionCommand::class,
         CubeVersionCommand::class,
         MakeConsoleCommand::class,
         RouterCacheCommand::class,
+        JobsMigrateCommand::class,
         MakeHelperCommand::class,
         MakeEventCommand::class,
         MakeAssetCommand::class,
         MakeModelCommand::class,
         AppSetupCommand::class,
         MakeRuleCommand::class,
+        MakeJobCommand::class,
         MigrateCommand::class,
         ConsoleCommand::class,
-        ServerCommand::class
+        ServerCommand::class,
     );
 
     /**
