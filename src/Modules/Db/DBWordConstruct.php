@@ -28,7 +28,7 @@ class DBWordConstruct
      */
     public static function alterTableAddIndex($table_name, $index_name, $field_name)
     {
-        return concat('ALTER TABLE ', $table_name, ' ADD INDEX ', $index_name, ' (', $field_name, ')');
+        return concat('ALTER TABLE ', $table_name, ' ADD INDEX IF NOT EXISTS ', $index_name, ' (', $field_name, ')');
     }
 
     /**
