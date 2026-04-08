@@ -1,27 +1,27 @@
 <?php
 
-namespace Cube\Commands\Session;
+namespace Cube\Commands\Jobs;
 
 use Cube\Commands\BaseCommand;
-use Cube\Http\Session\Stores\DatabaseSessionStore;
+use Cube\Queue\Migrations\JobsMigration;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 #[AsCommand(
-    name: 'session:db:migrate',
-    description: 'Create db migration for session',
-    help: 'This command creates the session table'
+    name: 'jobs:db:migrate',
+    description: 'Create db migration for jobs',
+    help: 'This command creates the jobs table'
 )]
-class SessionDatabaseMigrateCommand extends BaseCommand
+class JobsMigrateCommand extends BaseCommand
 {
     public function execute(InputInterface $input, OutputInterface $output): int
     {
         $output->writeln('<fg=yellow>Setting up your app......</>');
-        (new DatabaseSessionStore())->init();
+        JobsMigration::up();
 
         $output->writeln(
-            '<info>[✓]Session migration completed</info>'
+            '<info>[✓]Jobs migration completed</info>'
         );
 
         return self::SUCCESS;
