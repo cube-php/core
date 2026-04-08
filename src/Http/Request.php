@@ -12,10 +12,12 @@ use Cube\Misc\FilesParser;
 use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
+use Cube\Http\Session\SessionManager;
 use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
 use Cube\Http\UploadedFile;
+use Cube\Http\Session\SessionHandler;
 
 class Request implements RequestInterface
 {
@@ -37,6 +39,10 @@ class Request implements RequestInterface
     private ?array $resolved_middlewares = [];
 
     private array $called_middlewares = [];
+
+    private SessionHandler $session;
+
+    private SessionManager $session_manager;
 
     /** @var UploadedFile[] */
     private array $uploaded_files = array();
@@ -63,6 +69,19 @@ class Request implements RequestInterface
         protected ?Collection $tmpfiles = null,
         protected string $content = ''
     ) {
+        $this->session_manager = SessionManager::init();
+        $this->session = $this->session_manager->start($this);
+
+        app()->scoped(
+            SessionHandler::class,
+            fn() => $this->session
+        );
+
+        app()->scoped(
+            Response::class,
+            fn() => new Response()
+        );
+
         $this->parseBody();
         $this->updateHistory();
         $this->uploaded_files =  (new FilesParser(
@@ -169,6 +188,26 @@ class Request implements RequestInterface
     public function getHeaders(): Collection
     {
         return $this->header;
+    }
+
+    /**
+     * Get session
+     *
+     * @return SessionHandler
+     */
+    public function session(): SessionHandler
+    {
+        return app(SessionHandler::class);
+    }
+
+    /**
+     * Get session manager
+     *
+     * @return SessionManager
+     */
+    public function getSessionManager(): SessionManager
+    {
+        return $this->session_manager;
     }
 
     /**
@@ -421,6 +460,11 @@ class Request implements RequestInterface
             }
 
             if ($result instanceof Response) {
+                $this->session_manager->persist(
+                    $this->session,
+                    $result
+                );
+
                 break;
             }
         }
@@ -475,7 +519,7 @@ class Request implements RequestInterface
      */
     private function updateHistory(): void
     {
-        $history = Session::get('_cubeHttpUrlHistory_') ?? [];
+        $history = $this->session->get('cubeHttpUrlHistory', []);
         $last_url = array_get_last($history) ?? '';
 
         if ($last_url === $this->url()->getUrl()) {
@@ -483,7 +527,7 @@ class Request implements RequestInterface
         }
 
         $history[] = $this->url()->getUrl();
-        Session::set('cubeHttpUrlHistory', $history);
+        $this->session->put('cubeHttpUrlHistory', $history);
     }
 
     /**
@@ -515,7 +559,7 @@ class Request implements RequestInterface
      */
     public static function getCurrentRequest(): ?self
     {
-        return Session::get('cubeHttpRequest');
+        return null; //$this->session->get('cubeHttpRequest');
     }
 
     /**

@@ -2,9 +2,17 @@
 
 namespace Cube\Http;
 
+use Cube\Http\Cookie\CookieItem;
+use Cube\Http\Cookie\CookieJar;
+
 class Cookie
 {
     protected static $queue_name = 'cube::HttpCookiesQueue';
+
+    public static function all(): array
+    {
+        return app(Request::class)->getCookies()->all();
+    }
 
     /**
      * Set new cookie
@@ -23,42 +31,22 @@ class Cookie
         $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httponly = false
-    ): bool {
-        $cookies = self::getQueue();
-        $cookies[] = (object) array(
-            'name' => $name,
-            'value' => $value,
-            'expires' => $expires,
-            'path' => $path,
-            'domain' => $domain,
-            'secure' => $secure,
-            'httponly' => $httponly
+        bool $httponly = true,
+        string $samesite = 'Lax'
+    ): void {
+        $jar = app(CookieJar::class);
+        $jar->add(
+            new CookieItem(
+                name: $name,
+                value: $value,
+                expires: $expires,
+                path: $path,
+                domain: $domain,
+                secure: $secure,
+                httponly: $httponly,
+                samesite: $samesite
+            )
         );
-
-        Session::set(static::$queue_name, $cookies);
-        return true;
-    }
-
-    /**
-     * Get queue
-     *
-     * @return array
-     */
-    public static function getQueue(): array
-    {
-        $cookies = Session::getAndRemove(static::$queue_name) ?? [];
-        return $cookies;
-    }
-
-    /**
-     * Clear cookie queue
-     *
-     * @return void
-     */
-    public static function clearQueue(): void
-    {
-        Session::remove(self::$queue_name);
     }
 
     /**
@@ -113,7 +101,7 @@ class Cookie
      */
     public static function has(Request $request, $name)
     {
-        return $request->getCookies()->has($name);
+        return app(Request::class)->getCookies()->has($name);
     }
 
     /**
@@ -128,7 +116,7 @@ class Cookie
             return null;
         }
 
-        return $request->getCookies()->get($name);
+        return app(Request::class)->getCookies()->get($name);
     }
 
     /**
