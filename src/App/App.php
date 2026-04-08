@@ -6,7 +6,6 @@ use Cube\Helpers\Response\ResponseEmitter;
 use Cube\Http\Env;
 use Cube\Http\Request;
 use Cube\Http\Response;
-use Cube\Http\Session;
 use Cube\Interfaces\RequestInterface;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
@@ -83,32 +82,11 @@ class App
     const EVENT_APP_ON_CRASH = 'onAppCrash';
 
     /**
-     * Holds and generate all app paths
-     *
-     * @var Path
-     */
-    private static $directory;
-
-    /**
-     * Instance
-     *
-     * @var self
-     */
-    private static $instance;
-
-    /**
      * Caches
      *
      * @var array
      */
-    private static $caches = array();
-
-    /**
-     * Exceptions handler
-     *
-     * @var AppExceptionsHandler
-     */
-    private static AppExceptionsHandler $exceptions_handler;
+    private array $caches = array();
 
     /**
      * Check if app is running via cli
@@ -124,9 +102,21 @@ class App
      */
     public function __construct(string $dir)
     {
-        self::$directory = new Directory($dir);
-        self::$instance = $this;
-        self::$exceptions_handler = new AppExceptionsHandler();
+        app()->singleton(
+            Directory::class,
+            fn() => new Directory($dir)
+        );
+
+        app()->singleton(
+            App::class,
+            fn() => $this
+        );
+
+        app()->singleton(
+            AppExceptionsHandler::class,
+            fn() => new AppExceptionsHandler()
+        );
+
         $this->init();
     }
 
@@ -168,9 +158,9 @@ class App
      *
      * @return Directory
      */
-    public function directory()
+    public function directory(): Directory
     {
-        return self::$directory;
+        return app(Directory::class);
     }
 
     /**
@@ -205,19 +195,22 @@ class App
     /**
      * Handle request
      *
-     * @param RequestInterface|null $request
+     * @param Request|null $request
      * @return Response
      */
-    public function handle(?RequestInterface $request = null): Response
+    public function handle(?Request $request = null): Response
     {
-        $this->initSessions();
-        $request = $request ?: Request::createHttpRequestFromGlobals();
-        $handler = self::$exceptions_handler;
+        app()->scoped(
+            Request::class,
+            fn() => $request ?: Request::createHttpRequestFromGlobals()
+        );
 
         try {
-            return (new RouteCollection($request))->dispatch();
+            return (
+                new RouteCollection(app(Request::class))
+            )->dispatch();
         } catch (Throwable $e) {
-            return $handler->handle($request, $e);
+            return app(AppExceptionsHandler::class)->handle($e);
         }
     }
 
@@ -309,8 +302,8 @@ class App
             $fname = $name_vars[0];
             $content = require_once $path;
 
-            if ($should_cache && !isset(self::$caches[$cache_name][$fname])) {
-                return self::$caches[$cache_name][$fname] = $content;
+            if ($should_cache && !isset($this->caches[$cache_name][$fname])) {
+                return $this->caches[$cache_name][$fname] = $content;
             }
         });
     }
@@ -375,7 +368,9 @@ class App
         $exception = static::getConfig('exception');
 
         if (is_callable($exception)) {
-            $exception(self::$exceptions_handler);
+            $exception(
+                app(AppExceptionsHandler::class)
+            );
         }
     }
 
@@ -391,16 +386,6 @@ class App
         );
 
         ControllerRoutesLoader::load();
-    }
-
-    /**
-     * Initialize session
-     *
-     * @return void
-     */
-    private function initSessions()
-    {
-        new Session();
     }
 
     /**
@@ -422,11 +407,12 @@ class App
      */
     public static function getConfig(string $name, $default = null)
     {
-        if (!isset(self::$caches['config'])) {
-            self::getRunningInstance()->loadConfig();
+        $instance = self::getRunningInstance();
+        if (!isset($instance->caches['config'])) {
+            $instance->loadConfig();
         }
 
-        $config = self::$caches['config'];
+        $config = $instance->caches['config'];
         $name_vars = explode('.', $name);
         $config_name = $name_vars[0];
 
@@ -489,6 +475,6 @@ class App
      */
     public static function getRunningInstance(): ?self
     {
-        return self::$instance;
+        return app(App::class);
     }
 }

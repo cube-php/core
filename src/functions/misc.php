@@ -20,7 +20,9 @@ use Cube\Misc\Collection;
  */
 function generate_token($length)
 {
-    return bin2hex(openssl_random_pseudo_bytes($length));
+    return bin2hex(
+        openssl_random_pseudo_bytes($length)
+    );
 }
 
 /**
