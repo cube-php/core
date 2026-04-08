@@ -378,8 +378,6 @@ class DBSelect extends DBQueryBuilder
             $this->joinSql(null, 'SKIP LOCKED');
         }
 
-        //die($this);
-
         $sql = $this->getSqlQuery();
         $params = $this->getSqlParameters();
 
