@@ -6,9 +6,6 @@ use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Exceptions\AppException;
 use Exception;
-use Cube\Tools\Auth;
-use Cube\Helpers\Cli\Cli;
-use Cube\Modules\SessionManager;
 
 class System
 {
@@ -31,7 +28,6 @@ class System
      */
     public function __construct()
     {
-        $this->_session = new SessionManager();
         $this->_system_file_path = concat(
             App::getPath(Directory::PATH_ROOT),
             DIRECTORY_SEPARATOR,
@@ -49,10 +45,8 @@ class System
     public function init()
     {
         try {
-            $this->initSystemsUtilities();
             $this->initCustomCommands();
         } catch (Exception $e) {
-
             throw new AppException("Unable to intialize system \n" . $e->getMessage(), true);
         }
     }
@@ -65,16 +59,5 @@ class System
     private function initCustomCommands()
     {
         return require_once $this->_system_file_path;
-    }
-
-    /**
-     * Initialize cubes core utilities
-     *
-     * @return boolean
-     */
-    private function initSystemsUtilities()
-    {
-        Auth::up();
-        $this->_session->init();
     }
 }

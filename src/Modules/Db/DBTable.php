@@ -52,16 +52,16 @@ class DBTable
      * Add index to table
      *
      * @param string $index_name
-     * @param string $field_name
+     * @param array $fields
      * @return PDOStatement
      */
-    public function addIndex($index_name, $field_name)
+    public function addIndex($index_name, array $fields = [])
     {
         return $this->connection->query(
             DBWordConstruct::alterTableAddIndex(
                 $this->name,
                 $index_name,
-                $field_name
+                implode(', ', $fields)
             )
         );
     }
@@ -264,13 +264,14 @@ class DBTable
      * Insert data into table
      * 
      * @param array $entry Data to enter into table
+     * @param $on_duplicate matching data for duplicate entry
      * 
      * @return int Insert id
      */
-    public function insert(array $entry)
+    public function insert(array $entry, array $on_duplicate = [])
     {
         $insert = new DBInsert($this);
-        return $insert->entry($entry);
+        return $insert->entry($entry, $on_duplicate);
     }
 
     /**
