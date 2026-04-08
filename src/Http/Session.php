@@ -2,7 +2,8 @@
 
 namespace Cube\Http;
 
-use Cube\Modules\SessionManager;
+use Cube\App\App;
+use Cube\Modules\Sessions\DBSessionManager;
 
 class Session
 {
@@ -18,47 +19,35 @@ class Session
      *
      * @var self
      */
-    private static $_instance = null;
+    private static $configured = null;
 
     /**
      * Session constructor
      * 
      * 
      */
-    private function __construct()
+    public function __construct()
     {
-        if (SessionManager::isReady()) {
-            $handler = new SessionManager();
-            session_set_save_handler($handler, true);
+        if (!self::$configured) {
+            $config = App::getConfig('app.session.handler', null);
+
+            match ($config) {
+                'database' => session_set_save_handler(
+                    new DBSessionManager(),
+                    true
+                ),
+                default => null
+            };
+
+            session_name(static::$_cookie_name);
+            self::$configured = true;
         }
 
-        /**
-         * Set session name
-         */
-        session_name(static::$_cookie_name);
-
-        /**
-         * Start session
-         */
         session_start();
 
         if (!self::has(self::$_cookie_name)) {
             self::set(self::$_cookie_name, generate_token(30));
         }
-    }
-
-    /**
-     * Creates and starts session
-     *
-     * @return void
-     */
-    public static function createInstance()
-    {
-        if (!static::$_instance) {
-            static::$_instance = new self;
-        }
-
-        return static::$_instance;
     }
 
     /**

@@ -324,7 +324,7 @@ class Route
      */
     public function handle(Request $request)
     {
-        $embed_request = App::getConfig('view', 'embed_request') ?? false;
+        $embed_request = App::getConfig('view.embed_request', false);
         $response = new Response();
 
         if ($embed_request) {

@@ -4,24 +4,26 @@ namespace Cube\Commands;
 
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:exception',
+    description: 'Create an exception',
+    help: 'This command generates an exception'
+)]
 class MakeExceptionCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:exception';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create an exception')
-            ->setHelp('This command generates an exception')
-            ->addArgument('name', InputArgument::REQUIRED, 'Event name');
+            ->addArgument('name', InputArgument::REQUIRED, 'Exception name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 
@@ -30,10 +32,10 @@ class MakeExceptionCommand extends BaseCommand
                 $name,
                 CliActions::RESOURCE_TYPE_EXCEPTION
             );
-        } catch(CliActionException $e) {
+        } catch (CliActionException $e) {
             $output->writeln([
                 '<fg=red>Unable to make exception</>',
-                concat('<fg=red>', $e->getMessage() ,'</>')
+                concat('<fg=red>', $e->getMessage(), '</>')
             ]);
 
             return Command::FAILURE;

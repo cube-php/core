@@ -1020,7 +1020,7 @@ class Model implements ModelInterface
     }
 
     /**
-     * Update field where there is a matching data or create new entry if $fields does not match
+     * Update field where there is one or more matching data or create new entry if $fields does not match
      *
      * @param array $fields
      * @param array $data
@@ -1042,6 +1042,30 @@ class Model implements ModelInterface
         }
 
         return $rows;
+    }
+
+    /**
+     * Insert new entry if there is no matching data or update field where there is a match
+     * Database handles the insert or update process, so this method is faster than updateOrCreate method
+     *
+     * @param array $matching
+     * @param array $fields
+     * @return int
+     */
+    public static function createOrUpdate(array $matching, array $fields)
+    {
+        $keys_count = count(array_keys($matching));
+
+        if (!$keys_count) {
+            throw new InvalidArgumentException('Matching data is required');
+        }
+
+        if ($keys_count > 1) {
+            throw new InvalidArgumentException('Multiple matching data is not allowed. Use only unique field to match');
+        }
+
+        return self::query()
+            ->insert($fields, $matching);
     }
 
     /**

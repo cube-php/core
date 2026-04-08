@@ -4,26 +4,28 @@ namespace Cube\Commands;
 
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:asset',
+    description: 'Generate asset',
+    help: 'This command generates css,js,etc assets in the right directories'
+)]
 class MakeAssetCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:asset';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Generate asset')
-            ->setHelp('This command generates css,js,etc assets in the right directories')
             ->addArgument('name', InputArgument::REQUIRED, 'Asset name')
             ->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Asset type');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
         $type = $input->getOption('type');

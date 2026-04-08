@@ -4,21 +4,18 @@ namespace Cube\Commands;
 
 use Cube\App\App;
 use Cube\App\Directory;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'view:clear-cache',
+    description: 'Clear views cache',
+    help: 'This command clears the cached views'
+)]
 class ViewClearCacheCommand extends BaseCommand
 {
-    protected static $defaultName = 'view:clear-cache';
-
-    public function configure()
-    {
-        $this
-            ->setDescription('Clear views cache')
-            ->setHelp('This command clears the cached views');
-    }
-
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $view_config = $this->app->getConfig('view');
         $dir = $view_config['cache_dir'] ?? null;

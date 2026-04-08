@@ -11,7 +11,6 @@ use Cube\Interfaces\RequestInterface;
 use Cube\Misc\Components;
 use Cube\Misc\EventManager;
 use Cube\Modules\Db\DBConnector;
-use Cube\Modules\SessionManager;
 use Cube\Router\ControllerRoutesLoader;
 use Cube\Router\RouteCollection;
 use Throwable;
@@ -157,7 +156,6 @@ class App
         $this->initExceptionHandlers();
         $this->setTimezone();
         $this->initHelpers();
-        $this->initSessions();
         $this->loadComponent();
         $this->loadEvents();
         $this->initRoutes();
@@ -212,6 +210,7 @@ class App
      */
     public function handle(?RequestInterface $request = null): Response
     {
+        $this->initSessions();
         $request = $request ?: Request::createHttpRequestFromGlobals();
         $handler = self::$exceptions_handler;
 
@@ -229,6 +228,7 @@ class App
      */
     public function terminate()
     {
+        session_write_close();
         DBConnector::resetRequestState();
     }
 
@@ -322,7 +322,7 @@ class App
      */
     private function setTimezone()
     {
-        $timezone = self::getConfig('app', 'timezone');
+        $timezone = self::getConfig('app.timezone');
 
         if ($timezone) {
             date_default_timezone_set($timezone);
@@ -400,11 +400,7 @@ class App
      */
     private function initSessions()
     {
-        if (!$this->is_terminal) {
-            SessionManager::initialize();
-        }
-
-        Session::createInstance();
+        new Session();
     }
 
     /**
@@ -424,29 +420,32 @@ class App
      * @param mixed $value
      * @return array|string
      */
-    public static function getConfig(string $name, $value = null)
+    public static function getConfig(string $name, $default = null)
     {
         if (!isset(self::$caches['config'])) {
             self::getRunningInstance()->loadConfig();
         }
 
         $config = self::$caches['config'];
+        $name_vars = explode('.', $name);
+        $config_name = $name_vars[0];
 
-        if (!isset($config[$name])) {
+        if (!isset($config[$config_name])) {
             return null;
         }
 
-        $data = $config[$name];
+        $data = $config[$config_name];
+        $children = array_slice($name_vars, 1);
 
-        if (!is_array($data) && !is_callable($data)) {
-            return null;
+        foreach ($children as $key) {
+            if (!is_array($data) || !isset($data[$key])) {
+                return $default;
+            }
+
+            $data = $data[$key];
         }
 
-        if ($value && !isset($data[$value])) {
-            return null;
-        }
-
-        return $value ? $data[$value] : $data;
+        return $data;
     }
 
     /**
@@ -469,7 +468,7 @@ class App
      */
     public static function isProduction()
     {
-        $config = strtolower(Env::getMain('app_env'));
+        $config = strtolower((string) Env::getMain('app_env'));
         return in_array($config, ['prod', 'production']);
     }
 

@@ -5,24 +5,26 @@ namespace Cube\Commands\Components;
 use Cube\Commands\BaseCommand;
 use Cube\Exceptions\CliActionException;
 use Cube\Helpers\Cli\CliActions;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'make:component',
+    description: 'Create a view component',
+    help: 'This command helps you create a view component',
+)]
 class CreateComponentCommand extends BaseCommand
 {
-    protected static $defaultName = 'make:component';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Create a view component')
-            ->setHelp('This command helps you create a view component')
             ->addArgument('name', InputArgument::REQUIRED, 'Resource name');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $name = $input->getArgument('name');
 

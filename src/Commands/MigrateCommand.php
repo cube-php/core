@@ -5,26 +5,28 @@ namespace Cube\Commands;
 use Cube\App\Directory;
 use Cube\Helpers\Cli\CliActions;
 use Cube\Misc\EventManager;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'migrate',
+    description: 'Manage migrations',
+    help: 'Run migration commands'
+)]
 class MigrateCommand extends BaseCommand
 {
-    protected static $defaultName = 'migrate';
-
-    public function configure()
+    public function configure(): void
     {
         $this
-            ->setDescription('Manage migrations')
-            ->setHelp('Run migration commands')
             ->addArgument('name', InputArgument::OPTIONAL, 'Migration name', null)
             ->addOption('action', '-a', InputOption::VALUE_OPTIONAL, 'Migration down', 'up');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $raw_name = $input->getArgument('name');
         $action = $input->getOption('action');

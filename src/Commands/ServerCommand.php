@@ -4,27 +4,29 @@ namespace Cube\Commands;
 
 use Cube\App\Directory;
 use Cube\Http\Env;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+#[AsCommand(
+    name: 'serve',
+    description: 'Serve your app',
+    help: 'This command allows you serve your app locally'
+)]
 class ServerCommand extends BaseCommand
 {
     private $defaultPort = '8888';
-
-    protected static $defaultName = 'serve';
 
     /**
      * Configure
      *
      * @return void
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this
-            ->setDescription('Serve your app')
-            ->setHelp('This command allows you serve your app locally')
             ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Port', '8888')
             ->addOption('web', '-w', InputOption::VALUE_OPTIONAL, 'Serve on local network', false)
             ->addOption('all', '-a', InputOption::VALUE_OPTIONAL, 'Serve on local network and localhost', false);
@@ -37,7 +39,7 @@ class ServerCommand extends BaseCommand
      * @param OutputInterface $output
      * @return void
      */
-    public function execute(InputInterface $input, OutputInterface $output)
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
         $options = $input->getOptions();
         $port = $options['port'];

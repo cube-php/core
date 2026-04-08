@@ -24,6 +24,7 @@ use Cube\Commands\MigrateCommand;
 use Cube\Commands\Router\RouterCacheCommand;
 use Cube\Commands\Router\RouterClearCacheCommand;
 use Cube\Commands\ServerCommand;
+use Cube\Commands\Session\SessionDatabaseMigrateCommand;
 use Cube\Commands\SessionMigrateCommand;
 use Cube\Commands\ViewClearCacheCommand;
 use Cube\Exceptions\CubeCliException;
@@ -39,6 +40,7 @@ class Cli
     private $app;
 
     protected $commands = array(
+        SessionDatabaseMigrateCommand::class,
         RouterClearCacheCommand::class,
         MakeAppResourceCommand::class,
         CreateComponentCommand::class,
@@ -46,7 +48,6 @@ class Cli
         MakeControllerCommand::class,
         MakeMiddlewareCommand::class,
         ViewClearCacheCommand::class,
-        SessionMigrateCommand::class,
         MakeMigrationCommand::class,
         MakeExceptionCommand::class,
         CubeVersionCommand::class,
@@ -84,7 +85,7 @@ class Cli
         $application = new Application();
 
         array_walk($this->commands, function ($class) use ($application) {
-            $application->add(new $class($this->app));
+            $application->addCommand(new $class($this->app));
         });
 
         $this->loadExtras($application);
@@ -115,7 +116,7 @@ class Cli
                 return self::removeExtraPackageCommand($class);
             }
 
-            $application->add(
+            $application->addCommand(
                 new $class($this->app)
             );
         });
