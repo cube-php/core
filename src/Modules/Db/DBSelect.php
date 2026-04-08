@@ -25,6 +25,13 @@ class DBSelect extends DBQueryBuilder
     protected bool $lock = false;
 
     /**
+     * Skip locked rows
+     *
+     * @var boolean
+     */
+    protected bool $skip_locked = false;
+
+    /**
      * Constructor
      * 
      * @param string $table_name
@@ -226,9 +233,10 @@ class DBSelect extends DBQueryBuilder
      *
      * @return $this
      */
-    public function lock()
+    public function lock(bool $skip_locked = false)
     {
         $this->lock = true;
+        $this->skip_locked = $skip_locked;
         return $this;
     }
 
@@ -365,6 +373,12 @@ class DBSelect extends DBQueryBuilder
         if ($this->lock) {
             $this->joinSql(null, 'FOR UPDATE');
         }
+
+        if ($this->skip_locked) {
+            $this->joinSql(null, 'SKIP LOCKED');
+        }
+
+        //die($this);
 
         $sql = $this->getSqlQuery();
         $params = $this->getSqlParameters();
