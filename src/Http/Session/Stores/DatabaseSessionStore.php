@@ -83,8 +83,7 @@ class DatabaseSessionStore implements SessionStoreInterface
 
     private static function getConnection(): DBConnection
     {
-        $config = App::getConfig('app');
-        $connection_name = $config['session_connection'] ?? null;
+        $connection_name = App::getConfig('app.session.connection');
         return DBConnection::connection($connection_name);
     }
 
