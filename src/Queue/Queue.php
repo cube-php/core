@@ -132,4 +132,54 @@ class Queue
             )
         );
     }
+
+    /**
+     * Create a new queue instance for a specific group.
+     * 
+     * @param string|null $group
+     * @return self
+     */
+    public static function forGroup(?string $group): self
+    {
+        return new static($group);
+    }
+
+    /**
+     * Push a new job onto the queue for a specific group.
+     * 
+     * @param JobsInterface $job
+     * @param int $delay
+     * @param string|null $group
+     * @return void
+     */
+    public static function pushJob(
+        JobsInterface $job,
+        int $delay = 0,
+        ?string $group = null
+    ) {
+        static::forGroup($group)->push($job, $delay);
+    }
+
+    /**
+     * Find a job by its ID.
+     * 
+     * @param int $id
+     * @return object|null
+     */
+    public static function findJob(int $id): ?Job
+    {
+        $result = static::getTable()->select(['id', 'payload', 'attempts'])
+            ->where('id', $id)
+            ->fetchOne();
+
+        if (!$result) {
+            return null;
+        }
+
+        return new Job(
+            $result->id,
+            $result->payload,
+            $result->attempts
+        );
+    }
 }

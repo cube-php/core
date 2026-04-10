@@ -5,7 +5,6 @@ namespace Cube\Commands\Jobs;
 use Cube\App\App;
 use Cube\Commands\BaseCommand;
 use Cube\Queue\Queue;
-use Cube\Queue\Worker;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;

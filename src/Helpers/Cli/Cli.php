@@ -9,6 +9,7 @@ use Cube\Commands\Components\CreateComponentCommand;
 use Cube\Commands\ConsoleCommand;
 use Cube\Commands\CubeVersionCommand;
 use Cube\Commands\EventDispatcherCommand;
+use Cube\Commands\Jobs\JobDispatchCommand;
 use Cube\Commands\Jobs\JobQueueManagerCommand;
 use Cube\Commands\Jobs\JobQueueWorkerCommand;
 use Cube\Commands\Jobs\JobsMigrateCommand;
@@ -55,6 +56,7 @@ class Cli
         JobQueueWorkerCommand::class,
         MakeMigrationCommand::class,
         MakeExceptionCommand::class,
+        JobDispatchCommand::class,
         CubeVersionCommand::class,
         MakeConsoleCommand::class,
         RouterCacheCommand::class,
