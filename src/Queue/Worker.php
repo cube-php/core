@@ -65,7 +65,8 @@ class Worker
                     continue;
                 }
 
-                $this->queue->release($job, $this->delay);
+                $delay = ($e->getCode() > -1) ? $e->getCode() : $this->delay;
+                $this->queue->release($job, $delay);
             }
         }
     }
