@@ -159,4 +159,27 @@ class Queue
     ) {
         static::forGroup($group)->push($job, $delay);
     }
+
+    /**
+     * Find a job by its ID.
+     * 
+     * @param int $id
+     * @return object|null
+     */
+    public static function findJob(int $id): ?Job
+    {
+        $result = static::getTable()->select(['id', 'payload', 'attempts'])
+            ->where('id', $id)
+            ->fetchOne();
+
+        if (!$result) {
+            return null;
+        }
+
+        return new Job(
+            $result->id,
+            $result->payload,
+            $result->attempts
+        );
+    }
 }
