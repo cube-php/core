@@ -21,6 +21,7 @@ class Worker
      */
     public function work()
     {
+        $max_attempts = App::getConfig('queue.max_attempts', 3);
         $max_cycle = App::getConfig('queue.max_idle_cycle', 0);
         $max_jobs = App::getConfig('queue.max_jobs', 0);
 
@@ -59,7 +60,7 @@ class Worker
                 $this->queue->delete($job);
             } catch (Throwable $e) {
                 echo "Error processing job with id: {$job->id}. Error: {$e->getMessage()}\n";
-                if ($job->attempts >= 3) {
+                if ($job->attempts >= $max_attempts) {
                     $this->queue->delete($job);
                     continue;
                 }
