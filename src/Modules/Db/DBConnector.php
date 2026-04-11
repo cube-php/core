@@ -2,11 +2,11 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\App\App;
 use Cube\Exceptions\DBException;
-use PDO;
+use Cube\App\App;
 use PDOException;
 use Throwable;
+use PDO;
 
 class DBConnector
 {
@@ -23,12 +23,7 @@ class DBConnector
     public static function connection(string $name = self::DEFAULT_CONNECTION_NAME): DBConnectorItem
     {
         if (isset(static::$connections[$name])) {
-            try {
-                self::$connections[$name]->connection->query('SELECT 1');
-                return self::$connections[$name];
-            } catch (Throwable) {
-                unset(self::$connections[$name]);
-            }
+            return static::$connections[$name];
         }
 
         $config = App::getConfig('database');
@@ -113,6 +108,18 @@ class DBConnector
 
         static::$connections[$name] = $item;
         return $item;
+    }
+
+    /**
+     * Reconnect to a database connection
+     *
+     * @param string $name
+     * @return DBConnectorItem
+     */
+    public static function reconnect(string $name = self::DEFAULT_CONNECTION_NAME): DBConnectorItem
+    {
+        unset(static::$connections[$name]);
+        return static::connection($name);
     }
 
     /**

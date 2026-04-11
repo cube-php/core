@@ -3,12 +3,16 @@
 namespace Cube\Modules\Db;
 
 use Cube\Exceptions\DBException;
+use Cube\Helpers\Logger\Logger;
 use PDO;
+use PDOException;
 use PDOStatement;
 use Throwable;
 
 class DBConnection
 {
+    protected bool $transaction_active = false;
+
     public function __construct(protected DBConnectorItem $item) {}
 
     /**
@@ -99,6 +103,27 @@ class DBConnection
      */
     public function query($sql, array $params = []): PDOStatement
     {
+        try {
+            return $this->runQuery($sql, $params);
+        } catch (PDOException $e) {
+            if (!$this->canRetryAfterLostConnection($e)) {
+                throw $e;
+            }
+
+            $this->item = DBConnector::reconnect($this->item->name);
+            return $this->runQuery($sql, $params);
+        }
+    }
+
+    /**
+     * Execute a query
+     *
+     * @param string $sql
+     * @param array $params
+     * @return PDOStatement
+     */
+    protected function runQuery(string $sql, array $params = []): PDOStatement
+    {
         if (!$this->item->is_connected) {
             throw new DBException('Database connection failed');
         }
@@ -118,6 +143,57 @@ class DBConnection
 
         $stmt->execute();
         return $stmt;
+    }
+
+    /**
+     * Determine if we can retry the query after a lost connection error
+     *
+     * @param PDOException $e
+     * @return boolean
+     */
+    protected function canRetryAfterLostConnection(PDOException $e): bool
+    {
+        return !$this->isInTransaction()
+            && $this->causedByLostConnection($e);
+    }
+
+    /**
+     * Check if currently in a transaction
+     *
+     * @return boolean
+     */
+    protected function isInTransaction(): bool
+    {
+        try {
+            return $this->transaction_active || $this->getConnection()->inTransaction();
+        } catch (Throwable) {
+            return $this->transaction_active;
+        }
+    }
+
+    /**
+     * Check if the exception was caused by a lost connection
+     *
+     * @param PDOException $e
+     * @return boolean
+     */
+    protected function causedByLostConnection(PDOException $e): bool
+    {
+        $driverCode = $e->errorInfo[1] ?? null;
+
+        if (in_array((int) $driverCode, [2006, 2013, 2055], true)) {
+            return true;
+        }
+
+        $message = strtolower($e->getMessage());
+        $keywords = [
+            'connection is no longer usable',
+            'communication link failure',
+            'server has gone away',
+            'lost connection',
+        ];
+
+        return str($message)->includes($keywords);
     }
 
     /**
@@ -189,6 +265,7 @@ class DBConnection
     public function startTransaction()
     {
         $this->getConnection()->beginTransaction();
+        $this->transaction_active = true;
     }
 
     /**
@@ -196,9 +273,13 @@ class DBConnection
      *
      * @return void
      */
-    public function commit()
+    public function commit(): void
     {
-        $this->getConnection()->commit();
+        try {
+            $this->getConnection()->commit();
+        } finally {
+            $this->transaction_active = false;
+        }
     }
 
     /**
@@ -206,9 +287,13 @@ class DBConnection
      *
      * @return void
      */
-    public function rollback()
+    public function rollback(): void
     {
-        $this->getConnection()->rollBack();
+        try {
+            $this->getConnection()->rollBack();
+        } finally {
+            $this->transaction_active = false;
+        }
     }
 
     /**
