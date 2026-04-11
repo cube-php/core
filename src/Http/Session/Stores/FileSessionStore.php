@@ -72,6 +72,12 @@ class FileSessionStore implements SessionStoreInterface
         }
     }
 
+    /**
+     * Purge expired sessions
+     *
+     * @param int $lifetime Session lifetime in seconds
+     * @return void
+     */
     public function purgeExpired(int $lifetime)
     {
         $expires = time() - $lifetime;
@@ -87,6 +93,12 @@ class FileSessionStore implements SessionStoreInterface
         }
     }
 
+    /**
+     * Get session file path by id
+     *
+     * @param string $id Session id
+     * @return string
+     */
     protected function file(string $id): string
     {
         return $this->path . '/' . $id . '.session';

@@ -87,6 +87,11 @@ class DatabaseSessionStore implements SessionStoreInterface
             ->fulfil();
     }
 
+    /**
+     * Get DBTable instance for sessions
+     *
+     * @return DBTable
+     */
     private static function getTable(): DBTable
     {
         return new DBTable(
@@ -95,12 +100,22 @@ class DatabaseSessionStore implements SessionStoreInterface
         );
     }
 
+    /**
+     * Get DBConnection instance
+     *
+     * @return DBConnection
+     */
     private static function getConnection(): DBConnection
     {
         $connection_name = App::getConfig('app.session.connection');
         return DBConnection::connection($connection_name);
     }
 
+    /**
+     * Create sessions table
+     *
+     * @return void
+     */
     private function up()
     {
         $table = self::getTable();
