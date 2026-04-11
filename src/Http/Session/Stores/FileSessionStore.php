@@ -72,6 +72,21 @@ class FileSessionStore implements SessionStoreInterface
         }
     }
 
+    public function purgeExpired(int $lifetime)
+    {
+        $expires = time() - $lifetime;
+
+        foreach (new \FilesystemIterator($this->path) as $file) {
+            if (
+                $file->isFile()
+                && $file->getExtension() === 'session'
+                && $file->getMTime() < $expires
+            ) {
+                unlink($file->getPathname());
+            }
+        }
+    }
+
     protected function file(string $id): string
     {
         return $this->path . '/' . $id . '.session';

@@ -4,7 +4,6 @@ namespace Cube\Http\Session;
 
 use Cube\App\App;
 use Cube\Http\Response;
-use Cube\Http\Session;
 use Cube\Http\Session\Stores\ArraySessionStore;
 use Cube\Http\Session\Stores\DatabaseSessionStore;
 use Cube\Http\Session\Stores\FileSessionStore;
@@ -17,7 +16,14 @@ class SessionManager
 
     protected int $lifetime = 7200;
 
-    public function __construct(protected SessionStoreInterface $store) {}
+    public function __construct(protected SessionStoreInterface $store)
+    {
+        $lottery = App::getConfig('app.session.lottery', [2, 100]);
+
+        if (call_user_func_array('mt_rand', $lottery) <= 2) {
+            $this->store->purgeExpired($this->lifetime);
+        }
+    }
 
     public function start(RequestInterface $request): SessionHandler
     {

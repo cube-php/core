@@ -43,4 +43,6 @@ class ArraySessionStore implements SessionStoreInterface
     {
         unset($this->sessions[$id]);
     }
+
+    public function purgeExpired(int $lifetime) {}
 }
