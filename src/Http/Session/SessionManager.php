@@ -28,14 +28,14 @@ class SessionManager
     public function start(RequestInterface $request): SessionHandler
     {
         $id = (string) $request->getCookies()->get($this->cookie_name);
-        $data = $this->store->read($id);
 
         if (!$id) {
-            $id = generate_token(30);
-            return new SessionHandler($id, $data);
+            return new SessionHandler(
+                generate_token(30)
+            );
         }
 
-        return new SessionHandler($id, $data);
+        return new SessionHandler($id, $this->store->read($id));
     }
 
     public function persist(SessionHandler $session, Response $response)
