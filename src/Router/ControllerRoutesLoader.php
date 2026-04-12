@@ -138,7 +138,7 @@ class ControllerRoutesLoader
 
             if ($attr) {
                 $group_args = (object) $attr->getArguments();
-                $group_middlewares = $group_args->use ?? null;
+                $group_middlewares = $group_args->middleware ?? $group_args->use ?? null;
                 $group_path = $group_args->path ?? null;
                 $group_name = $group_args->name ?? null;
             }
@@ -182,6 +182,7 @@ class ControllerRoutesLoader
                             'path' => $args->path ?? $args->{0} ?? '/',
                             'name' => $args->name ?? $args?->{1} ?? null,
                             'use' => $args->use ?? $args?->{2} ?? null,
+                            'middleware' => $args->middleware ?? $args?->{3} ?? null,
                         );
                     }
 
@@ -194,7 +195,7 @@ class ControllerRoutesLoader
                         path: $path,
                     );
 
-                    $middlewares = $args->use ?? [];
+                    $middlewares = $args->middleware ?? $args->use ?? [];
                     $name = $args->name ?? null;
 
                     if ($subdirs) {
