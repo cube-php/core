@@ -34,9 +34,22 @@ class RouterGroup extends Router
      * @param string|array $middleware
      * @return self
      */
-    public function use($middleware)
+    public function middleware($middleware)
     {
         $this->setMiddleware($middleware);
+        return $this;
+    }
+
+    /**
+     * @deprecated v0.2.0 use middleware() instead
+     * Set middlewares to use
+     *
+     * @param string|array $middleware
+     * @return self
+     */
+    public function use($middleware)
+    {
+        $this->middleware($middleware);
         return $this;
     }
 }

@@ -27,6 +27,11 @@ class RouteCollection
 
     public function __construct(protected RequestInterface $request) {}
 
+    /**
+     * Load routes from controllers
+     *
+     * @return Response
+     */
     public function dispatch()
     {
         $request = $this->request;
@@ -59,7 +64,6 @@ class RouteCollection
         );
 
         $result = $route->handle($request, $response);
-
         EventManager::dispatchEvent(
             Request::EVENT_COMPLETED,
             $this->request

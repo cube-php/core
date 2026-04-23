@@ -25,19 +25,42 @@ class SessionManager
         }
     }
 
+    /**
+     * Start a session for the given request
+     *
+     * @param RequestInterface $request
+     * @return SessionHandler
+     */
     public function start(RequestInterface $request): SessionHandler
     {
         $id = (string) $request->getCookies()->get($this->cookie_name);
-        $data = $this->store->read($id);
 
         if (!$id) {
-            $id = generate_token(30);
-            return new SessionHandler($id, $data);
+            return new SessionHandler(
+                generate_token(30)
+            );
         }
 
-        return new SessionHandler($id, $data);
+        return new SessionHandler($id, $this->store->read($id));
     }
 
+    /**
+     * Get session cookie name
+     *
+     * @return string
+     */
+    public function getName(): string
+    {
+        return $this->cookie_name;
+    }
+
+    /**
+     * Persist session data and set cookie in response
+     *
+     * @param SessionHandler $session
+     * @param Response $response
+     * @return void
+     */
     public function persist(SessionHandler $session, Response $response)
     {
         if ($session->isChanged()) {
@@ -58,6 +81,13 @@ class SessionManager
         );
     }
 
+    /**
+     * Destroy session and remove cookie
+     *
+     * @param SessionHandler $session
+     * @param Response $response
+     * @return void
+     */
     public function destroy(SessionHandler $session, Response $response)
     {
         $this->store->destroy($session->id());
@@ -72,6 +102,25 @@ class SessionManager
         );
     }
 
+    /**
+     * Regenerate session id and persist data
+     *
+     * @param SessionHandler $session
+     * @return void
+     */
+    public function regenerateId(SessionHandler $session)
+    {
+        $new_id = generate_token(30);
+        $this->store->write($new_id, $session->all(), $this->lifetime);
+        $this->store->destroy($session->id());
+        $session->setId($new_id);
+    }
+
+    /**
+     * Initialize session manager with configured store
+     *
+     * @return SessionManager
+     */
     public static function init()
     {
         $store = App::getConfig('app.session.store', 'file');

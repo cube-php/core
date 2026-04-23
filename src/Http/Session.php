@@ -56,18 +56,22 @@ class Session
      */
     public static function name()
     {
-        return session_name();
+        return app(Request::class)->getSessionManager()->getName();
     }
 
     /**
-     * Regenerate session name
+     * Regenerate session id
      * 
      * @return string New session id
      */
     public static function regenerate()
     {
-        session_regenerate_id();
-        return session_id();
+        $request = app(Request::class);
+        self::handler();
+
+        $request->getSessionManager()->regenerateId(
+            $request->session()
+        );
     }
 
     /**
@@ -100,8 +104,13 @@ class Session
         self::handler()->put($name, $value);
     }
 
+    /**
+     * Get session handler
+     *
+     * @return SessionHandler
+     */
     protected static function handler(): SessionHandler
     {
-        return app(SessionHandler::class);
+        return app(Request::class)->session();
     }
 }
