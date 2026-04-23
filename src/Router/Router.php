@@ -13,28 +13,35 @@ class Router
      *
      * @var string|null
      */
-    private $_root_path = null;
+    protected $_root_path = null;
 
     /**
      * Middlewares
      *
      * @var array|string|null
      */
-    private $_root_middlewares = null;
+    protected array $_root_middlewares = [];
+
+    /**
+     * Excluded middlewares
+     *
+     * @var array
+     */
+    protected array $_excluded_middlewares = [];
 
     /**
      * Namespace
      *
      * @var array
      */
-    private $_root_namespace = [];
+    protected $_root_namespace = [];
 
     /**
      * Parent route
      *
      * @var Router|null
      */
-    private $_parent = null;
+    protected ?Router $_parent = null;
 
     /**
      * Route name
@@ -42,6 +49,9 @@ class Router
      * @var array
      */
     protected array $name = array();
+
+    /** @var Route[] */
+    protected array $_routes = [];
 
     /**
      * Constructor
@@ -53,9 +63,10 @@ class Router
         $this->_parent = $parent;
         $this->setPath($path);
 
-        if($parent) {
+        if ($parent) {
             $this->setNamespace();
             $this->setMiddleware();
+            $this->setExcludedMiddleware();
             $this->name = $parent->name;
         }
     }
@@ -63,11 +74,21 @@ class Router
     /**
      * Get this router's middleware
      *
-     * @return string|array
+     * @return string
      */
-    public function getMiddlewares()
+    public function getMiddlewares(): array
     {
         return $this->_root_middlewares;
+    }
+
+    /**
+     * Get this router's excluded middleware
+     *
+     * @return array
+     */
+    public function getExcludedMiddlewares(): array
+    {
+        return $this->_excluded_middlewares;
     }
 
     /**
@@ -88,6 +109,16 @@ class Router
     public function getRootPath(): ?string
     {
         return $this->_root_path;
+    }
+
+    /**
+     * Get routes created by this router context.
+     *
+     * @return Route[]
+     */
+    public function getRoutes(): array
+    {
+        return $this->_routes;
     }
 
     /**
@@ -115,7 +146,7 @@ class Router
     {
         return $this->on('get', $path, $controller);
     }
-    
+
     /**
      * Add a new route on 'DELETE' request method
      * 
@@ -160,7 +191,19 @@ class Router
         $this->name[] = $name;
         return $this;
     }
-    
+
+    /**
+     * Exclude middlewares from routes in this router context.
+     *
+     * @param string|array $middleware
+     * @return self
+     */
+    public function withoutMiddleware($middleware)
+    {
+        $this->setExcludedMiddleware($middleware);
+        return $this;
+    }
+
     /**
      * Add a new route on 'POST' request method
      * 
@@ -198,7 +241,7 @@ class Router
      */
     public function map($methods, $path, $controller)
     {
-        if(!is_array($methods)) {
+        if (!is_array($methods)) {
             throw new InvalidArgumentException('Router::map() $method should be an array');
         }
 
@@ -220,15 +263,33 @@ class Router
     {
         $root_path = $this->_root_path;
         $root_middlewares = $this->_root_middlewares;
+        $root_excluded_middlewares = $this->_excluded_middlewares;
         $root_namespace = $this->_root_namespace;
 
         $route_path = $root_path ? $root_path . $path : $path;
-        $route = new Route($method, $route_path, $controller, $this->name);
-        
-        if($root_middlewares) $route->use($root_middlewares);
-        if($root_namespace) $route->setNamespace($root_namespace);
+        $route = new Route(
+            $method,
+            $route_path,
+            $controller,
+            $this->name
+        );
 
-        return RouteCollection::attachRoute($route);
+        if ($root_middlewares) {
+            $route->use($root_middlewares);
+        }
+
+        if ($root_excluded_middlewares) {
+            $route->withoutMiddleware($root_excluded_middlewares);
+        }
+
+        if ($root_namespace) {
+            $route->setNamespace($root_namespace);
+        }
+
+        $route = RouteCollection::attachRoute($route);
+        $this->_routes[] = $route;
+
+        return $route;
     }
 
     /**
@@ -252,21 +313,51 @@ class Router
     protected function setMiddleware($middlewares = null)
     {
         $parent = $this->_parent;
-        $parent_middlewares = $parent ? $parent->getMiddlewares() : null;
+        $parent_middlewares = $parent ? $parent->getMiddlewares() : [];
 
-        if(!$parent_middlewares && !$middlewares) {
+        if (!$this->_root_middlewares && !$parent_middlewares && !$middlewares) {
             return;
         }
 
-        $middlewares_list = $parent_middlewares ? $parent_middlewares : [];
-        $context = is_array($middlewares_list) ? $middlewares_list : [$middlewares_list];
+        $context = $this->_root_middlewares ?: (
+            is_array($parent_middlewares) ? $parent_middlewares : [$parent_middlewares]
+        );
 
-        if(!$middlewares) {
-            return $this->_root_middlewares = $context;
+        if (!$middlewares) {
+            $this->_root_middlewares = $context;
+            return;
         }
-        
+
+        $scoped_middlewares = is_array($middlewares) ? $middlewares : [$middlewares];
+        $this->_root_middlewares = array_merge($context, $scoped_middlewares);
+    }
+
+    /**
+     * Set router's excluded middlewares
+     *
+     * @param string|array|null $middlewares
+     * @return void
+     */
+    protected function setExcludedMiddleware($middlewares = null)
+    {
+        $parent = $this->_parent;
+        $parent_middlewares = $parent ? $parent->getExcludedMiddlewares() : [];
+
+        if (!$this->_excluded_middlewares && !$parent_middlewares && !$middlewares) {
+            return;
+        }
+
+        $context = $this->_excluded_middlewares ?: (
+            is_array($parent_middlewares) ? $parent_middlewares : [$parent_middlewares]
+        );
+
+        if (!$middlewares) {
+            $this->_excluded_middlewares = $context;
+            return;
+        }
+
         $scope = is_array($middlewares) ? $middlewares : [$middlewares];
-        $this->_root_middlewares = array_merge($context, $scope);
+        $this->_excluded_middlewares = array_merge($context, $scope);
     }
 
     /**
@@ -279,13 +370,13 @@ class Router
     {
         $parent = $this->_parent;
 
-        if(!$parent && !$namespace) {
+        if (!$parent && !$namespace) {
             return;
         }
 
         $parent_namespace = $parent ? $parent->getNamespace() : array();
 
-        if($namespace) {
+        if ($namespace) {
             $parent_namespace[] = $namespace;
         }
 

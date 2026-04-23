@@ -50,6 +50,9 @@ class Route
     /** @var string[] */
     private array $_middlewares = [];
 
+    /** @var string[] */
+    private array $_excluded_middlewares = [];
+
     private bool $_enable_cors = true;
 
     private array $_params_list = [];
@@ -69,8 +72,8 @@ class Route
         $this->setMethod(strtolower((string) $method));
         $this->setPath($path);
         $this->setController($controller);
+        $this->setParentsNames($parent_names ?? []);
         $this->_parsed_path = $path;
-        $this->parent_names = $parent_names;
     }
 
     /**
@@ -116,7 +119,9 @@ class Route
      */
     public function engageMiddleware(Request $request)
     {
-        return $request->useMiddleware($this->_middlewares);
+        return $request->useMiddleware(
+            $this->filterMiddlewares($this->_middlewares)
+        );
     }
 
     /**
@@ -187,6 +192,18 @@ class Route
     public function setMethod($method)
     {
         $this->_method = $method;
+        return $this;
+    }
+
+    /**
+     * Set parent group names
+     *
+     * @param array $names
+     * @return self
+     */
+    public function setParentsNames(array $names)
+    {
+        $this->parent_names = $names;
         return $this;
     }
 
@@ -368,16 +385,16 @@ class Route
         $class = $this->_controller['class_name'];
         $method = $this->_controller['method_name'];
 
-        $controller = new $class($request, $response);
-        $request = $request->useMiddleware(
-            $controller->getMiddlewares()
-        );
+        $request = $this->engageMiddleware($request);
 
         if ($request instanceof Response) {
             return $request;
         }
 
-        $request = $this->engageMiddleware($request);
+        $controller = new $class($request, $response);
+        $request = $request->useMiddleware(
+            $this->filterMiddlewares($controller->getMiddlewares())
+        );
 
         if ($request instanceof Response) {
             return $request;
@@ -495,7 +512,7 @@ class Route
      */
     public function use($wares)
     {
-        if (is_array($wares) && count($wares)) {
+        if (is_array($wares)) {
             foreach ($wares as $ware) {
                 $this->_middlewares[] = (is_string($ware) && class_exists($ware))
                     ? new $ware() : $ware;
@@ -504,6 +521,23 @@ class Route
         }
 
         $this->_middlewares[] = $wares;
+        return $this;
+    }
+
+    /**
+     * Exclude specified middlewares from this route.
+     *
+     * @param string|array $wares Middlewares
+     * @return self
+     */
+    public function withoutMiddleware($middleware): self
+    {
+        $wares = is_array($middleware) ? $middleware : [$middleware];
+
+        foreach ($wares as $ware) {
+            $this->_excluded_middlewares[] = $this->middlewareIdentifier($ware);
+        }
+
         return $this;
     }
 
@@ -518,6 +552,7 @@ class Route
             'namespace' => array_slice($this->_namespace, 2),
             'controller' => $this->getController(),
             'middlewares' => $this->getParsedMiddlewares(),
+            'withoutMiddleware' => $this->getParsedExcludedMiddlewares(),
             'method' => $this->getMethod(),
             'path' => $this->getPath(),
             'name' => $this->getName()
@@ -532,11 +567,62 @@ class Route
     private function getParsedMiddlewares(): array
     {
         $middlewares = array();
-        every($this->_middlewares, function ($middleware) use (&$middlewares) {
+        every($this->filterMiddlewares($this->_middlewares), function ($middleware) use (&$middlewares) {
             $middlewares[] = is_object($middleware) ? $middleware::class : $middleware;
         });
 
         return $middlewares;
+    }
+
+    /**
+     * Parsed excluded middlewares
+     *
+     * @return array
+     */
+    private function getParsedExcludedMiddlewares(): array
+    {
+        return $this->_excluded_middlewares;
+    }
+
+    /**
+     * Remove excluded middlewares from a list.
+     *
+     * @param array $middlewares
+     * @return array
+     */
+    private function filterMiddlewares(array $middlewares): array
+    {
+        if (!$this->_excluded_middlewares) {
+            return $middlewares;
+        }
+
+        return array_values(array_filter(
+            $middlewares,
+            fn($middleware) => !in_array(
+                $this->middlewareIdentifier($middleware),
+                $this->_excluded_middlewares,
+                true
+            )
+        ));
+    }
+
+    /**
+     * Get the comparable middleware name.
+     *
+     * @param mixed $middleware
+     * @return string
+     */
+    private function middlewareIdentifier($middleware): string
+    {
+        if (is_object($middleware)) {
+            return $middleware::class;
+        }
+
+        if (is_string($middleware)) {
+            return explode(':', $middleware, 2)[0];
+        }
+
+        return (string) $middleware;
     }
 
     /**
@@ -550,10 +636,14 @@ class Route
     private function _analyzeControllerResult($controller, Request $request, Response $response)
     {
         $result = call_user_func_array($controller, [$request, $response]);
-        $request->getSessionManager()->persist(
-            $request->session(),
-            $response
-        );
+        $session_manager = $request->getSessionManager();
+
+        if ($session_manager) {
+            $session_manager->persist(
+                $request->session(),
+                $response
+            );
+        }
 
         if ($result instanceof Response) {
             return $result;

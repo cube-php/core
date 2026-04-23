@@ -28,6 +28,10 @@ class ControllerRoutesLoader
     {
         $routes = self::getRoutesToLoad();
 
+        if (!$routes) {
+            return;
+        }
+
         every(
             $routes,
             fn(RouterRoute $route) => RouteCollection::attachRoute($route)
@@ -98,7 +102,6 @@ class ControllerRoutesLoader
     protected static function loadRoutes()
     {
         $controllers = self::scan();
-        $routes = array();
 
         $route_verbs = array(
             Delete::class,
@@ -112,6 +115,8 @@ class ControllerRoutesLoader
             Route::class,
             ...$route_verbs
         );
+
+        $routes = array();
 
         every($controllers, function ($path) use (&$routes, $route_verbs, $route_attributes) {
             $fileinfo = (object) pathinfo($path->file);
@@ -133,12 +138,14 @@ class ControllerRoutesLoader
             $attr = $rf_attr ? $rf_attr[0] : null;
 
             $group_middlewares = null;
+            $group_without = null;
             $group_path = null;
             $group_name = null;
 
             if ($attr) {
                 $group_args = (object) $attr->getArguments();
                 $group_middlewares = $group_args->middleware ?? $group_args->use ?? null;
+                $group_without = $group_args->withoutMiddleware ?? null;
                 $group_path = $group_args->path ?? null;
                 $group_name = $group_args->name ?? null;
             }
@@ -150,6 +157,7 @@ class ControllerRoutesLoader
                     $filename,
                     $route_attributes,
                     $group_middlewares,
+                    $group_without,
                     $group_path,
                     $group_name,
                     $subdirs,
@@ -183,18 +191,19 @@ class ControllerRoutesLoader
                             'name' => $args->name ?? $args?->{1} ?? null,
                             'use' => $args->use ?? $args?->{2} ?? null,
                             'middleware' => $args->middleware ?? $args?->{3} ?? null,
+                            'withoutMiddleware' => $args->withoutMiddleware ?? $args?->{4} ?? null,
                         );
                     }
 
                     $path = $group_path ? $group_path . $args->path : $args->path;
-
                     $route = new RouterRoute(
                         controller: concat($filename, '.', $method->getName()),
-                        parent_names: [$group_name],
+                        parent_names: $group_name ? [$group_name] : [],
                         method: $args?->method,
                         path: $path,
                     );
 
+                    $excluded_middlewares = $args->withoutMiddleware ?? [];
                     $middlewares = $args->middleware ?? $args->use ?? [];
                     $name = $args->name ?? null;
 
@@ -206,11 +215,17 @@ class ControllerRoutesLoader
                         $middlewares = array_merge($group_middlewares, $middlewares);
                     }
 
+                    if ($group_without) {
+                        $excluded_middlewares = array_merge($group_without, $excluded_middlewares);
+                    }
+
                     if ($name) {
                         $route->name($name);
                     }
 
                     $route->use($middlewares);
+                    $route->withoutMiddleware($excluded_middlewares);
+
                     $routes[] = $route;
                 }
             );
@@ -264,6 +279,7 @@ class ControllerRoutesLoader
             );
 
             $middlewares = $data->middlewares;
+            $excluded_middlewares = $data->withoutMiddleware ?? [];
             $namespace = $data->namespace ?? null;
             $name = $data->name ?? null;
 
@@ -277,6 +293,10 @@ class ControllerRoutesLoader
 
             if ($middlewares) {
                 $route->use($middlewares);
+            }
+
+            if ($excluded_middlewares) {
+                $route->withoutMiddleware($excluded_middlewares);
             }
 
             $routes[] = $route;

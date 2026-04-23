@@ -14,5 +14,6 @@ readonly class Route
         /* @deprecated 0.2.0 Use $middleware instead */
         public array $use = [],
         public array $middleware = [],
+        public ?array $withoutMiddleware = null,
     ) {}
 }
