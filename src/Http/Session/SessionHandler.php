@@ -86,4 +86,15 @@ class SessionHandler
     {
         return $this->changed;
     }
+
+    /**
+     * Set session id
+     *
+     * @param string $id New session id
+     * @return void
+     */
+    public function setId(string $id): void
+    {
+        $this->id = $id;
+    }
 }

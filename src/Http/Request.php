@@ -40,9 +40,9 @@ class Request implements RequestInterface
 
     private array $called_middlewares = [];
 
-    private SessionHandler $session;
+    private ?SessionHandler $session = null;
 
-    private SessionManager $session_manager;
+    private ?SessionManager $session_manager = null;
 
     /** @var UploadedFile[] */
     private array $uploaded_files = array();
@@ -69,21 +69,12 @@ class Request implements RequestInterface
         protected ?Collection $tmpfiles = null,
         protected string $content = ''
     ) {
-        $this->session_manager = SessionManager::init();
-        $this->session = $this->session_manager->start($this);
-
-        app()->scoped(
-            SessionHandler::class,
-            fn() => $this->session
-        );
-
         app()->scoped(
             Response::class,
             fn() => new Response()
         );
 
         $this->parseBody();
-        $this->updateHistory();
         $this->uploaded_files =  (new FilesParser(
             $this->files->getArrayCopy()
         ))->parse();
@@ -122,6 +113,26 @@ class Request implements RequestInterface
     public function __get($name)
     {
         return $this->getAttribute($name);
+    }
+
+    /**
+     * Start session
+     *
+     * @return void
+     */
+    public function startSession()
+    {
+        if ($this->session) {
+            return;
+        }
+
+        $this->session_manager = SessionManager::init();
+        $this->session = $this->session_manager->start($this);
+
+        app()->scoped(
+            SessionHandler::class,
+            fn() => $this->session
+        );
     }
 
     /**
@@ -197,15 +208,19 @@ class Request implements RequestInterface
      */
     public function session(): SessionHandler
     {
+        if (!$this->session) {
+            $this->startSession();
+        }
+
         return app(SessionHandler::class);
     }
 
     /**
      * Get session manager
      *
-     * @return SessionManager
+     * @return SessionManager|null
      */
-    public function getSessionManager(): SessionManager
+    public function getSessionManager(): ?SessionManager
     {
         return $this->session_manager;
     }
@@ -416,34 +431,23 @@ class Request implements RequestInterface
             return $this;
         }
 
-        $wares = $this->getMiddlewareResolved();
+        $assigned_middlewares = $this->getMiddlewareResolved() ?: [];
         $result = $this;
 
         foreach ($middlewares as $middleware) {
 
-            if (is_object($middleware)) {
-                if (!is_a($middleware, MiddlewareInterface::class)) {
-                    throw new InvalidArgumentException(
-                        sprintf('"%s" is not a middleware', $middleware::class)
-                    );
-                }
-
+            if (is_object($middleware) && is_a($middleware, MiddlewareInterface::class)) {
                 $this->called_middlewares[] = $middleware::class;
                 $result = $middleware->trigger($result);
-            }
-
-            if (is_callable($middleware)) {
+            } elseif (is_callable($middleware)) {
                 $this->called_middlewares[] = $middleware;
                 $result = $middleware($result);
-            }
-
-            if (is_string($middleware)) {
-
-                $vars = explode(':', $middleware);
+            } elseif (is_string($middleware)) {
+                $vars = explode(':', $middleware, 2);
 
                 $key = $vars[0];
                 $args = $vars[1] ?? null;
-                $class = $wares[$key] ?? null;
+                $class = class_exists($key) ? $key : ($assigned_middlewares[$key] ?? null);
 
                 if (!$class) {
                     throw new InvalidArgumentException('Middleware "' . $key . '" is not assigned');
@@ -451,19 +455,30 @@ class Request implements RequestInterface
 
                 if (is_array($class)) {
                     $result = $this->useMiddleware($class);
-                    continue;
-                }
+                } elseif (is_object($class) || is_callable($class)) {
+                    $result = $this->useMiddleware($class);
+                } else {
+                    if (!is_a($class, MiddlewareInterface::class, true)) {
+                        throw new InvalidArgumentException(
+                            sprintf('"%s" is not a middleware', $class)
+                        );
+                    }
 
-                $this->called_middlewares[] = $class;
-                $args_value = $args ? explode(',', $args) : null;
-                $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
+                    $this->called_middlewares[] = $class;
+                    $args_value = $args ? explode(',', $args) : null;
+                    $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
+                }
+            } else {
+                throw new InvalidArgumentException('Invalid middleware type');
             }
 
             if ($result instanceof Response) {
-                $this->session_manager->persist(
-                    $this->session,
-                    $result
-                );
+                if ($this->session_manager && $this->session) {
+                    $this->session_manager->persist(
+                        $this->session,
+                        $result
+                    );
+                }
 
                 break;
             }
@@ -517,9 +532,10 @@ class Request implements RequestInterface
      *
      * @return void
      */
-    private function updateHistory(): void
+    public function updateUrlHistory(): void
     {
-        $history = $this->session->get('cubeHttpUrlHistory', []);
+        $session = $this->session();
+        $history = $session->get('cubeHttpUrlHistory', []);
         $last_url = array_get_last($history) ?? '';
 
         if ($last_url === $this->url()->getUrl()) {
@@ -527,7 +543,7 @@ class Request implements RequestInterface
         }
 
         $history[] = $this->url()->getUrl();
-        $this->session->put('cubeHttpUrlHistory', $history);
+        $session->put('cubeHttpUrlHistory', $history);
     }
 
     /**
