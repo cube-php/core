@@ -128,7 +128,7 @@ class Queue
         return new DBTable(
             static::$schema,
             DBConnection::connection(
-                App::getConfig('app.queue.connection')
+                App::getConfig('queue.connection')
             )
         );
     }
