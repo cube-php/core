@@ -20,13 +20,23 @@ class Queue
      * 
      * @param JobsInterface $job
      * @param int $delay
+     * @param bool $checkDuplicate
      * @return void
      */
-    public function push(JobsInterface $job, int $delay = 0)
-    {
+    public function push(
+        JobsInterface $job,
+        int $delay = 0,
+        bool $check_duplicate = false
+    ) {
+        $payload = serialize($job);
+
+        if ($check_duplicate && $this->hasDuplicateJob($payload)) {
+            return;
+        }
+
         static::getTable()->insert([
             'available_at' => gettime(time() + $delay),
-            'payload' => serialize($job),
+            'payload' => $payload,
             'group_name' => $this->group,
         ]);
     }
@@ -150,14 +160,20 @@ class Queue
      * @param JobsInterface $job
      * @param int $delay
      * @param string|null $group
+     * @param bool $checkDuplicate
      * @return void
      */
     public static function pushJob(
         JobsInterface $job,
         int $delay = 0,
-        ?string $group = null
+        ?string $group = null,
+        bool $check_duplicate = false
     ) {
-        static::forGroup($group)->push($job, $delay);
+        static::forGroup($group)->push(
+            $job,
+            $delay,
+            $check_duplicate
+        );
     }
 
     /**
@@ -181,5 +197,25 @@ class Queue
             $result->payload,
             $result->attempts
         );
+    }
+
+    /**
+     * Determine if the queue already contains the same job payload.
+     * 
+     * @param string $payload
+     * @return bool
+     */
+    protected function hasDuplicateJob(string $payload): bool
+    {
+        $query = static::getTable()->select(['id'])
+            ->where('payload', $payload);
+
+        if ($this->group === null) {
+            $query->whereNull('group_name');
+        } else {
+            $query->where('group_name', $this->group);
+        }
+
+        return $query->fetchOne() !== null;
     }
 }
