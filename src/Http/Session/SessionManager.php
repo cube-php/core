@@ -71,13 +71,14 @@ class SessionManager
             );
         }
 
+        $secure = App::getConfig('app.session.secure', false);
         $response->withCookie(
             $this->cookie_name,
             $session->id(),
             time() + $this->lifetime,
             '/',
             false,
-            true
+            $secure
         );
     }
 
@@ -91,6 +92,7 @@ class SessionManager
     public function destroy(SessionHandler $session, Response $response)
     {
         $this->store->destroy($session->id());
+        $secure = App::getConfig('app.session.secure', false);
 
         $response->withCookie(
             $this->cookie_name,
@@ -98,7 +100,7 @@ class SessionManager
             time() - 3600,
             '/',
             false,
-            true
+            $secure
         );
     }
 
