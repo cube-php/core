@@ -29,8 +29,6 @@ class Worker
         $idle_cycle_count = 0;
 
         while (true) {
-            $job = $this->queue->pop();
-
             if ($this->managed) {
                 $idle_cycle_count++;
 
@@ -43,6 +41,8 @@ class Worker
             if ($max_jobs > 0 && $processed_jobs >= $max_jobs) {
                 break;
             }
+
+            $job = $this->queue->pop();
 
             if (!$job) {
                 sleep($this->sleep);
