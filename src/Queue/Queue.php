@@ -68,14 +68,19 @@ class Queue
                 return null;
             }
 
-            $table->update(['reserved_at' => getnow()])
+            $attempts = $row->attempts + 1;
+
+            $table->update([
+                'reserved_at' => getnow(),
+                'attempts' => $attempts,
+            ])
                 ->where('id', $row->id)
                 ->fulfil();
 
             return new Job(
                 $row->id,
                 $row->payload,
-                $row->attempts + 1
+                $attempts
             );
         });
     }
