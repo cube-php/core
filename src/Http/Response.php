@@ -499,4 +499,17 @@ class Response implements ResponseInterface
         $this->write($rendered_content);
         return $this;
     }
+
+    /**
+     * Add with session
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return self
+     */
+    public function withSession(string $key, mixed $value): self
+    {
+        Session::set($key, $value);
+        return $this;
+    }
 }
