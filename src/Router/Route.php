@@ -452,11 +452,11 @@ class Route
      */
     public function name(string $name): self
     {
+
         $names = $this->parent_names;
         $names[] = $name;
 
         $this->_name = implode(self::ROUTE_NAME_IMPODER, $names);
-        RouteCollection::bindNamedRoute($this);
         return $this;
     }
 
