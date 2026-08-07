@@ -2,18 +2,18 @@
 
 namespace Cube\Queue;
 
-use Cube\App\App;
 use Cube\Interfaces\JobsInterface;
-use Cube\Modules\Db\DBConnection;
-use Cube\Modules\Db\DBTable;
+use Cube\Interfaces\QueueDriverInterface;
+use Cube\Queue\Drivers\QueueDriverFactory;
 
 class Queue
 {
-    protected string $connection;
+    protected QueueDriverInterface $driver;
 
-    protected static string $schema = 'cube_jobs';
-
-    public function __construct(protected ?string $group = null) {}
+    public function __construct(protected ?string $group = null)
+    {
+        $this->driver = QueueDriverFactory::make($this->group);
+    }
 
     /**
      * Push a new job onto the queue.
@@ -24,11 +24,7 @@ class Queue
      */
     public function push(JobsInterface $job, int $delay = 0)
     {
-        static::getTable()->insert([
-            'available_at' => gettime(time() + $delay),
-            'payload' => serialize($job),
-            'group_name' => $this->group,
-        ]);
+        $this->driver->push($job, $delay);
     }
 
     /**
@@ -38,36 +34,7 @@ class Queue
      */
     public function pop(): ?Job
     {
-        $table = static::getTable();
-        $connection = $table->getConnection();
-        return $connection->transaction(function () use ($table) {
-            $query = $table->select(['id', 'payload', 'attempts'])
-                ->whereNull('reserved_at')
-                ->where('available_at', '<=', gettime());
-
-            if ($this->group) {
-                $query->where('group_name', $this->group);
-            }
-
-            $query->orderByAsc('id')
-                ->lock(true);
-
-            $row = $query->fetchOne();
-
-            if (!$row) {
-                return null;
-            }
-
-            $table->update(['reserved_at' => getnow()])
-                ->where('id', $row->id)
-                ->fulfil();
-
-            return new Job(
-                $row->id,
-                $row->payload,
-                $row->attempts + 1
-            );
-        });
+        return $this->driver->pop();
     }
 
     /**
@@ -79,14 +46,7 @@ class Queue
      */
     public function release(Job $job, int $delay = 0)
     {
-        $entry = array(
-            'reserved_at' => null,
-            'available_at' => gettime(time() + $delay)
-        );
-
-        static::getTable()->update($entry)
-            ->where('id', $job->id)
-            ->fulfil();
+        $this->driver->release($job, $delay);
     }
 
     /**
@@ -97,9 +57,7 @@ class Queue
      */
     public function delete(Job $job)
     {
-        static::getTable()->delete()
-            ->where('id', $job->id)
-            ->fulfil();
+        $this->driver->delete($job);
     }
 
     /**
@@ -109,28 +67,7 @@ class Queue
      */
     public function getPendingJobsCount(): int
     {
-        $row = static::getTable()->select(['COUNT(id) AS count'])
-            ->whereNull('reserved_at')
-            ->where('available_at', '<=', gettime())
-            ->where('group_name', $this->group)
-            ->fetchOne();
-
-        return $row ? (int) $row->count : 0;
-    }
-
-    /**
-     * Get a new instance of the queue's database table.
-     * 
-     * @return DBTable
-     */
-    protected static function getTable()
-    {
-        return new DBTable(
-            static::$schema,
-            DBConnection::connection(
-                App::getConfig('app.queue.connection')
-            )
-        );
+        return $this->driver->getPendingJobsCount();
     }
 
     /**
@@ -168,18 +105,6 @@ class Queue
      */
     public static function findJob(int $id): ?Job
     {
-        $result = static::getTable()->select(['id', 'payload', 'attempts'])
-            ->where('id', $id)
-            ->fetchOne();
-
-        if (!$result) {
-            return null;
-        }
-
-        return new Job(
-            $result->id,
-            $result->payload,
-            $result->attempts
-        );
+        return QueueDriverFactory::make()->findJob($id);
     }
 }
