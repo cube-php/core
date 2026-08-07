@@ -52,8 +52,8 @@ final class Env
      * Get main var
      *
      * @param string $name
-     * @param [type] $default
-     * @return void
+     * @param mixed $default
+     * @return mixed|null
      */
     public static function get(string $name, $default = null)
     {

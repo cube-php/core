@@ -33,7 +33,7 @@ class Cookie
         bool $secure = false,
         bool $httponly = true,
         string $samesite = 'Lax'
-    ): void {
+    ): bool {
         $jar = app(CookieJar::class);
         $jar->add(
             new CookieItem(
@@ -47,21 +47,22 @@ class Cookie
                 samesite: $samesite
             )
         );
+
+        return true;
     }
 
     /**
      * Set cookie if it does not exist
      *
-     * @param Request $request
      * @param string $name
      * @param string $value
      * @param int $expires
      * @param string $path
      * @return bool
      */
-    public static function setIfNotExists(Request $request, $name, $value, $expires = null, $path = '/'): bool
+    public static function setIfNotExists($name, $value, $expires = null, $path = '/'): bool
     {
-        if (static::has($request, $name)) {
+        if (static::has($name)) {
             return true;
         }
 
@@ -78,9 +79,9 @@ class Cookie
      * @param string $path
      * @return mixed
      */
-    public static function getOrSet(Request $request, $name, callable $fn, $expires = null, $path = '/')
+    public static function getOrSet($name, callable $fn, $expires = null, $path = '/')
     {
-        $data = Cookie::get($request, $name);
+        $data = Cookie::get($name);
 
         if ($data) {
             return $data;
@@ -95,11 +96,10 @@ class Cookie
     /**
      * Check if cookie exists
      *
-     * @param Request $request
      * @param string $name Cookie name
      * @return boolean
      */
-    public static function has(Request $request, $name)
+    public static function has($name)
     {
         return app(Request::class)->getCookies()->has($name);
     }
@@ -110,9 +110,9 @@ class Cookie
      * @param string $name Cookie name
      * @return mixed|null
      */
-    public static function get(Request $request, $name)
+    public static function get($name)
     {
-        if (!static::has($request, $name)) {
+        if (!static::has($name)) {
             return null;
         }
 
@@ -125,9 +125,9 @@ class Cookie
      * @param string $name Cookie key
      * @return mixed
      */
-    public static function getAndRemove(Request $request, $name)
+    public static function getAndRemove($name)
     {
-        $data = static::get($request, $name);
+        $data = static::get($name);
         static::remove($name);
 
         return $data;

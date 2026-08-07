@@ -20,6 +20,7 @@ class Queue
      * 
      * @param JobsInterface $job
      * @param int $delay
+     * @param int $delay
      * @return void
      */
     public function push(JobsInterface $job, int $delay = 0)
@@ -87,14 +88,19 @@ class Queue
      * @param JobsInterface $job
      * @param int $delay
      * @param string|null $group
+     * @param bool $check_duplicate
      * @return void
      */
     public static function pushJob(
         JobsInterface $job,
         int $delay = 0,
-        ?string $group = null
+        ?string $group = null,
+        bool $check_duplicate = false
     ) {
-        static::forGroup($group)->push($job, $delay);
+        static::forGroup($group)->push(
+            $job,
+            $delay
+        );
     }
 
     /**

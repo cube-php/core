@@ -166,7 +166,7 @@ class App
     /**
      * Run the app
      *
-     * @return void
+     * @return mixed
      */
     public function run(?RequestInterface $request = null): mixed
     {
@@ -183,7 +183,7 @@ class App
      * Run app
      *
      * @param RequestInterface|null $request
-     * @return void
+     * @return mixed
      */
     public function runApp(?RequestInterface $request = null)
     {
@@ -402,7 +402,7 @@ class App
      * Get config
      *
      * @param string $name
-     * @param mixed $value
+     * @param mixed $default
      * @return array|string
      */
     public static function getConfig(string $name, $default = null)

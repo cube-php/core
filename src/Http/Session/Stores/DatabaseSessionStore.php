@@ -41,9 +41,8 @@ class DatabaseSessionStore implements SessionStoreInterface
             ->fetchOne();
 
         return $session
-            ? json_decode(
-                base64_decode($session->data),
-                true
+            ? unserialize(
+                base64_decode($session->data)
             ) : [];
     }
 
@@ -59,7 +58,7 @@ class DatabaseSessionStore implements SessionStoreInterface
         self::getTable()
             ->insert([
                 'data' => base64_encode(
-                    json_encode($session_data)
+                    serialize($session_data)
                 ),
                 'updated_at' => getnow(),
                 'created_at' => getnow(),
