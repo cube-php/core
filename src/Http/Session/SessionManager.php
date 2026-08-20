@@ -4,11 +4,7 @@ namespace Cube\Http\Session;
 
 use Cube\App\App;
 use Cube\Http\Response;
-use Cube\Http\Session\Stores\ArraySessionStore;
-use Cube\Http\Session\Stores\DatabaseSessionStore;
-use Cube\Http\Session\Stores\FileSessionStore;
 use Cube\Interfaces\RequestInterface;
-use InvalidArgumentException;
 
 class SessionManager
 {
@@ -18,6 +14,12 @@ class SessionManager
 
     public function __construct(protected SessionStoreInterface $store)
     {
+        $this->lifetime = (int) (
+            App::getConfig('app.session.lifetime')
+                ?: App::getConfig('app.session_lifetime')
+                ?: $this->lifetime
+        );
+
         $lottery = App::getConfig('app.session.lottery', [2, 100]);
 
         if (call_user_func_array('mt_rand', $lottery) <= 2) {
@@ -125,14 +127,6 @@ class SessionManager
      */
     public static function init()
     {
-        $store = App::getConfig('app.session.store', 'file');
-        $cls = match ($store) {
-            'database' => DatabaseSessionStore::class,
-            'array' => ArraySessionStore::class,
-            'file' => FileSessionStore::class,
-            default => throw new InvalidArgumentException("Unsupported session store: $store"),
-        };
-
-        return new self(new $cls());
+        return SessionManagerFactory::make();
     }
 }

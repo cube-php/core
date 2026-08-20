@@ -14,6 +14,7 @@ use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
 use Cube\Http\Session\SessionManager;
+use Cube\Http\Session\SessionManagerFactory;
 use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
@@ -127,7 +128,7 @@ class Request implements RequestInterface
             return;
         }
 
-        $this->session_manager = SessionManager::init();
+        $this->session_manager = SessionManagerFactory::make();
         $this->session = $this->session_manager->start($this);
 
         app()->scoped(

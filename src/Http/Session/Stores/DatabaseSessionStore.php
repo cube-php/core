@@ -53,7 +53,7 @@ class DatabaseSessionStore implements SessionStoreInterface
      * @param array $session_data Session data
      * @return void
      */
-    public function write(string $id, array $session_data): void
+    public function write(string $id, array $session_data, int $lifetime = 7200): void
     {
         self::getTable()
             ->insert([
@@ -106,7 +106,9 @@ class DatabaseSessionStore implements SessionStoreInterface
      */
     private static function getConnection(): DBConnection
     {
-        $connection_name = App::getConfig('app.session.connection');
+        $connection_name = App::getConfig('app.session.connection')
+            ?: App::getConfig('app.session_connection');
+
         return DBConnection::connection($connection_name);
     }
 

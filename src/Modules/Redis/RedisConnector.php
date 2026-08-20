@@ -14,6 +14,12 @@ class RedisConnector
 
     protected static array $connections = array();
 
+    /**
+     * Get Redis connection by name.
+     *
+     * @param string $name Redis connection name
+     * @return RedisConnection
+     */
     public static function connection(string $name = self::DEFAULT_CONNECTION_NAME): RedisConnection
     {
         if (isset(static::$connections[$name])) {
@@ -31,16 +37,27 @@ class RedisConnector
         }
 
         throw new RedisException(
-            'Redis jobs require the PHP redis extension or predis/predis.'
+            'Redis support requires the PHP redis extension or predis/predis.'
         );
     }
 
+    /**
+     * Reconnect Redis connection by name.
+     *
+     * @param string $name Redis connection name
+     * @return RedisConnection
+     */
     public static function reconnect(string $name = self::DEFAULT_CONNECTION_NAME): RedisConnection
     {
         unset(static::$connections[$name]);
         return static::connection($name);
     }
 
+    /**
+     * Close all cached Redis connections.
+     *
+     * @return void
+     */
     public static function closeAll(): void
     {
         foreach (static::$connections as $key => $connection) {
@@ -48,6 +65,12 @@ class RedisConnector
         }
     }
 
+    /**
+     * Get Redis connection options by name.
+     *
+     * @param string $name Redis connection name
+     * @return array
+     */
     protected static function getOptions(string $name): array
     {
         $config = App::getConfig('redis', []);
@@ -62,11 +85,25 @@ class RedisConnector
         ];
     }
 
+    /**
+     * Get configured option or fallback value.
+     *
+     * @param array $options Redis connection options
+     * @param string $name Option name
+     * @param callable $default Default value resolver
+     * @return mixed
+     */
     protected static function option(array $options, string $name, callable $default): mixed
     {
         return array_key_exists($name, $options) ? $options[$name] : $default();
     }
 
+    /**
+     * Create connection using PHP redis extension.
+     *
+     * @param array $options Redis connection options
+     * @return RedisConnection
+     */
     protected static function connectWithExtension(array $options): RedisConnection
     {
         $redis = new Redis();
@@ -92,6 +129,12 @@ class RedisConnector
         return new RedisConnection($redis);
     }
 
+    /**
+     * Create connection using Predis.
+     *
+     * @param array $options Redis connection options
+     * @return RedisConnection
+     */
     protected static function connectWithPredis(array $options): RedisConnection
     {
         $parameters = [
