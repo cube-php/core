@@ -12,6 +12,11 @@ class DatabaseJobsMigration extends Migration
 {
     protected static string $name = 'cube_jobs';
 
+    /**
+     * Get the configured jobs database connection.
+     *
+     * @return DBConnection
+     */
     protected static function getConnection(): DBConnection
     {
         return DBConnection::connection(
@@ -20,6 +25,11 @@ class DatabaseJobsMigration extends Migration
         );
     }
 
+    /**
+     * Create the jobs database table and indexes.
+     *
+     * @return void
+     */
     public static function up()
     {
         $table = static::getTable();
@@ -36,11 +46,21 @@ class DatabaseJobsMigration extends Migration
         $table->addIndex('idx_pop', ['reserved_at', 'available_at', 'group_name']);
     }
 
+    /**
+     * Empty the jobs database table.
+     *
+     * @return void
+     */
     public static function empty()
     {
         static::getTable()->truncate();
     }
 
+    /**
+     * Drop the jobs database table.
+     *
+     * @return void
+     */
     public static function down()
     {
         static::getTable()->drop();

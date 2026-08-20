@@ -11,11 +11,21 @@ class RedisJobsMigration implements MigrationInterface
 {
     protected static string $name = 'cube_jobs';
 
+    /**
+     * Verify the configured Redis connection for jobs.
+     *
+     * @return void
+     */
     public static function up()
     {
         static::getConnection()->command('PING');
     }
 
+    /**
+     * Delete all Redis keys used by the jobs queue.
+     *
+     * @return void
+     */
     public static function empty()
     {
         $prefix = App::getConfig('queue.redis_prefix') ?: static::$name;
@@ -29,11 +39,21 @@ class RedisJobsMigration implements MigrationInterface
         }
     }
 
+    /**
+     * Delete all Redis keys used by the jobs queue.
+     *
+     * @return void
+     */
     public static function down()
     {
         static::empty();
     }
 
+    /**
+     * Get the configured Redis connection for jobs.
+     *
+     * @return RedisConnection
+     */
     protected static function getConnection(): RedisConnection
     {
         return RedisConnector::connection(
@@ -41,6 +61,12 @@ class RedisJobsMigration implements MigrationInterface
         );
     }
 
+    /**
+     * Scan Redis keys matching the given pattern.
+     *
+     * @param string $pattern
+     * @return array
+     */
     protected static function scanKeys(string $pattern): array
     {
         $cursor = '0';

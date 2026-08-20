@@ -12,6 +12,12 @@ class QueueDriverFactory
 
     public const DRIVER_REDIS = 'redis';
 
+    /**
+     * Create the configured queue driver.
+     *
+     * @param string|null $group
+     * @return QueueDriverInterface
+     */
     public static function make(?string $group = null): QueueDriverInterface
     {
         return match (static::getDriver()) {
@@ -23,6 +29,11 @@ class QueueDriverFactory
         };
     }
 
+    /**
+     * Get the configured queue driver name.
+     *
+     * @return string
+     */
     public static function getDriver(): string
     {
         return strtolower((string) (App::getConfig('queue.driver') ?: static::DRIVER_DATABASE));

@@ -16,15 +16,37 @@ class DatabaseQueueDriver implements QueueDriverInterface
 
     public function __construct(protected ?string $group = null) {}
 
-    public function push(JobsInterface $job, int $delay = 0): void
-    {
+    /**
+     * Push a job into the database-backed queue.
+     *
+     * @param JobsInterface $job
+     * @param int $delay
+     * @param bool $check_duplicate
+     * @return void
+     */
+    public function push(
+        JobsInterface $job,
+        int $delay = 0,
+        bool $check_duplicate = false
+    ): void {
+        $payload = serialize($job);
+
+        if ($this->shouldCheckDuplicate($check_duplicate) && $this->hasDuplicate($payload)) {
+            return;
+        }
+
         static::getTable()->insert([
             'available_at' => gettime(time() + $delay),
-            'payload' => serialize($job),
+            'payload' => $payload,
             'group_name' => $this->group,
         ]);
     }
 
+    /**
+     * Pop and reserve the next available database job.
+     *
+     * @return Job|null
+     */
     public function pop(): ?Job
     {
         $table = static::getTable();
@@ -60,6 +82,13 @@ class DatabaseQueueDriver implements QueueDriverInterface
         });
     }
 
+    /**
+     * Release a reserved database job back onto the queue.
+     *
+     * @param Job $job
+     * @param int $delay
+     * @return void
+     */
     public function release(Job $job, int $delay = 0): void
     {
         $entry = array(
@@ -72,6 +101,12 @@ class DatabaseQueueDriver implements QueueDriverInterface
             ->fulfil();
     }
 
+    /**
+     * Delete a database job.
+     *
+     * @param Job $job
+     * @return void
+     */
     public function delete(Job $job): void
     {
         static::getTable()->delete()
@@ -79,6 +114,11 @@ class DatabaseQueueDriver implements QueueDriverInterface
             ->fulfil();
     }
 
+    /**
+     * Get the count of pending database jobs.
+     *
+     * @return int
+     */
     public function getPendingJobsCount(): int
     {
         $row = static::getTable()->select(['COUNT(id) AS count'])
@@ -90,6 +130,12 @@ class DatabaseQueueDriver implements QueueDriverInterface
         return $row ? (int) $row->count : 0;
     }
 
+    /**
+     * Find a database job by ID.
+     *
+     * @param int $id
+     * @return Job|null
+     */
     public function findJob(int $id): ?Job
     {
         $result = static::getTable()->select(['id', 'payload', 'attempts'])
@@ -107,18 +153,64 @@ class DatabaseQueueDriver implements QueueDriverInterface
         );
     }
 
+    /**
+     * Get the jobs table instance.
+     *
+     * @return DBTable
+     */
     protected static function getTable(): DBTable
     {
         return new DBTable(
             static::$schema,
-            DBConnection::connection(static::getConnectionName())
+            DBConnection::connection(
+                static::getConnectionName()
+            )
         );
     }
 
+    /**
+     * Get the configured database connection name.
+     *
+     * @return string
+     */
     protected static function getConnectionName(): string
     {
-        return App::getConfig('queue.connection')
-            ?: App::getConfig('app.queue.connection')
+        return App::getConfig('queue.database_connection')
+            ?: App::getConfig('app.queue.database_connection')
             ?: DBConnector::DEFAULT_CONNECTION_NAME;
+    }
+
+    /**
+     * Determine if duplicate checks should run for this push.
+     *
+     * @param bool $check_duplicate
+     * @return bool
+     */
+    protected function shouldCheckDuplicate(bool $check_duplicate): bool
+    {
+        return $check_duplicate || filter_var(
+            App::getConfig('queue.check_duplicates'),
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+
+    /**
+     * Check if the same payload already exists in this queue group.
+     *
+     * @param string $payload
+     * @return bool
+     */
+    protected function hasDuplicate(string $payload): bool
+    {
+        $query = static::getTable()->select(['id'])
+            ->where('payload', $payload);
+
+        if ($this->group) {
+            $query->where('group_name', $this->group);
+        } else {
+            $query->whereRaw('group_name IS NULL');
+        }
+
+        return (bool) $query->fetchOne();
     }
 }

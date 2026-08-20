@@ -20,12 +20,16 @@ class Queue
      * 
      * @param JobsInterface $job
      * @param int $delay
-     * @param int $delay
+     * @param bool $check_duplicate
      * @return void
      */
-    public function push(JobsInterface $job, int $delay = 0)
+    public function push(
+        JobsInterface $job,
+        int $delay = 0,
+        bool $check_duplicate = false
+    )
     {
-        $this->driver->push($job, $delay);
+        $this->driver->push($job, $delay, $check_duplicate);
     }
 
     /**
@@ -99,7 +103,8 @@ class Queue
     ) {
         static::forGroup($group)->push(
             $job,
-            $delay
+            $delay,
+            $check_duplicate
         );
     }
 
