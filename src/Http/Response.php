@@ -316,7 +316,8 @@ class Response implements ResponseInterface
         string $path = '/',
         string $domain = '',
         bool $secure = false,
-        bool $httponly = false
+        bool $httponly = false,
+        string $samesite = CookieItem::SAMESITE_LAX
     ) {
 
         app(CookieJar::class)->add(
@@ -327,7 +328,8 @@ class Response implements ResponseInterface
                 path: $path,
                 domain: $domain,
                 secure: $secure,
-                httponly: $httponly
+                httponly: $httponly,
+                samesite: $samesite
             )
         );
 
