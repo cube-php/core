@@ -71,14 +71,19 @@ class SessionManager
             );
         }
 
-        $secure = App::getConfig('app.session.secure', false);
+        $secure = $this->getCookieSecure();
+        $httponly = $this->getCookieHttpOnly();
+        $samesite = $this->getCookieSameSite();
+
         $response->withCookie(
             $this->cookie_name,
             $session->id(),
             time() + $this->lifetime,
             '/',
             false,
-            $secure
+            $secure,
+            $httponly,
+            $samesite
         );
     }
 
@@ -92,7 +97,9 @@ class SessionManager
     public function destroy(SessionHandler $session, Response $response)
     {
         $this->store->destroy($session->id());
-        $secure = App::getConfig('app.session.secure', false);
+        $secure = $this->getCookieSecure();
+        $httponly = $this->getCookieHttpOnly();
+        $samesite = $this->getCookieSameSite();
 
         $response->withCookie(
             $this->cookie_name,
@@ -100,7 +107,9 @@ class SessionManager
             time() - 3600,
             '/',
             false,
-            $secure
+            $secure,
+            $httponly,
+            $samesite
         );
     }
 
@@ -134,5 +143,29 @@ class SessionManager
         };
 
         return new self(new $cls());
+    }
+
+    protected function getCookieSecure(): bool
+    {
+        $secure = App::getConfig('app.session.secure');
+        $secure = $secure ?? App::getConfig('app.session_secure', false);
+
+        return filter_var($secure, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    protected function getCookieHttpOnly(): bool
+    {
+        $httponly = App::getConfig('app.session.httponly');
+        $httponly = $httponly ?? App::getConfig('app.session_httponly', true);
+
+        return filter_var($httponly, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    protected function getCookieSameSite(): string
+    {
+        return (string) (
+            App::getConfig('app.session.samesite')
+                ?: App::getConfig('app.session_samesite', 'Lax')
+        );
     }
 }
