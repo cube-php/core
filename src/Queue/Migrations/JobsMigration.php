@@ -2,45 +2,55 @@
 
 namespace Cube\Queue\Migrations;
 
-use Cube\App\App;
-use Cube\Modules\Db\DBConnection;
-use Cube\Modules\Db\DBTableBuilder;
-use Cube\Modules\Migration;
+use Cube\Interfaces\MigrationInterface;
+use Cube\Queue\Drivers\QueueDriverFactory;
+use InvalidArgumentException;
 
-class JobsMigration extends Migration
+class JobsMigration implements MigrationInterface
 {
-    protected static string $name = 'cube_jobs';
-
-    protected static function getConnection(): DBConnection
-    {
-        return DBConnection::connection(
-            App::getConfig('queue.connection')
-        );
-    }
-
+    /**
+     * Run the configured jobs migration.
+     *
+     * @return void
+     */
     public static function up()
     {
-        $table = static::getTable();
-        $table->build(function (DBTableBuilder $builder) {
-            $builder->field('id')->int()->increment();
-            $builder->field('group_name')->varchar()->nullable();
-            $builder->field('payload')->longtext();
-            $builder->field('attempts')->int()->default(0);
-            $builder->field('reserved_at')->datetime()->nullable();
-            $builder->field('available_at')->datetime();
-        });
-
-        $table->addIndex('idx_grp', ['group_name']);
-        $table->addIndex('idx_pop', ['reserved_at', 'available_at', 'group_name']);
+        static::getMigration()::up();
     }
 
+    /**
+     * Empty the configured jobs storage.
+     *
+     * @return void
+     */
     public static function empty()
     {
-        static::getTable()->truncate();
+        static::getMigration()::empty();
     }
 
+    /**
+     * Roll back the configured jobs storage.
+     *
+     * @return void
+     */
     public static function down()
     {
-        static::getTable()->drop();
+        static::getMigration()::down();
+    }
+
+    /**
+     * Get the migration class for the configured queue driver.
+     *
+     * @return string
+     */
+    protected static function getMigration(): string
+    {
+        return match (QueueDriverFactory::getDriver()) {
+            QueueDriverFactory::DRIVER_REDIS => RedisJobsMigration::class,
+            QueueDriverFactory::DRIVER_DATABASE => DatabaseJobsMigration::class,
+            default => throw new InvalidArgumentException(
+                'Unsupported queue driver "' . QueueDriverFactory::getDriver() . '"'
+            ),
+        };
     }
 }

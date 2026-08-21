@@ -2,6 +2,7 @@
 
 namespace Cube\Http;
 
+use Closure;
 use InvalidArgumentException;
 use Cube\Interfaces\RequestInterface;
 
@@ -13,6 +14,7 @@ use Cube\Misc\Inputs;
 use Cube\Misc\Input;
 use Cube\App\App;
 use Cube\Http\Session\SessionManager;
+use Cube\Http\Session\SessionManagerFactory;
 use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
@@ -21,9 +23,9 @@ use Cube\Http\Session\SessionHandler;
 
 class Request implements RequestInterface
 {
-    public const string EVENT_COMPLETED = 'onRequestCompleted';
+    public const EVENT_COMPLETED = 'onRequestCompleted';
 
-    public const string MIDDLEWARE_ARGS_DELIMETER = ':';
+    public const MIDDLEWARE_ARGS_DELIMETER = ':';
 
     private array $attributes = array();
 
@@ -126,7 +128,7 @@ class Request implements RequestInterface
             return;
         }
 
-        $this->session_manager = SessionManager::init();
+        $this->session_manager = SessionManagerFactory::make();
         $this->session = $this->session_manager->start($this);
 
         app()->scoped(
@@ -139,7 +141,6 @@ class Request implements RequestInterface
      * Get request body
      *
      * @param array|string|null $fields Fields to retrieve if return content is Input
-     * @param boolean $as_input Set whether body content should be wrapped as an input
      * @return Input[]|string
      */
     public function getBody($fields = null)
@@ -375,10 +376,10 @@ class Request implements RequestInterface
      * Set custom method
      *
      * @param string $name Method name
-     * @param Closure $fn Callable
+     * @param callable $fn Callable
      * @return self
      */
-    public function setCustomMethod($name, $fn)
+    public function setCustomMethod(string $name, callable $fn): self
     {
         $reserved_method_names = array_map('strtolower', get_class_methods($this));
 
@@ -417,13 +418,13 @@ class Request implements RequestInterface
     /**
      * Use middleware
      *
-     * @param string[]|string $middleware Middleware name
+     * @param String|string $middleware_list Middleware name
      *
      * @return self
      * 
      * @throws \InvalidArgumentException
      */
-    public function useMiddleware($middleware_list)
+    public function useMiddleware(string|array $middleware_list)
     {
         $middlewares = is_array($middleware_list) ? $middleware_list : [$middleware_list];
 

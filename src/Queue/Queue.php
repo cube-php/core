@@ -2,43 +2,34 @@
 
 namespace Cube\Queue;
 
-use Cube\App\App;
 use Cube\Interfaces\JobsInterface;
-use Cube\Modules\Db\DBConnection;
-use Cube\Modules\Db\DBTable;
+use Cube\Interfaces\QueueDriverInterface;
+use Cube\Queue\Drivers\QueueDriverFactory;
 
 class Queue
 {
-    protected string $connection;
+    protected QueueDriverInterface $driver;
 
-    protected static string $schema = 'cube_jobs';
-
-    public function __construct(protected ?string $group = null) {}
+    public function __construct(protected ?string $group = null)
+    {
+        $this->driver = QueueDriverFactory::make($this->group);
+    }
 
     /**
      * Push a new job onto the queue.
      * 
      * @param JobsInterface $job
      * @param int $delay
-     * @param bool $checkDuplicate
+     * @param bool $check_duplicate
      * @return void
      */
     public function push(
         JobsInterface $job,
         int $delay = 0,
         bool $check_duplicate = false
-    ) {
-        $payload = serialize($job);
-
-        if ($check_duplicate && $this->hasDuplicateJob($payload)) {
-            return;
-        }
-
-        static::getTable()->insert([
-            'available_at' => gettime(time() + $delay),
-            'payload' => $payload,
-            'group_name' => $this->group,
-        ]);
+    )
+    {
+        $this->driver->push($job, $delay, $check_duplicate);
     }
 
     /**
@@ -48,41 +39,7 @@ class Queue
      */
     public function pop(): ?Job
     {
-        $table = static::getTable();
-        $connection = $table->getConnection();
-        return $connection->transaction(function () use ($table) {
-            $query = $table->select(['id', 'payload', 'attempts'])
-                ->whereNull('reserved_at')
-                ->where('available_at', '<=', gettime());
-
-            if ($this->group) {
-                $query->where('group_name', $this->group);
-            }
-
-            $query->orderByAsc('id')
-                ->lock(true);
-
-            $row = $query->fetchOne();
-
-            if (!$row) {
-                return null;
-            }
-
-            $attempts = $row->attempts + 1;
-
-            $table->update([
-                'reserved_at' => getnow(),
-                'attempts' => $attempts,
-            ])
-                ->where('id', $row->id)
-                ->fulfil();
-
-            return new Job(
-                $row->id,
-                $row->payload,
-                $attempts
-            );
-        });
+        return $this->driver->pop();
     }
 
     /**
@@ -94,14 +51,7 @@ class Queue
      */
     public function release(Job $job, int $delay = 0)
     {
-        $entry = array(
-            'reserved_at' => null,
-            'available_at' => gettime(time() + $delay)
-        );
-
-        static::getTable()->update($entry)
-            ->where('id', $job->id)
-            ->fulfil();
+        $this->driver->release($job, $delay);
     }
 
     /**
@@ -112,9 +62,7 @@ class Queue
      */
     public function delete(Job $job)
     {
-        static::getTable()->delete()
-            ->where('id', $job->id)
-            ->fulfil();
+        $this->driver->delete($job);
     }
 
     /**
@@ -124,28 +72,7 @@ class Queue
      */
     public function getPendingJobsCount(): int
     {
-        $row = static::getTable()->select(['COUNT(id) AS count'])
-            ->whereNull('reserved_at')
-            ->where('available_at', '<=', gettime())
-            ->where('group_name', $this->group)
-            ->fetchOne();
-
-        return $row ? (int) $row->count : 0;
-    }
-
-    /**
-     * Get a new instance of the queue's database table.
-     * 
-     * @return DBTable
-     */
-    protected static function getTable()
-    {
-        return new DBTable(
-            static::$schema,
-            DBConnection::connection(
-                App::getConfig('queue.connection')
-            )
-        );
+        return $this->driver->getPendingJobsCount();
     }
 
     /**
@@ -165,7 +92,7 @@ class Queue
      * @param JobsInterface $job
      * @param int $delay
      * @param string|null $group
-     * @param bool $checkDuplicate
+     * @param bool $check_duplicate
      * @return void
      */
     public static function pushJob(
@@ -189,38 +116,6 @@ class Queue
      */
     public static function findJob(int $id): ?Job
     {
-        $result = static::getTable()->select(['id', 'payload', 'attempts'])
-            ->where('id', $id)
-            ->fetchOne();
-
-        if (!$result) {
-            return null;
-        }
-
-        return new Job(
-            $result->id,
-            $result->payload,
-            $result->attempts
-        );
-    }
-
-    /**
-     * Determine if the queue already contains the same job payload.
-     * 
-     * @param string $payload
-     * @return bool
-     */
-    protected function hasDuplicateJob(string $payload): bool
-    {
-        $query = static::getTable()->select(['id'])
-            ->where('payload', $payload);
-
-        if ($this->group === null) {
-            $query->whereNull('group_name');
-        } else {
-            $query->where('group_name', $this->group);
-        }
-
-        return $query->fetchOne() !== null;
+        return QueueDriverFactory::make()->findJob($id);
     }
 }

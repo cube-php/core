@@ -27,7 +27,7 @@ interface RequestInterface
 
     public function session(): SessionHandler;
 
-    public function setAttribute($name, $value);
+    public function setAttribute(string $name, mixed $value);
 
     public function url();
 

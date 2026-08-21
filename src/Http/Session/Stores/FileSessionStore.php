@@ -47,7 +47,7 @@ class FileSessionStore implements SessionStoreInterface
      * @param array $data Session data
      * @return void
      */
-    public function write(string $id, array $data): void
+    public function write(string $id, array $data, int $lifetime = 7200): void
     {
         $file = $this->file($id);
         file_put_contents(

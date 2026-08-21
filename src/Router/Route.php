@@ -18,13 +18,13 @@ use Stringable;
 
 class Route
 {
-    public const string ROUTE_NAME_IMPODER = '.';
+    public const ROUTE_NAME_IMPODER = '.';
 
-    public const string VIEW_PREFIX = '@';
+    public const VIEW_PREFIX = '@';
 
-    private const array CONTROLLER_NAMESPACE = ['App', 'Controllers'];
+    private const CONTROLLER_NAMESPACE = ['App', 'Controllers'];
 
-    private const string NAMESPACE_SEPARATOR = '\\';
+    private const NAMESPACE_SEPARATOR = '\\';
 
     private string $_method = '';
 
@@ -527,7 +527,7 @@ class Route
     /**
      * Exclude specified middlewares from this route.
      *
-     * @param string|array $wares Middlewares
+     * @param string|array $middleware Middlewares
      * @return self
      */
     public function withoutMiddleware($middleware): self

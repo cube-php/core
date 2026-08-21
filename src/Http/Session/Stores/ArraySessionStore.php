@@ -28,7 +28,7 @@ class ArraySessionStore implements SessionStoreInterface
      * @param array $data Session data
      * @return void
      */
-    public function write(string $id, array $data): void
+    public function write(string $id, array $data, int $lifetime = 7200): void
     {
         $this->sessions[$id] = $data;
     }

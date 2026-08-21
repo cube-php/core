@@ -4,11 +4,7 @@ namespace Cube\Http\Session;
 
 use Cube\App\App;
 use Cube\Http\Response;
-use Cube\Http\Session\Stores\ArraySessionStore;
-use Cube\Http\Session\Stores\DatabaseSessionStore;
-use Cube\Http\Session\Stores\FileSessionStore;
 use Cube\Interfaces\RequestInterface;
-use InvalidArgumentException;
 
 class SessionManager
 {
@@ -18,6 +14,12 @@ class SessionManager
 
     public function __construct(protected SessionStoreInterface $store)
     {
+        $this->lifetime = (int) (
+            App::getConfig('app.session.lifetime')
+                ?: App::getConfig('app.session_lifetime')
+                ?: $this->lifetime
+        );
+
         $lottery = App::getConfig('app.session.lottery', [2, 100]);
 
         if (call_user_func_array('mt_rand', $lottery) <= 2) {
@@ -71,14 +73,19 @@ class SessionManager
             );
         }
 
-        $secure = App::getConfig('app.session.secure', false);
+        $secure = $this->getCookieSecure();
+        $httponly = $this->getCookieHttpOnly();
+        $samesite = $this->getCookieSameSite();
+
         $response->withCookie(
             $this->cookie_name,
             $session->id(),
             time() + $this->lifetime,
             '/',
             false,
-            $secure
+            $secure,
+            $httponly,
+            $samesite
         );
     }
 
@@ -92,7 +99,9 @@ class SessionManager
     public function destroy(SessionHandler $session, Response $response)
     {
         $this->store->destroy($session->id());
-        $secure = App::getConfig('app.session.secure', false);
+        $secure = $this->getCookieSecure();
+        $httponly = $this->getCookieHttpOnly();
+        $samesite = $this->getCookieSameSite();
 
         $response->withCookie(
             $this->cookie_name,
@@ -100,7 +109,9 @@ class SessionManager
             time() - 3600,
             '/',
             false,
-            $secure
+            $secure,
+            $httponly,
+            $samesite
         );
     }
 
@@ -125,14 +136,30 @@ class SessionManager
      */
     public static function init()
     {
-        $store = App::getConfig('app.session.store', 'file');
-        $cls = match ($store) {
-            'database' => DatabaseSessionStore::class,
-            'array' => ArraySessionStore::class,
-            'file' => FileSessionStore::class,
-            default => throw new InvalidArgumentException("Unsupported session store: $store"),
-        };
+        return SessionManagerFactory::make();
+    }
 
-        return new self(new $cls());
+    protected function getCookieSecure(): bool
+    {
+        $secure = App::getConfig('app.session.secure');
+        $secure = $secure ?? App::getConfig('app.session_secure', false);
+
+        return filter_var($secure, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    protected function getCookieHttpOnly(): bool
+    {
+        $httponly = App::getConfig('app.session.httponly');
+        $httponly = $httponly ?? App::getConfig('app.session_httponly', true);
+
+        return filter_var($httponly, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    protected function getCookieSameSite(): string
+    {
+        return (string) (
+            App::getConfig('app.session.samesite')
+                ?: App::getConfig('app.session_samesite', 'Lax')
+        );
     }
 }
