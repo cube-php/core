@@ -1,6 +1,11 @@
 <?php
 
+use Cube\Router\Attributes\Any;
+use Cube\Router\Attributes\Delete;
 use Cube\Router\Attributes\Get;
+use Cube\Router\Attributes\Patch;
+use Cube\Router\Attributes\Post;
+use Cube\Router\Attributes\Put;
 use Cube\Router\Attributes\Route;
 use Cube\Router\ControllerRoutesLoader;
 
@@ -30,3 +35,32 @@ it('detects route attributes when the controller method has no route group', fun
         ->and($arguments[1])->toBe('users.index')
         ->and($arguments[3])->toBe(['auth']);
 });
+
+it('normalizes all HTTP verb attributes into route methods', function (
+    string $attribute,
+    ?string $method,
+) {
+    $normalizer = new ReflectionMethod(ControllerRoutesLoader::class, 'getRouteVerbArguments');
+
+    $arguments = $normalizer->invoke(null, $attribute, [
+        '/items',
+        'items.index',
+        ['legacy'],
+        ['auth'],
+        ['csrf'],
+    ]);
+
+    expect($arguments->method)->toBe($method)
+        ->and($arguments->path)->toBe('/items')
+        ->and($arguments->name)->toBe('items.index')
+        ->and($arguments->use)->toBe(['legacy'])
+        ->and($arguments->middleware)->toBe(['auth'])
+        ->and($arguments->withoutMiddleware)->toBe(['csrf']);
+})->with([
+    'GET' => [Get::class, 'GET'],
+    'POST' => [Post::class, 'POST'],
+    'PUT' => [Put::class, 'PUT'],
+    'PATCH' => [Patch::class, 'PATCH'],
+    'DELETE' => [Delete::class, 'DELETE'],
+    'ANY' => [Any::class, null],
+]);

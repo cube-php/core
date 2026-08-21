@@ -188,17 +188,7 @@ class ControllerRoutesLoader
                     $args = (object) $attribute_args;
 
                     if (in_array($name, $route_verbs)) {
-                        $rmethod = array_get_last(explode('\\', $name));
-                        $rmethod = $rmethod === 'Any' ? null : $rmethod;
-
-                        $args = (object) array(
-                            'method' => $rmethod ? strtoupper($rmethod) : null,
-                            'path' => $attribute_args['path'] ?? $attribute_args[0] ?? '/',
-                            'name' => $attribute_args['name'] ?? $attribute_args[1] ?? null,
-                            'use' => $attribute_args['use'] ?? $attribute_args[2] ?? null,
-                            'middleware' => $attribute_args['middleware'] ?? $attribute_args[3] ?? null,
-                            'withoutMiddleware' => $attribute_args['withoutMiddleware'] ?? $attribute_args[4] ?? null,
-                        );
+                        $args = self::getRouteVerbArguments($name, $attribute_args);
                     }
 
                     $path = $group_path ? $group_path . $args->path : $args->path;
@@ -258,6 +248,28 @@ class ControllerRoutesLoader
         }
 
         return null;
+    }
+
+    /**
+     * Normalize an HTTP verb attribute into route arguments.
+     *
+     * @param string $attribute
+     * @param array $args
+     * @return object
+     */
+    private static function getRouteVerbArguments(string $attribute, array $args): object
+    {
+        $method = array_get_last(explode('\\', $attribute));
+        $method = $method === 'Any' ? null : $method;
+
+        return (object) array(
+            'method' => $method ? strtoupper($method) : null,
+            'path' => $args['path'] ?? $args[0] ?? '/',
+            'name' => $args['name'] ?? $args[1] ?? null,
+            'use' => $args['use'] ?? $args[2] ?? null,
+            'middleware' => $args['middleware'] ?? $args[3] ?? null,
+            'withoutMiddleware' => $args['withoutMiddleware'] ?? $args[4] ?? null,
+        );
     }
 
     /**
