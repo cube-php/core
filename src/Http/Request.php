@@ -12,14 +12,14 @@ use Cube\Http\Uri;
 use Cube\Misc\FilesParser;
 use Cube\Misc\Inputs;
 use Cube\Misc\Input;
-use Cube\App\App;
+use Cube\Http\Middleware\MiddlewarePipeline;
 use Cube\Http\Session\SessionManager;
 use Cube\Http\Session\SessionManagerFactory;
-use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
 use Cube\Misc\RequestValidator;
 use Cube\Http\UploadedFile;
 use Cube\Http\Session\SessionHandler;
+use RuntimeException;
 
 class Request implements RequestInterface
 {
@@ -37,8 +37,6 @@ class Request implements RequestInterface
     private mixed $_body;
 
     private Inputs $_processed_body;
-
-    private ?array $resolved_middlewares = [];
 
     private array $called_middlewares = [];
 
@@ -301,7 +299,7 @@ class Request implements RequestInterface
      */
     public function hasCustomMethod(string $name): bool
     {
-        return in_array($name, $this->_wares);
+        return array_key_exists($name, $this->_wares);
     }
 
     /**
@@ -381,7 +379,7 @@ class Request implements RequestInterface
      * @param string $name Attribute field name
      * @param mixed[] $value Attribute field value
      * 
-     * @return self
+     * @return self|Response
      */
     public function setAttribute($name, $value)
     {
@@ -435,74 +433,19 @@ class Request implements RequestInterface
     /**
      * Use middleware
      *
-     * @param String|string $middleware_list Middleware name
+     * @param mixed $middleware_list Middleware name, callable, object, or list
      *
      * @return self
      * 
      * @throws \InvalidArgumentException
      */
-    public function useMiddleware(string|array $middleware_list)
+    public function useMiddleware(mixed $middleware_list)
     {
-        $middlewares = is_array($middleware_list) ? $middleware_list : [$middleware_list];
-
-        if (!count($middlewares)) {
+        if (is_array($middleware_list) && !count($middleware_list)) {
             return $this;
         }
 
-        $assigned_middlewares = $this->getMiddlewareResolved() ?: [];
-        $result = $this;
-
-        foreach ($middlewares as $middleware) {
-
-            if (is_object($middleware) && is_a($middleware, MiddlewareInterface::class)) {
-                $this->called_middlewares[] = $middleware::class;
-                $result = $middleware->trigger($result);
-            } elseif (is_callable($middleware)) {
-                $this->called_middlewares[] = $middleware;
-                $result = $middleware($result);
-            } elseif (is_string($middleware)) {
-                $vars = explode(':', $middleware, 2);
-
-                $key = $vars[0];
-                $args = $vars[1] ?? null;
-                $class = class_exists($key) ? $key : ($assigned_middlewares[$key] ?? null);
-
-                if (!$class) {
-                    throw new InvalidArgumentException('Middleware "' . $key . '" is not assigned');
-                }
-
-                if (is_array($class)) {
-                    $result = $this->useMiddleware($class);
-                } elseif (is_object($class) || is_callable($class)) {
-                    $result = $this->useMiddleware($class);
-                } else {
-                    if (!is_a($class, MiddlewareInterface::class, true)) {
-                        throw new InvalidArgumentException(
-                            sprintf('"%s" is not a middleware', $class)
-                        );
-                    }
-
-                    $this->called_middlewares[] = $class;
-                    $args_value = $args ? explode(',', $args) : null;
-                    $result = call_user_func_array([new $class, 'trigger'], [$result, $args_value]);
-                }
-            } else {
-                throw new InvalidArgumentException('Invalid middleware type');
-            }
-
-            if ($result instanceof Response) {
-                if ($this->session_manager && $this->session) {
-                    $this->session_manager->persist(
-                        $this->session,
-                        $result
-                    );
-                }
-
-                break;
-            }
-        }
-
-        return $result;
+        return $this->middlewarePipeline()->through($this, $middleware_list);
     }
 
     /**
@@ -519,30 +462,29 @@ class Request implements RequestInterface
     }
 
     /**
-     * Get resolved middlewares
+     * Track an executed middleware.
      *
-     * @return array
+     * @param string $middleware Middleware identifier
+     * @return self
      */
-    protected function getMiddlewareResolved()
+    public function addCalledMiddleware(string $middleware): self
     {
-        if ($this->resolved_middlewares) {
-            return $this->resolved_middlewares;
+        $this->called_middlewares[] = $middleware;
+        return $this;
+    }
+
+    /**
+     * Resolve the configured middleware pipeline or create an isolated fallback.
+     *
+     * @return MiddlewarePipeline
+     */
+    private function middlewarePipeline(): MiddlewarePipeline
+    {
+        try {
+            return app(MiddlewarePipeline::class);
+        } catch (RuntimeException) {
+            return new MiddlewarePipeline();
         }
-
-        $wares = App::getRunningInstance()->getConfig('middleware');
-
-        if (!$wares) {
-            return false;
-        }
-
-        array_walk($wares, function ($class, $key) {
-            if (strpos($key, self::MIDDLEWARE_ARGS_DELIMETER)) {
-                throw new InvalidArgumentException('Middleware keys must not contain ' . self::MIDDLEWARE_ARGS_DELIMETER);
-            }
-        });
-
-        $this->resolved_middlewares = $wares;
-        return $wares;
     }
 
     /**

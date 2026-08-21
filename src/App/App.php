@@ -4,6 +4,8 @@ namespace Cube\App;
 
 use Cube\Helpers\Response\ResponseEmitter;
 use Cube\Http\Env;
+use Cube\Http\Middleware\MiddlewarePipeline;
+use Cube\Http\Middleware\MiddlewareResolver;
 use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Interfaces\RequestInterface;
@@ -115,6 +117,20 @@ class App
         app()->singleton(
             AppExceptionsHandler::class,
             fn() => new AppExceptionsHandler()
+        );
+
+        app()->bind(
+            MiddlewareResolver::class,
+            fn() => new MiddlewareResolver(
+                static::getConfig('middleware') ?: []
+            )
+        );
+
+        app()->bind(
+            MiddlewarePipeline::class,
+            fn($container) => new MiddlewarePipeline(
+                $container->make(MiddlewareResolver::class)
+            )
         );
 
         $this->init();
