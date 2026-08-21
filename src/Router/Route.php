@@ -8,6 +8,7 @@ use Cube\Exceptions\AppException;
 use InvalidArgumentException;
 
 use Cube\Router\RouteParser;
+use Cube\Http\Middleware\MiddlewarePipeline;
 use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
@@ -115,13 +116,11 @@ class Route
      * Add specified middlewares to request
      *
      * @param Request $request
-     * @return Request|null
+     * @return Request|Response
      */
     public function engageMiddleware(Request $request)
     {
-        return $request->useMiddleware(
-            $this->filterMiddlewares($this->_middlewares)
-        );
+        return $this->middlewarePipeline()->through($request, $this->filterMiddlewares($this->_middlewares));
     }
 
     /**
@@ -392,7 +391,8 @@ class Route
         }
 
         $controller = new $class($request, $response);
-        $request = $request->useMiddleware(
+        $request = $this->middlewarePipeline()->through(
+            $request,
             $this->filterMiddlewares($controller->getMiddlewares())
         );
 
@@ -623,6 +623,11 @@ class Route
         }
 
         return (string) $middleware;
+    }
+
+    private function middlewarePipeline(): MiddlewarePipeline
+    {
+        return app(MiddlewarePipeline::class);
     }
 
     /**
