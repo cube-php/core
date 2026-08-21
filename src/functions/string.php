@@ -1,4 +1,5 @@
 <?php
+
 /**
  * String functions here
  * 
@@ -9,19 +10,20 @@
 
 use Cube\Tools\Str;
 
-if(!function_exists('concat')) {
+if (!function_exists('concat')) {
     /**
      * Concatenate string
      *
      * @param ...$args Arguments
      * @return string
      */
-    function concat(...$args): string {
+    function concat(string ...$args): string
+    {
         return implode($args);
     }
 }
 
-if(!function_exists('str_starts_with')) {
+if (!function_exists('str_starts_with')) {
     /**
      * String starts with
      *
@@ -29,12 +31,13 @@ if(!function_exists('str_starts_with')) {
      * @param string $haystack
      * @return boolean
      */
-    function str_starts_with($needle, $haystack): bool {
+    function str_starts_with($needle, $haystack): bool
+    {
         return substr($haystack, 0, 1) === $needle;
     }
 }
 
-if(!function_exists('str_ends_with')) {
+if (!function_exists('str_ends_with')) {
     /**
      * String ends with
      *
@@ -42,31 +45,34 @@ if(!function_exists('str_ends_with')) {
      * @param string $haystack
      * @return boolean
      */
-    function str_ends_with($needle, $haystack): bool {
+    function str_ends_with($needle, $haystack): bool
+    {
         return substr($haystack, -1, 1) === $needle;
     }
 }
 
-if(!function_exists('is_email')) {
+if (!function_exists('is_email')) {
     /**
      * Check if str is an email
      *
      * @param string $email
      * @return boolean
      */
-    function is_email(string $email) {
+    function is_email(string $email)
+    {
         return filter_var($email, FILTER_VALIDATE_EMAIL);
     }
 }
 
-if(!function_exists('str')) {
+if (!function_exists('str')) {
     /**
      * Str class
      *
      * @param string $string
      * @return Str
      */
-    function str($string) {
+    function str($string)
+    {
         return new Str($string);
     }
 }

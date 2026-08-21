@@ -1,11 +1,13 @@
 <?php
 
+use Cube\App\App;
 use Cube\Http\Middleware\MiddlewarePipeline;
 use Cube\Http\Middleware\MiddlewareResolver;
 use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Interfaces\MiddlewareInterface;
 use Cube\Misc\Collection;
+use Cube\Router\Route;
 
 class PipelineAttributeMiddleware implements MiddlewareInterface
 {
@@ -24,6 +26,25 @@ class PipelineShortCircuitMiddleware implements MiddlewareInterface
     }
 }
 
+if (!class_exists('App\\Controllers\\PipelineControllerMiddlewareController')) {
+    eval('
+        namespace App\\Controllers;
+
+        class PipelineControllerMiddlewareController extends \\Cube\\Http\\Controller
+        {
+            public function __middleware(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                return $request->setAttribute("controller_middleware", "from __middleware");
+            }
+
+            public function index(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                return $request->getAttribute("controller_middleware");
+            }
+        }
+    ');
+}
+
 function makeMiddlewareRequest(): Request
 {
     app()->resetScoped();
@@ -39,6 +60,23 @@ function makeMiddlewareRequest(): Request
         new Collection(),
         new Collection(),
         new Collection(),
+    );
+}
+
+function bindMiddlewareRouteDependencies(): void
+{
+    $app = (new ReflectionClass(App::class))->newInstanceWithoutConstructor();
+    $caches = new ReflectionProperty(App::class, 'caches');
+    $caches->setValue($app, [
+        'config' => [
+            'view' => ['embed_request' => false],
+        ],
+    ]);
+
+    app()->singleton(App::class, fn() => $app);
+    app()->bind(
+        MiddlewarePipeline::class,
+        fn() => new MiddlewarePipeline(new MiddlewareResolver())
     );
 }
 
@@ -94,6 +132,21 @@ it('stops the pipeline when middleware returns a response', function () {
         ->and($result->getBody())->toBe('blocked')
         ->and($request->getAttribute('should_not_run'))->toBeNull()
         ->and($request->getMiddlewares())->toBe([PipelineShortCircuitMiddleware::class]);
+});
+
+it('runs controller __middleware hooks created on the fly', function () {
+    bindMiddlewareRouteDependencies();
+
+    $route = new Route(
+        'GET',
+        '/controller-middleware',
+        'PipelineControllerMiddlewareController.index',
+    );
+
+    $response = $route->handle(makeMiddlewareRequest());
+
+    expect($response)->toBeInstanceOf(Response::class)
+        ->and($response->getBody())->toBe('from __middleware');
 });
 
 it('rejects middleware aliases containing the argument delimiter', function () {

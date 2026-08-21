@@ -37,13 +37,21 @@ class SessionManager
     {
         $id = (string) $request->getCookies()->get($this->cookie_name);
 
-        if (!$id) {
+        if (!$this->isValidSessionId($id)) {
             return new SessionHandler(
                 generate_token(30)
             );
         }
 
-        return new SessionHandler($id, $this->store->read($id));
+        $data = $this->store->read($id);
+
+        if (!$data) {
+            return new SessionHandler(
+                generate_token(30)
+            );
+        }
+
+        return new SessionHandler($id, $data);
     }
 
     /**
@@ -82,7 +90,7 @@ class SessionManager
             $session->id(),
             time() + $this->lifetime,
             '/',
-            false,
+            '',
             $secure,
             $httponly,
             $samesite
@@ -108,7 +116,7 @@ class SessionManager
             '',
             time() - 3600,
             '/',
-            false,
+            '',
             $secure,
             $httponly,
             $samesite
@@ -161,5 +169,16 @@ class SessionManager
             App::getConfig('app.session.samesite')
                 ?: App::getConfig('app.session_samesite', 'Lax')
         );
+    }
+
+    /**
+     * Check if a client-provided session id matches Cube's generated id format.
+     *
+     * @param string $id Session id from the request cookie
+     * @return bool
+     */
+    protected function isValidSessionId(string $id): bool
+    {
+        return strlen($id) === 60 && ctype_xdigit($id);
     }
 }
