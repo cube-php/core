@@ -8,7 +8,9 @@ use Cube\Exceptions\AppException;
 use InvalidArgumentException;
 
 use Cube\Router\RouteParser;
+use Cube\Http\Controller;
 use Cube\Http\Middleware\MiddlewarePipeline;
+use Cube\Http\Middleware\MiddlewareResponseException;
 use Cube\Http\Request;
 use Cube\Http\Response;
 use Cube\Http\AnonController;
@@ -395,6 +397,7 @@ class Route
             $request,
             $this->filterMiddlewares($controller->getMiddlewares())
         );
+        $controller->executeMiddlewareOnCall();
 
         if ($request instanceof Response) {
             return $request;
@@ -403,13 +406,21 @@ class Route
         $middleware_fn_name = '__middleware';
 
         if (is_callable([$controller, $middleware_fn_name])) {
-            $request = call_user_func_array(
-                [$controller, $middleware_fn_name],
-                [$request, $response]
-            );
+            try {
+                $request = call_user_func_array(
+                    [$controller, $middleware_fn_name],
+                    [$request, $response]
+                );
+            } catch (MiddlewareResponseException $e) {
+                return $e->response();
+            }
 
             if ($request instanceof Response) {
                 return $request;
+            }
+
+            if ($controller->getMiddlewareResponse()) {
+                return $controller->getMiddlewareResponse();
             }
         }
 
@@ -640,7 +651,20 @@ class Route
      */
     private function _analyzeControllerResult($controller, Request $request, Response $response)
     {
-        $result = call_user_func_array($controller, [$request, $response]);
+        try {
+            $result = call_user_func_array($controller, [$request, $response]);
+        } catch (MiddlewareResponseException $e) {
+            return $e->response();
+        }
+
+        if (is_array($controller) && $controller[0] instanceof Controller) {
+            $middleware_response = $controller[0]->getMiddlewareResponse();
+
+            if ($middleware_response) {
+                return $middleware_response;
+            }
+        }
+
         $session_manager = $request->getSessionManager();
 
         if ($session_manager) {
