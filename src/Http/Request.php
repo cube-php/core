@@ -185,7 +185,7 @@ class Request implements RequestInterface
     /**
      * Return parsed request body
      *
-     * @return string JSON parsed string
+     * @return mixed JSON parsed string
      */
     public function getParsedBody()
     {
@@ -329,7 +329,8 @@ class Request implements RequestInterface
 
         if (count($names) == 1) {
             $raw_value = $this->inputs()->get($name);
-            $input = is_array($raw_value) ? $raw_value : ($raw_value->getValue() ?? $defaults);
+            $value = is_array($raw_value) ? $raw_value : $raw_value->getValue();
+            $input = $this->inputExists($name) ? $value : $defaults;
             return new Input($input, $name);
         }
 
@@ -341,7 +342,8 @@ class Request implements RequestInterface
         foreach ($names as $index => $rname) {
             $default = $single_default ? $defaults : $defaults_vars[$index];
             $raw_value = $this->inputs()->get($rname);
-            $input = is_array($raw_value) ? $raw_value : ($raw_value->getValue() ?? $default);
+            $value = is_array($raw_value) ? $raw_value : $raw_value->getValue();
+            $input = $this->inputExists($rname) ? $value : $default;
             $inputs[] = new Input($input, $rname);
         }
 
@@ -356,6 +358,21 @@ class Request implements RequestInterface
     public function inputs()
     {
         return $this->_processed_body;
+    }
+
+    private function inputExists(string $name): bool
+    {
+        $value = $this->inputs()->all();
+
+        foreach (explode('.', trim($name)) as $part) {
+            if (!is_array($value) || !array_key_exists($part, $value)) {
+                return false;
+            }
+
+            $value = $value[$part];
+        }
+
+        return true;
     }
 
     /**

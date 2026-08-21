@@ -42,7 +42,7 @@ class Collection extends ArrayObject implements CollectionInterface
     {
         every(
             $this,
-            fn ($value, $key) => $fn($value, $key, $this)
+            fn($value, $key) => $fn($value, $key, $this)
         );
 
         return $this;
@@ -56,7 +56,8 @@ class Collection extends ArrayObject implements CollectionInterface
      */
     public function find(callable $fn)
     {
-        return array_find($this, $fn);
+        $arr = $this->getArrayCopy();
+        return array_find($arr, $fn);
     }
 
     /**
@@ -116,9 +117,17 @@ class Collection extends ArrayObject implements CollectionInterface
     {
         $name = strtolower($name);
 
-        if (!$this->has($name)) return;
+        if (!$this->has($name)) {
+            return;
+        }
 
-        unset($this[$name]);
+        foreach (array_keys($this->getArrayCopy()) as $key) {
+            if (strtolower((string) $key) === $name) {
+                unset($this[$key]);
+                break;
+            }
+        }
+
         return $this->all();
     }
 
@@ -175,8 +184,10 @@ class Collection extends ArrayObject implements CollectionInterface
     public function splice(int $offset, ?int $length = null, mixed $replacement = [])
     {
         $cls = get_called_class();
+        $copy = $this->getArrayCopy();
+
         $array = array_splice(
-            $this->getArrayCopy(),
+            $copy,
             $offset,
             $length,
             $replacement
