@@ -12,6 +12,9 @@ use InvalidArgumentException;
 
 class RouteCollection
 {
+    private const METHOD_ANY = '';
+
+    private const DYNAMIC_BUCKET_WILDCARD = '*';
 
     /** @var Route[] */
     protected static $all_routes = array();
@@ -19,7 +22,7 @@ class RouteCollection
     /** @var array<string, array<string, Route>> */
     protected static $static_routes = array();
 
-    /** @var array<string, array<int, array{route: Route, regex: string}>> */
+    /** @var array<string, array<string, array<int, array{route: Route, regex: string, order: int}>>> */
     protected static $dynamic_routes = array();
 
     /** @var array */
@@ -115,6 +118,7 @@ class RouteCollection
     {
         $method = strtoupper($route->getMethod());
         $path = self::trimPath($route->getPath());
+        $order = count(static::$all_routes);
 
         static::$all_routes[] = $route;
         static::bindNamedRoute($route);
@@ -124,8 +128,10 @@ class RouteCollection
             return $route;
         }
 
-        static::$dynamic_routes[$method][] = [
+        $bucket = static::getDynamicRouteBucket($path);
+        static::$dynamic_routes[$method][$bucket][] = [
             'regex' => "#^{$route->path()->regexp()}$#",
+            'order' => $order,
             'route' => $route,
         ];
 
@@ -143,14 +149,18 @@ class RouteCollection
         $method = strtoupper($request->getMethod());
         $uri = self::trimPath($request->url()->getPath());
 
-        if (isset(static::$static_routes[$method][$uri])) {
+        foreach (static::getMethodCandidates($method) as $candidate) {
+            if (!isset(static::$static_routes[$candidate][$uri])) {
+                continue;
+            }
+
             return new RouteMatchResult(
-                static::$static_routes[$method][$uri],
+                static::$static_routes[$candidate][$uri],
                 []
             );
         }
 
-        foreach (static::$dynamic_routes[$method] ?? [] as $entry) {
+        foreach (static::getDynamicRouteCandidates($method, $uri) as $entry) {
             if (!preg_match($entry['regex'], $uri, $matches)) {
                 continue;
             }
@@ -167,6 +177,69 @@ class RouteCollection
         }
 
         return null;
+    }
+
+    /**
+     * Get method candidates for matching.
+     *
+     * @param string $method
+     * @return string[]
+     */
+    private static function getMethodCandidates(string $method): array
+    {
+        return $method === self::METHOD_ANY
+            ? [self::METHOD_ANY]
+            : [$method, self::METHOD_ANY];
+    }
+
+    /**
+     * Get candidate dynamic route entries for URI.
+     *
+     * @param string $method
+     * @param string $uri
+     * @return array
+     */
+    private static function getDynamicRouteCandidates(string $method, string $uri): array
+    {
+        $bucket = static::getDynamicRouteBucket($uri);
+        $buckets = $bucket === self::DYNAMIC_BUCKET_WILDCARD
+            ? [self::DYNAMIC_BUCKET_WILDCARD]
+            : [$bucket, self::DYNAMIC_BUCKET_WILDCARD];
+        $entries = [];
+
+        foreach (static::getMethodCandidates($method) as $candidate) {
+            foreach ($buckets as $candidate_bucket) {
+                $entries = array_merge(
+                    $entries,
+                    static::$dynamic_routes[$candidate][$candidate_bucket] ?? []
+                );
+            }
+        }
+
+        usort(
+            $entries,
+            fn(array $a, array $b) => $a['order'] <=> $b['order']
+        );
+
+        return $entries;
+    }
+
+    /**
+     * Get dynamic route bucket name from path.
+     *
+     * @param string $path
+     * @return string
+     */
+    private static function getDynamicRouteBucket(string $path): string
+    {
+        $path = trim(self::trimPath($path), '/');
+
+        if (!$path) {
+            return self::DYNAMIC_BUCKET_WILDCARD;
+        }
+
+        $segment = explode('/', $path, 2)[0];
+        return str_contains($segment, '{') ? self::DYNAMIC_BUCKET_WILDCARD : $segment;
     }
 
     /**
