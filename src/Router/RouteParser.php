@@ -66,8 +66,7 @@ class RouteParser
         }
 
         $rawpath = $this->_route->getPath();
-        $path = $this->compileRegularPath($rawpath);
-        $path = $this->compileStrictPathParams($path);
+        $path = $this->compilePath($rawpath);
         $this->_route->setParsedPath($path);
 
         return $this->_addRemoveTrailingSlash(
@@ -77,105 +76,102 @@ class RouteParser
     }
 
     /**
-     * Compile regular path conditions
-     * 
+     * Compile route path into a safe regular expression fragment.
+     *
      * @param string $path Path to compile
-     * 
-     * @return string Compiled path
+     * @return string
      */
-    private function compileRegularPath($path)
+    private function compilePath(string $path): string
     {
-        #check for regular path conditions
-        $regular_path = preg_match_all('#(\{(.*?)\})#', $path, $matches);
+        $has_parameters = preg_match_all(
+            '#\{([^{}\/]+)\}#',
+            $path,
+            $matches,
+            PREG_OFFSET_CAPTURE
+        );
 
-        if (!$regular_path) {
-            $this->_route->setParsedPath($path);
-            return $path;
+        if (!$has_parameters) {
+            return preg_quote($path, '#');
         }
 
-        $newpath = $path;
+        $compiled = '';
+        $offset = 0;
 
-        foreach ($matches[1] as $index => $match) {
-            #remove brackets
-            $regexps = static::$regex;
-            $match_without_brackets = str_replace(['{', '}'], '', $match);
-            $last_char = substr($match_without_brackets, -1, 1);
+        foreach ($matches[0] as $index => $match) {
+            [$raw_placeholder, $position] = $match;
+            $compiled .= preg_quote(
+                substr($path, $offset, $position - $offset),
+                '#'
+            );
 
-            $is_optional = $last_char === '?';
-            $match_vars = explode(':', $match_without_brackets);
-            $match_vars_count = count($match_vars);
-            $isRegularPath = preg_match('/\:/', $match);
+            $compiled .= $this->compileParameter(
+                $matches[1][$index][0],
+                $path
+            );
 
-            if (!$isRegularPath) {
-                continue;
-            }
-
-            if ($match_vars_count < 2 || $match_vars_count > 2) {
-                throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
-            }
-
-            #get parameter values
-            $parameter_name = $match_vars[1];
-            $parameter_raw_value = trim($match_vars[0]);
-            $parameter_value = '';
-
-            #Check if it has optional parameters
-            $last_char = substr($parameter_name, -1, 1);
-            $is_optional = $last_char === '?';
-
-            #Specify attribute's index to route
-            $this->_route->setAttribute($parameter_name, $parameter_raw_value);
-            $this->_route->setHasOptionalParameter($is_optional);
-
-            if (array_key_exists($parameter_raw_value, $regexps)) {
-                $regexp = $is_optional ? static::$regex_opt : $regexps;
-                $parameter_value = $regexp[$parameter_raw_value] ?? null;
-            }
-
-            if (!$parameter_value) {
-                $parameter_value = '(' . $parameter_raw_value . ')';
-            }
-
-            $newpath = str_replace($match, $parameter_value, $newpath);
+            $offset = $position + strlen($raw_placeholder);
         }
 
-        return $newpath;
+        $compiled .= preg_quote(substr($path, $offset), '#');
+        return $compiled;
     }
 
     /**
-     * Compile strict parameters path
-     * 
+     * Compile route path parameter.
+     *
+     * @param string $parameter
      * @param string $path
-     * 
      * @return string
      */
-    private function compileStrictPathParams($path)
+    private function compileParameter(string $parameter, string $path): string
     {
-        #check for strict parameters
-        $strict_parameters = preg_match_all('#\{([^\/]+)\}#', $path, $matches);
+        $match_vars = explode(':', $parameter, 2);
+        $type = count($match_vars) === 2 ? trim($match_vars[0]) : null;
+        $name = count($match_vars) === 2 ? $match_vars[1] : $match_vars[0];
+        $is_optional = substr($name, -1, 1) === '?';
 
-        if (!$strict_parameters) return $path;
-
-        $newpath = $path;
-
-        foreach ($matches[0] as $index => $match) {
-
-            $parameter_name = str_replace(['{', '}'], '', $match);
-            $last_char = substr($parameter_name, -1, 1);
-            $is_optional = $last_char === '?';
-
-            if ($is_optional) {
-                $parameter_name = substr($parameter_name, 0, strlen($parameter_name) - 1);
-            }
-
-            $this->_route->setAttribute($parameter_name);
-            $this->_route->setHasOptionalParameter($is_optional);
-
-            $replace_with = $is_optional ? static::$regex_opt : static::$regex;
-            $newpath = str_replace($match, $replace_with['*any'], $newpath);
+        if ($is_optional) {
+            $name = substr($name, 0, strlen($name) - 1);
         }
 
-        return $newpath;
+        if ($name === '') {
+            throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
+        }
+
+        $this->_route->setAttribute($name, $type);
+        $this->_route->setHasOptionalParameter($is_optional);
+
+        if (!$type) {
+            return ($is_optional ? static::$regex_opt : static::$regex)['*any'];
+        }
+
+        $regexps = $is_optional ? static::$regex_opt : static::$regex;
+
+        if (array_key_exists($type, $regexps)) {
+            return $regexps[$type];
+        }
+
+        return '(' . $this->validateCustomRegex($type, $path) . ')';
+    }
+
+    /**
+     * Validate custom route regular expression.
+     *
+     * @param string $regex
+     * @param string $path
+     * @return string
+     */
+    private function validateCustomRegex(string $regex, string $path): string
+    {
+        if ($regex === '' || str_contains($regex, '#')) {
+            throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
+        }
+
+        if (@preg_match('#^(' . $regex . ')$#', '') === false) {
+            throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
+        }
+
+        return $regex;
     }
 
     /**
@@ -184,7 +180,7 @@ class RouteParser
      * @param boolean $is_optional
      * @return string
      */
-    private function _addRemoveTrailingSlash($path, $is_optional = false)
+    private function _addRemoveTrailingSlash(string $path, bool $is_optional = false)
     {
         if (!$is_optional) {
             #Enforce trailing slash

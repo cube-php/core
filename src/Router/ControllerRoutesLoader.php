@@ -5,6 +5,7 @@ namespace Cube\Router;
 use Cube\App\App;
 use Cube\App\Directory;
 use Cube\Misc\File;
+use Cube\Router\Attributes\Any;
 use Cube\Router\Attributes\Delete;
 use Cube\Router\Attributes\Get;
 use Cube\Router\Attributes\Patch;
@@ -67,8 +68,10 @@ class ControllerRoutesLoader
 
         $filename = self::getCacheFileDir();
         $content = '<?php return ' . var_export($data, true) . ';';
+        $tmp_filename = $filename . '.tmp';
 
-        file_put_contents($filename, $content);
+        file_put_contents($tmp_filename, $content, LOCK_EX);
+        rename($tmp_filename, $filename);
         return true;
     }
 
@@ -108,7 +111,8 @@ class ControllerRoutesLoader
             Patch::class,
             Post::class,
             Get::class,
-            Put::class
+            Put::class,
+            Any::class,
         );
 
         $route_attributes = array(
@@ -173,33 +177,25 @@ class ControllerRoutesLoader
                         return;
                     }
 
-                    $attribute = $attributes[0];
-                    $name = $attribute->getName();
+                    $attribute = self::getRouteAttribute($method, $route_attributes);
 
-                    if (!in_array($name, $route_attributes)) {
+                    if (!$attribute) {
                         return;
                     }
 
-                    $args = (object) $attribute->getArguments();
+                    $name = $attribute->getName();
+                    $attribute_args = $attribute->getArguments();
+                    $args = (object) $attribute_args;
 
                     if (in_array($name, $route_verbs)) {
-                        $rmethod = array_get_last(explode('\\', $name));
-
-                        $args = (object) array(
-                            'method' => strtoupper($rmethod),
-                            'path' => $args->path ?? $args->{0} ?? '/',
-                            'name' => $args->name ?? $args?->{1} ?? null,
-                            'use' => $args->use ?? $args?->{2} ?? null,
-                            'middleware' => $args->middleware ?? $args?->{3} ?? null,
-                            'withoutMiddleware' => $args->withoutMiddleware ?? $args?->{4} ?? null,
-                        );
+                        $args = self::getRouteVerbArguments($name, $attribute_args);
                     }
 
                     $path = $group_path ? $group_path . $args->path : $args->path;
                     $route = new RouterRoute(
                         controller: concat($filename, '.', $method->getName()),
                         parent_names: $group_name ? [$group_name] : [],
-                        method: $args?->method,
+                        method: $args->method ?? null,
                         path: $path,
                     );
 
@@ -235,9 +231,51 @@ class ControllerRoutesLoader
     }
 
     /**
+     * Get the first supported route attribute on a controller method.
+     *
+     * @param ReflectionMethod $method
+     * @param array $route_attributes
+     * @return \ReflectionAttribute|null
+     */
+    private static function getRouteAttribute(ReflectionMethod $method, array $route_attributes)
+    {
+        foreach ($route_attributes as $route_attribute) {
+            $attributes = $method->getAttributes($route_attribute);
+
+            if ($attributes) {
+                return $attributes[0];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Normalize an HTTP verb attribute into route arguments.
+     *
+     * @param string $attribute
+     * @param array $args
+     * @return object
+     */
+    private static function getRouteVerbArguments(string $attribute, array $args): object
+    {
+        $method = array_get_last(explode('\\', $attribute));
+        $method = $method === 'Any' ? null : $method;
+
+        return (object) array(
+            'method' => $method ? strtoupper($method) : null,
+            'path' => $args['path'] ?? $args[0] ?? '/',
+            'name' => $args['name'] ?? $args[1] ?? null,
+            'use' => $args['use'] ?? $args[2] ?? null,
+            'middleware' => $args['middleware'] ?? $args[3] ?? null,
+            'withoutMiddleware' => $args['withoutMiddleware'] ?? $args[4] ?? null,
+        );
+    }
+
+    /**
      * Get routes to load based on conditions
      *
-     * @return RouterRoutes[]
+     * @return array
      */
     protected static function getRoutesToLoad()
     {
@@ -258,7 +296,7 @@ class ControllerRoutesLoader
     /**
      * Load cached routes
      *
-     * @return RouterRoutes[]
+     * @return RouterRoute[]
      */
     protected static function loadCachedRoutes()
     {

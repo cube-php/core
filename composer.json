@@ -18,6 +18,9 @@
       "src/utils/bootstrap.php"
     ]
   },
+  "scripts": {
+    "test": "pest"
+  },
   "require": {
     "twig/twig": "^3.28",
     "dammynex/pagenator": "^0.1.4",
@@ -25,5 +28,13 @@
     "symfony/console": "^8.0",
     "symfony/cache": "^8.1.4",
     "predis/predis": "^2.0"
+  },
+  "require-dev": {
+    "pestphp/pest": "^5.1"
+  },
+  "config": {
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
   }
 }
