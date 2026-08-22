@@ -35,7 +35,7 @@ if (!function_exists('array_get_last')) {
     }
 }
 
-if (function_exists('array_shuffle')) {
+if (!function_exists('array_shuffle')) {
     /**
      * Shuffle array
      *
