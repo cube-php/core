@@ -2,7 +2,6 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBQueryBuilder;
 
 class DBReplace extends DBQueryBuilder
@@ -13,7 +12,7 @@ class DBReplace extends DBQueryBuilder
     /**
      * Constructor
      * 
-     * @param string $table_name
+     * @param DBTable $table
      */
     public function __construct(DBTable $table)
     {
@@ -59,7 +58,10 @@ class DBReplace extends DBQueryBuilder
      */
     private function make($params)
     {
-        $keys = array_keys($params);
+        $keys = array_map(
+            fn($key) => $this->table->getDatabaseField($key),
+            array_keys($params)
+        );
         $fields = implode(', ', $keys);
 
         $parameters = array_values($params);

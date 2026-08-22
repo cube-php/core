@@ -7,10 +7,6 @@ use InvalidArgumentException;
 use Cube\Modules\Db\DBOrWhere;
 use Cube\Modules\Db\DBQueryGroup;
 
-use Cube\Modules\Db\DBSelect;
-use Cube\Modules\Db\DBUpdate;
-use Cube\Modules\Db\DBDelete;
-
 class DBQueryBuilder
 {
     /**
@@ -23,9 +19,9 @@ class DBQueryBuilder
     /**
      * Query parameters
      * 
-     * @var string
+     * @var array
      */
-    protected $parameters = array();
+    protected array $parameters = array();
 
     /**
      * Set if where statement has been called
@@ -61,7 +57,7 @@ class DBQueryBuilder
     /**
      * And statement
      *
-     * @param args ...$args
+     * @param array $args
      * @return $this
      */
     public function and(...$args)
@@ -488,7 +484,7 @@ class DBQueryBuilder
         $col1 = $this->addParam($values[0]);
         $col2 = $this->addParam($values[1]);
 
-        $this->joinSql(null, $key, $field, 'BETWEEN', $col1, 'AND', $col2);
+        $this->joinSql(null, $key, $this->fieldName($field), 'BETWEEN', $col1, 'AND', $col2);
         return $this;
     }
 
@@ -511,15 +507,15 @@ class DBQueryBuilder
     /**
      * SQL IN statement initiator
      * 
-     * @param string $sql Keyword
+     * @param string $key Keyword
      * @param string $field
      * @param array|callable $group
      * 
      * @return DBQueryBuilder
      */
-    protected function in($key, $field, $group)
+    protected function in(string $key, string $field, array|callable $group)
     {
-        $this->joinSql(null, $key, $field, 'IN', null);
+        $this->joinSql(null, $key, $this->fieldName($field), 'IN', null);
         return $this->parseInGroup($group);
     }
 
@@ -528,13 +524,13 @@ class DBQueryBuilder
      *
      * @param string $key
      * @param string $field
-     * @param mixed $key
+     * @param string $keyword
      * @return DBQueryBuilder
      */
-    protected function like($key, $field, $keyword)
+    protected function like(string $key, string $field, string $keyword)
     {
         $filteredKey = $this->addParam("%{$keyword}%");
-        $this->joinSql(null, $key, $field, 'LIKE', $filteredKey);
+        $this->joinSql(null, $key, $this->fieldName($field), 'LIKE', $filteredKey);
         return $this;
     }
 
@@ -555,15 +551,15 @@ class DBQueryBuilder
     /**
      * SQL NOT IN statement initiator
      * 
-     * @param string $sql Keyword
+     * @param string $key Keyword
      * @param string $field
      * @param array|callable $group
      * 
      * @return DBQueryBuilder
      */
-    protected function notIn($key, $field, $group)
+    protected function notIn(string $key, string $field, array|callable $group)
     {
-        $this->joinSql(null, $key, $field, 'NOT IN', null);
+        $this->joinSql(null, $key, $this->fieldName($field), 'NOT IN', null);
         return $this->parseInGroup($group);
     }
 
@@ -575,7 +571,7 @@ class DBQueryBuilder
      * 
      * @return DBQueryBuilder
      */
-    protected function notNull($key, $field)
+    protected function notNull(string $key, string $field)
     {
         $this->{$key}(concat($this->_value_prefix, $field), 'IS NOT', 'NULL');
         return $this;
@@ -585,11 +581,11 @@ class DBQueryBuilder
      * Where group initiator
      * 
      * @param string $key Statement
-     * @param string[] $args Arguments
+     * @param mixed[] $args Arguments
      * 
      * @return DBQueryBuilder
      */
-    protected function whereGroup($key, $args)
+    protected function whereGroup(string $key, array $args)
     {
         $this->joinSql(null, $key, null);
         $num_args = count($args);
@@ -665,6 +661,7 @@ class DBQueryBuilder
     /**
      * Merge query
      * 
+     * @param array $args
      * @return void
      */
     public function joinSql(...$args)
@@ -701,14 +698,26 @@ class DBQueryBuilder
 
         return (object) array(
             'operator' => $operator,
-            'field' => $field,
+            'field' => $this->fieldName($field),
             'value' => $param_value
         );
     }
 
     /**
+     * Normalize a field name before adding it to SQL.
+     *
+     * @param string $field Field name
+     * @return string
+     */
+    protected function fieldName(string $field): string
+    {
+        return $field;
+    }
+
+    /**
      * Parse in group argument
      * 
+     * @param mixed $group
      * @return DBQueryBuilder
      */
     private function parseInGroup($group)

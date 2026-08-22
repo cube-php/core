@@ -2,6 +2,7 @@
 
 namespace Cube\Modules\Db;
 
+use Cube\Http\Model;
 use Cube\Interfaces\ModelInterface;
 use Cube\Misc\ModelCollection;
 use Cube\Modules\Db\DBQueryBuilder;
@@ -34,11 +35,11 @@ class DBSelect extends DBQueryBuilder
     /**
      * Constructor
      * 
-     * @param string $table_name
+     * @param DBTable $table
      * @param array $fields
      * @param string|null $model
      */
-    public function __construct(DBTable $table, $fields = [], ?ModelInterface $model = null)
+    public function __construct(DBTable $table, array $fields = [], ?ModelInterface $model = null)
     {
         $this->model = $model;
 
@@ -124,6 +125,7 @@ class DBSelect extends DBQueryBuilder
      */
     public function getFirst($field)
     {
+        $field = $this->fieldName($field);
         $this->orderByRaw("{$field} DESC");
         return $this->fetchOne();
     }
@@ -136,6 +138,7 @@ class DBSelect extends DBQueryBuilder
      */
     public function getLast($field)
     {
+        $field = $this->fieldName($field);
         $this->orderByRaw("{$field} ASC");
         return $this->fetchOne();
     }
@@ -149,17 +152,14 @@ class DBSelect extends DBQueryBuilder
      */
     public function groupBy($field)
     {
-        $this->joinSql(null, 'GROUP BY', $field);
+        $this->joinSql(null, 'GROUP BY', $this->fieldName($field));
         return $this;
     }
 
     /**
      * Join On query
      * 
-     * @param string $column_one
-     * @param string $operator
-     * @param string $column_two
-     * 
+     * @param callable $fn
      * @return self
      */
     public function crossJoin(callable $fn)
@@ -171,10 +171,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Join On query
      * 
-     * @param string $column_one
-     * @param string $operator
-     * @param string $column_two
-     * 
+     * @param callable $fn
      * @return self
      */
     public function join(callable $fn)
@@ -186,10 +183,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Inner Join On query
      * 
-     * @param string $column_one
-     * @param string $operator
-     * @param string $column_two
-     * 
+     * @param callable $fn
      * @return self
      */
     public function innerJoin(callable $fn)
@@ -201,10 +195,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Left Join On query
      * 
-     * @param string $column_one
-     * @param string $operator
-     * @param string $column_two
-     * 
+     * @param callable $fn
      * @return self
      */
     public function leftJoin(callable $fn)
@@ -216,10 +207,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Right Join On query
      * 
-     * @param string $column_one
-     * @param string $operator
-     * @param string $column_two
-     * 
+     * @param callable $fn
      * @return self
      */
     public function rightJoin(callable $fn)
@@ -231,6 +219,7 @@ class DBSelect extends DBQueryBuilder
     /**
      * Lock for update
      *
+     * @param bool $skip_locked
      * @return $this
      */
     public function lock(bool $skip_locked = false)
@@ -243,11 +232,11 @@ class DBSelect extends DBQueryBuilder
     /**
      * Order query
      * 
-     * @param array $order
+     * @param array $orders
      * 
      * @return self
      */
-    public function orderBy($orders)
+    public function orderBy(array $orders): self
     {
 
         if (!$orders) {
@@ -257,7 +246,7 @@ class DBSelect extends DBQueryBuilder
         $orders_list = [];
 
         foreach ($orders as $field => $method) {
-            $orders_list[] = $field . ' ' . $method;
+            $orders_list[] = $this->fieldName($field) . ' ' . $method;
         }
 
         $this->joinSql(null, 'ORDER BY', implode(', ', $orders_list));
@@ -318,7 +307,6 @@ class DBSelect extends DBQueryBuilder
      * Union stateent
      * 
      * @param DBQueryBuilder $query Query
-     * 
      * @return self
      */
     public function union(DBQueryBuilder $query)
@@ -333,7 +321,6 @@ class DBSelect extends DBQueryBuilder
      * UnionAll statement
      * 
      * @param DBQueryBuilder $query
-     * 
      * @return self
      */
     public function unionAll(DBQueryBuilder $query)
@@ -417,5 +404,22 @@ class DBSelect extends DBQueryBuilder
 
         $this->bundle = $model;
         return $this;
+    }
+
+    /**
+     * Normalize model-facing field names before adding them to SQL.
+     *
+     * @param string $field Field name
+     * @return string
+     */
+    protected function fieldName(string $field): string
+    {
+        $model = $this->model;
+
+        if (!$model instanceof Model) {
+            return $field;
+        }
+
+        return $model::getDatabaseField($field);
     }
 }

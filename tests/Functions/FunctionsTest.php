@@ -77,9 +77,15 @@ class FunctionModelStub implements ModelInterface
 
     public static function getCountQuery() {}
 
-    public static function getFirst($field = null) {}
+    public static function getFirst($field = null): ?ModelInterface
+    {
+        return null;
+    }
 
-    public static function getLast($field = null) {}
+    public static function getLast($field = null): ?ModelInterface
+    {
+        return null;
+    }
 
     public static function query(): DBTable
     {
@@ -91,7 +97,7 @@ class FunctionModelStub implements ModelInterface
         throw new BadMethodCallException();
     }
 
-    public static function search($field, $keyword, $limit = null, $offset = null) {}
+    public static function search(string $field, mixed $keyword, ?int $limit = null, ?int $offset = null) {}
 
     public static function sum(string $field) {}
 

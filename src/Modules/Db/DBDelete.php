@@ -11,7 +11,7 @@ class DBDelete extends DBQueryBuilder
     /**
      * Class constructor
      * 
-     * @param string $table_name
+     * @param DBTable $table
      */
     public function __construct(DBTable $table)
     {
@@ -32,5 +32,16 @@ class DBDelete extends DBQueryBuilder
         );
 
         return $query->rowCount();
+    }
+
+    /**
+     * Normalize table field names before adding them to SQL.
+     *
+     * @param string $field Field name
+     * @return string
+     */
+    protected function fieldName(string $field): string
+    {
+        return $this->table->getDatabaseField($field);
     }
 }

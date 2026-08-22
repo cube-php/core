@@ -2,7 +2,6 @@
 
 namespace Cube\Modules\Db;
 
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBQueryBuilder;
 
 class DBUpdate extends DBQueryBuilder
@@ -12,7 +11,7 @@ class DBUpdate extends DBQueryBuilder
     /**
      * Constructor
      * 
-     * @param string $table_name
+     * @param DBTable $table
      */
     public function __construct(DBTable $table)
     {
@@ -28,7 +27,7 @@ class DBUpdate extends DBQueryBuilder
      */
     public function entry($params): self
     {
-        $params['updated_at'] = getnow();
+        $params[$this->table->getDatabaseField('updated_at')] = getnow();
         $this->make($params);
         return $this;
     }
@@ -60,10 +59,21 @@ class DBUpdate extends DBQueryBuilder
         $values = array_values($params);
         $placeholders = [];
 
-        foreach ($keys as $key) $placeholders[] = "{$key} = ?";
+        foreach ($keys as $key) $placeholders[] = $this->table->getDatabaseField($key) . ' = ?';
 
         $fields = implode(',', $placeholders);
         $this->bindParam($values);
         $this->joinSql(null, 'SET', $fields);
+    }
+
+    /**
+     * Normalize table field names before adding them to SQL.
+     *
+     * @param string $field Field name
+     * @return string
+     */
+    protected function fieldName(string $field): string
+    {
+        return $this->table->getDatabaseField($field);
     }
 }
