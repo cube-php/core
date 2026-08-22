@@ -18,6 +18,15 @@ class PipelineAttributeMiddleware implements MiddlewareInterface
     }
 }
 
+class PipelineControllerConfiguredMiddleware implements MiddlewareInterface
+{
+    public function trigger(Request $request, ?array $args = null)
+    {
+        $request->setAttribute('configured_middleware_args', $args);
+        return $request;
+    }
+}
+
 class PipelineShortCircuitMiddleware implements MiddlewareInterface
 {
     public function trigger(Request $request, ?array $args = null)
@@ -45,6 +54,57 @@ if (!class_exists('App\\Controllers\\PipelineControllerMiddlewareController')) {
     ');
 }
 
+if (!class_exists('App\\Controllers\\PipelineConfiguredMiddlewareController')) {
+    eval('
+        namespace App\\Controllers;
+
+        class PipelineConfiguredMiddlewareController extends \\Cube\\Http\\Controller
+        {
+            public function __construct(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                parent::__construct($request, $response);
+                $this->middleware("configured:admin,write");
+            }
+
+            public function index(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                return $request->getAttribute("configured_middleware_args");
+            }
+        }
+    ');
+}
+
+if (!class_exists('App\\Controllers\\PipelineActionConfiguredMiddlewareController')) {
+    eval('
+        namespace App\\Controllers;
+
+        class PipelineActionConfiguredMiddlewareController extends \\Cube\\Http\\Controller
+        {
+            public function index(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                $this->middleware("configured:action,write");
+                return $request->getAttribute("configured_middleware_args");
+            }
+        }
+    ');
+}
+
+if (!class_exists('App\\Controllers\\PipelineActionShortCircuitMiddlewareController')) {
+    eval('
+        namespace App\\Controllers;
+
+        class PipelineActionShortCircuitMiddlewareController extends \\Cube\\Http\\Controller
+        {
+            public function index(\\Cube\\Http\\Request $request, \\Cube\\Http\\Response $response)
+            {
+                $this->middleware("block");
+                $request->setAttribute("after_block", true);
+                return "should not win";
+            }
+        }
+    ');
+}
+
 function makeMiddlewareRequest(): Request
 {
     app()->resetScoped();
@@ -63,20 +123,26 @@ function makeMiddlewareRequest(): Request
     );
 }
 
-function bindMiddlewareRouteDependencies(): void
+function bindMiddlewareRouteDependencies(array $middlewares = []): void
 {
     $app = (new ReflectionClass(App::class))->newInstanceWithoutConstructor();
     $caches = new ReflectionProperty(App::class, 'caches');
     $caches->setValue($app, [
         'config' => [
             'view' => ['embed_request' => false],
+            'middleware' => $middlewares,
         ],
     ]);
 
     app()->singleton(App::class, fn() => $app);
+    $instances = new ReflectionProperty(app(), 'singletonInstances');
+    $values = $instances->getValue(app());
+    $values[App::class] = $app;
+    $instances->setValue(app(), $values);
+
     app()->bind(
         MiddlewarePipeline::class,
-        fn() => new MiddlewarePipeline(new MiddlewareResolver())
+        fn() => new MiddlewarePipeline(new MiddlewareResolver($middlewares))
     );
 }
 
@@ -147,6 +213,60 @@ it('runs controller __middleware hooks created on the fly', function () {
 
     expect($response)->toBeInstanceOf(Response::class)
         ->and($response->getBody())->toBe('from __middleware');
+});
+
+it('runs configured middleware assigned inside a controller', function () {
+    bindMiddlewareRouteDependencies([
+        'configured' => PipelineControllerConfiguredMiddleware::class,
+    ]);
+
+    $route = new Route(
+        'GET',
+        '/controller-configured-middleware',
+        'PipelineConfiguredMiddlewareController.index',
+    );
+
+    $response = $route->handle(makeMiddlewareRequest());
+
+    expect($response)->toBeInstanceOf(Response::class)
+        ->and($response->getBody())->toBe('["admin","write"]');
+});
+
+it('runs configured middleware called inside a controller action', function () {
+    bindMiddlewareRouteDependencies([
+        'configured' => PipelineControllerConfiguredMiddleware::class,
+    ]);
+
+    $route = new Route(
+        'GET',
+        '/controller-action-configured-middleware',
+        'PipelineActionConfiguredMiddlewareController.index',
+    );
+
+    $response = $route->handle(makeMiddlewareRequest());
+
+    expect($response)->toBeInstanceOf(Response::class)
+        ->and($response->getBody())->toBe('["action","write"]');
+});
+
+it('returns configured middleware responses called inside a controller action', function () {
+    bindMiddlewareRouteDependencies([
+        'block' => PipelineShortCircuitMiddleware::class,
+    ]);
+
+    $route = new Route(
+        'GET',
+        '/controller-action-short-circuit-middleware',
+        'PipelineActionShortCircuitMiddlewareController.index',
+    );
+
+    $request = makeMiddlewareRequest();
+    $response = $route->handle($request);
+
+    expect($response)->toBeInstanceOf(Response::class)
+        ->and($response->getHttpStatusCode())->toBe(Response::HTTP_FORBIDDEN)
+        ->and($response->getBody())->toBe('blocked')
+        ->and($request->getAttribute('after_block'))->toBeNull();
 });
 
 it('rejects middleware aliases containing the argument delimiter', function () {
