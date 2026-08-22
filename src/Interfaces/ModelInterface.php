@@ -9,44 +9,44 @@ use Cube\Modules\Db\DBTable;
 interface ModelInterface
 {
     public static function all(?array $order = null, ?array $opts = null);
-    
+
     public static function createEntry(array $entry);
-    
+
     public static function delete(): DBDelete;
 
-    public static function find($primary_key);
-    
-    public static function findAllBy($field, $value, $order = null, $params = null);
-    
-    public static function findBy($field, $value);
-    
-    public static function findByPrimaryKey($primary_key);
-    
-    public static function findByPrimaryKeyAndRemove($primary_key);
-    
-    public static function findByPrimaryKeyAndUpdate($primary_key, array $update);
+    public static function find(int|string $primary_key);
 
-    public static function findOrFail($primary_key, callable $failed): ?self;
+    public static function findAllBy(string $field, mixed $value, ?array $order = null, ?array $params = null);
 
-    public static function findByOrFail(string $field, $value, callable $failed): ?self;
+    public static function findBy(string $field, mixed $value);
+
+    public static function findByPrimaryKey(int|string $primary_key);
+
+    public static function findByPrimaryKeyAndRemove(int|string $primary_key);
+
+    public static function findByPrimaryKeyAndUpdate(int|string $primary_key, array $update);
+
+    public static function findOrFail(int|string $primary_key, callable $failed): ?self;
+
+    public static function findByOrFail(string $field, mixed $value, callable $failed): ?self;
 
     public static function fromData(string $classname, object $data);
-    
+
     public static function getCount();
-    
-    public static function getCountBy($field, $value);
-    
+
+    public static function getCountBy(string $field, mixed $value);
+
     public static function getCountQuery();
-    
-    public static function getFirst($field = null);
-    
-    public static function getLast($field = null);
-    
+
+    public static function getFirst(?string $field = null): ?self;
+
+    public static function getLast(?string $field = null): ?self;
+
     public static function query(): DBTable;
-    
+
     public static function select(...$args): DBSelect;
-    
-    public static function search($field, $keyword, $limit = null, $offset = null);
+
+    public static function search(string $field, mixed $keyword, ?int $limit = null, ?int $offset = null);
 
     public static function sum(string $field);
 

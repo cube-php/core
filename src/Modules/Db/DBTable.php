@@ -3,7 +3,6 @@
 namespace Cube\Modules\Db;
 
 use PDOStatement;
-use Cube\Modules\DB;
 use Cube\Modules\Db\DBDelete;
 use Cube\Modules\Db\DBInsert;
 use Cube\Modules\Db\DBReplace;
@@ -38,15 +37,48 @@ class DBTable
     public readonly DBConnection $connection;
 
     /**
+     * Model field aliases keyed by model-facing field name.
+     *
+     * @var array<string, string>
+     */
+    private array $field_aliases = [];
+
+    /**
      * Class constructor
      * 
-     * @param string $table_name
+     * @param string $name
      * @param DBConnection|null $connection
+     * @param array $field_aliases
      */
-    public function __construct(string $name, ?DBConnection $connection = null)
+    public function __construct(string $name, ?DBConnection $connection = null, array $field_aliases = [])
     {
         $this->name = $name;
         $this->connection = $connection;
+        $this->field_aliases = $field_aliases;
+    }
+
+    /**
+     * Convert a model-facing field name to this table's database column name.
+     *
+     * @param string $field Field name
+     * @return string
+     */
+    public function getDatabaseField(string $field): string
+    {
+        if ($field === '' || $field === '*' || preg_match('/\s|\(/', $field)) {
+            return $field;
+        }
+
+        $prefix = '';
+        $name = $field;
+        $separator_position = strrpos($field, '.');
+
+        if ($separator_position !== false) {
+            $prefix = substr($field, 0, $separator_position + 1);
+            $name = substr($field, $separator_position + 1);
+        }
+
+        return $prefix . ($this->field_aliases[$name] ?? $name);
     }
 
     /**

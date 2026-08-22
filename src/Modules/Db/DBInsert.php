@@ -12,7 +12,7 @@ class DBInsert extends DBQueryBuilder
     /**
      * Constructor
      * 
-     * @param string $table_name
+     * @param DBTable $table
      */
     public function __construct(DBTable $table)
     {
@@ -33,7 +33,7 @@ class DBInsert extends DBQueryBuilder
             array_merge(
                 $on_duplicate,
                 $params,
-                ['created_at' => getnow()]
+                [$this->table->getDatabaseField('created_at') => getnow()]
             )
         );
 
@@ -60,12 +60,14 @@ class DBInsert extends DBQueryBuilder
      * Make query
      * 
      * @param string[] $params Parameters to make query from
-     * 
      * @return void
      */
-    private function make($params)
+    private function make(array $params): void
     {
-        $keys = array_keys($params);
+        $keys = array_map(
+            fn($key) => $this->table->getDatabaseField($key),
+            array_keys($params)
+        );
         $fields = implode(', ', $keys);
 
         $parameters = array_values($params);
@@ -98,11 +100,12 @@ class DBInsert extends DBQueryBuilder
 
         foreach ($params as $key => $value) {
             if (is_int($key)) {
-                $updates[] = "{$value} = VALUES({$value})";
+                $field = $this->table->getDatabaseField($value);
+                $updates[] = "{$field} = VALUES({$field})";
                 continue;
             }
 
-            $updates[] = "{$key} = ?";
+            $updates[] = $this->table->getDatabaseField($key) . ' = ?';
             $this->addParam($value);
         }
 

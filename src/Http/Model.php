@@ -48,6 +48,13 @@ class Model implements ModelInterface
     protected static $private_fields = array();
 
     /**
+     * Model field names mapped to database column names.
+     *
+     * @var array<string, string>
+     */
+    protected static array $field_aliases = [];
+
+    /**
      * Primary key field name
      * 
      * @var string
@@ -156,6 +163,8 @@ class Model implements ModelInterface
      */
     public function __get($name)
     {
+        $name = static::getModelField($name);
+
         if (in_array($name, array_keys($this->_data))) {
             return $this->_data[$name];
         }
@@ -179,6 +188,7 @@ class Model implements ModelInterface
      */
     public function __isset($name): bool
     {
+        $name = static::getModelField($name);
         $keys = array_keys($this->_data);
         return in_array($name, $keys) || method_exists($this, $name);
     }
@@ -191,7 +201,9 @@ class Model implements ModelInterface
      */
     public function __set($name, $value)
     {
-        $has_key = $this->_data && in_array(self::$primary_key, $this->_data);
+        $name = static::getModelField($name);
+        $key = static::getModelField(static::getPrimaryKey());
+        $has_key = $this->_data && in_array($key, $this->_data);
 
         if (!$has_key) {
             $this->_data[$name] = $value;
@@ -235,7 +247,7 @@ class Model implements ModelInterface
 
         $entry_id = $this->{$key};
         $saved = !!static::update($this->_updates)
-            ->where($key, $entry_id)
+            ->where(static::getDatabaseField($key), $entry_id)
             ->fulfil();
 
         if ($saved) {
@@ -462,7 +474,7 @@ class Model implements ModelInterface
     /**
      * Fetch fresh data for $this and lock for update
      *
-     * @return $this
+     * @return self
      */
     public function refreshAndLock(): self
     {
@@ -478,7 +490,7 @@ class Model implements ModelInterface
     /**
      * Check if current instance is same as specified instance
      *
-     * @param static $instance
+     * @param self $instance
      * @throws InvalidArgumentException
      * @return boolean
      */
@@ -507,7 +519,7 @@ class Model implements ModelInterface
         static::onBeforeDelete($this);
 
         $deleted = static::delete()
-            ->where($primary_key, $entry_id)
+            ->where(static::getDatabaseField($primary_key), $entry_id)
             ->fulfil();
 
         if (!$deleted) {
@@ -533,9 +545,10 @@ class Model implements ModelInterface
     /**
      * Set as new instance
      *
+     * @param boolean $status
      * @return void
      */
-    private function isNewInsance($status)
+    private function isNewInsance(bool $status): void
     {
         $this->_is_new = $status;
     }
@@ -568,7 +581,7 @@ class Model implements ModelInterface
      */
     public static function createEntry(array $entry)
     {
-        $entry_id = self::query()->insert($entry);
+        $entry_id = self::query()->insert(static::getDatabasePayload($entry));
         static::onCreate($entry_id);
 
         return $entry_id;
@@ -604,12 +617,11 @@ class Model implements ModelInterface
     /**
      * Fetch data using passed primary key value
      * 
-     * @param string|int $primary_key
-     * @param array $fields Fields to retrieve
+     * @param int|string $primary_key
      * 
      * @return $this
      */
-    public static function find($primary_key)
+    public static function find(int|string $primary_key)
     {
         return static::select()
             ->where(static::getPrimaryKey(), $primary_key)
@@ -620,11 +632,10 @@ class Model implements ModelInterface
      * Fetch data using passed primary key value and lock for updates
      * 
      * @param string|int $primary_key
-     * @param array $fields Fields to retrieve
      * 
      * @return $this
      */
-    public static function findAndLock($primary_key)
+    public static function findAndLock(int|string $primary_key)
     {
         return static::lock()
             ->where(static::getPrimaryKey(), $primary_key)
@@ -641,7 +652,7 @@ class Model implements ModelInterface
      * 
      * @return ModelCollection|array|null
      */
-    public static function findAllBy($field, $value, $order = null, $params = null)
+    public static function findAllBy(string $field, mixed $value, ?array $order = null, ?array $params = null)
     {
         $query = static::select()
             ->where($field, $value)
@@ -662,7 +673,7 @@ class Model implements ModelInterface
      * 
      * @return $this|null
      */
-    public static function findBy($field, $value)
+    public static function findBy(string $field, mixed $value)
     {
         return static::select()
             ->where($field, $value)
@@ -673,7 +684,7 @@ class Model implements ModelInterface
      * Fetch data using passed primary key value
      * 
      * @deprecated v0.9.8
-     * @param string|int $primary_key
+     * @param int|string $primary_key
      * 
      * @return $this
      */
@@ -689,27 +700,27 @@ class Model implements ModelInterface
      * 
      * @return int
      */
-    public static function findByPrimaryKeyAndRemove($primary_key)
+    public static function findByPrimaryKeyAndRemove(int|string $primary_key)
     {
         return self::query()
             ->delete()
-            ->where(static::getPrimaryKey(), $primary_key)
+            ->where(static::getDatabaseField(static::getPrimaryKey()), $primary_key)
             ->fulfil();
     }
 
     /**
      * Find entry using primary and update entry data
      * 
-     * @param string|int $primary_key
+     * @param int|string $primary_key
      * @param array $update New entry data
      * 
      * @return int
      */
-    public static function findByPrimaryKeyAndUpdate($primary_key, array $update)
+    public static function findByPrimaryKeyAndUpdate(int|string $primary_key, array $update)
     {
         return self::query()
-            ->update($update)
-            ->where(static::getPrimaryKey(), $primary_key)
+            ->update(static::getDatabasePayload($update))
+            ->where(static::getDatabaseField(static::getPrimaryKey()), $primary_key)
             ->fulfil();
     }
 
@@ -718,11 +729,11 @@ class Model implements ModelInterface
      * 
      * callable $failed will be executed if $primary_key is not found
      *
-     * @param mixed $primary_key
+     * @param int|string $primary_key
      * @param callable $failed
-     * @return $this
+     * @return self
      */
-    public static function findOrFail($primary_key, callable $failed): ?self
+    public static function findOrFail(int|string $primary_key, callable $failed): ?self
     {
         $data = self::find($primary_key);
 
@@ -742,9 +753,9 @@ class Model implements ModelInterface
      * @param string $field
      * @param mixed $value
      * @param callable $failed
-     * @return $this
+     * @return self|null
      */
-    public static function findByOrFail(string $field, $value, callable $failed): ?self
+    public static function findByOrFail(string $field, mixed $value, callable $failed): ?self
     {
         $data = self::findBy($field, $value);
 
@@ -774,11 +785,11 @@ class Model implements ModelInterface
      *
      * @param Model|string $classname
      * @param object $data
-     * @return $this
+     * @return self
      */
-    public static function fromData(string $classname, object $data)
+    public static function fromData(string $classname, object $data): self
     {
-        /** @var $this */
+        /** @var self */
         $instance = new $classname();
         $instance->isNewInsance(false);
 
@@ -787,17 +798,19 @@ class Model implements ModelInterface
         $private_data = array();
 
         array_walk($fields, function ($_, $key) use ($classname, &$instance, &$fields, &$data, &$private_data) {
+            $model_key = $classname::getModelField($key);
 
             $casted_value = $instance->checkCast(
                 $fields,
-                $key
+                $key,
+                $model_key
             );
 
-            if (in_array($key, $classname::$private_fields)) {
-                return $private_data[$key] = $casted_value;
+            if (in_array($model_key, $classname::$private_fields)) {
+                return $private_data[$model_key] = $casted_value;
             }
 
-            $data[$key] = $casted_value;
+            $data[$model_key] = $casted_value;
         });
 
         $instance->_data = $data;
@@ -809,13 +822,12 @@ class Model implements ModelInterface
     /**
      * Instance from data
      *
-     * @param Model|string $classname
      * @param object $data
-     * @return $this
+     * @return static
      */
-    public static function wrapData(object $data)
+    public static function wrapData(object $data): static
     {
-        /** @var $this */
+        /** @var self */
         $instance = new static();
         $instance->isNewInsance(false);
 
@@ -824,17 +836,19 @@ class Model implements ModelInterface
         $private_data = array();
 
         array_walk($fields, function ($_, $key) use (&$instance, &$fields, &$data, &$private_data) {
+            $model_key = $instance::getModelField($key);
 
             $casted_value = $instance->checkCast(
                 $fields,
-                $key
+                $key,
+                $model_key
             );
 
-            if (in_array($key, $instance::$private_fields)) {
-                return $private_data[$key] = $casted_value;
+            if (in_array($model_key, $instance::$private_fields)) {
+                return $private_data[$model_key] = $casted_value;
             }
 
-            $data[$key] = $casted_value;
+            $data[$model_key] = $casted_value;
         });
 
         $instance->_data = $data;
@@ -852,7 +866,7 @@ class Model implements ModelInterface
     {
         $key = static::getPrimaryKey();
         $res = self::query()
-            ->select(['count(' . $key . ') tcount'])
+            ->select(['count(' . static::getDatabaseField($key) . ') tcount'])
             ->fetchOne();
 
         return $res ? $res->tcount : 0;
@@ -870,8 +884,8 @@ class Model implements ModelInterface
         $key = static::getPrimaryKey();
 
         return self::query()
-            ->select(['count(' . $key . ') tcount'])
-            ->where($field, $value)
+            ->select(['count(' . static::getDatabaseField($key) . ') tcount'])
+            ->where(static::getDatabaseField($field), $value)
             ->fetchOne()
             ->tcount;
     }
@@ -881,11 +895,11 @@ class Model implements ModelInterface
      *
      * @return DBSelect
      */
-    public static function getCountQuery()
+    public static function getCountQuery(): DBSelect
     {
         $key = static::getPrimaryKey();
         return self::query()
-            ->select(["count({$key}) as count"]);
+            ->select(['count(' . static::getDatabaseField($key) . ') as count']);
     }
 
     /**
@@ -894,9 +908,9 @@ class Model implements ModelInterface
      *
      * @param string|null $field
      * 
-     * @return object|null
+     * @return self|null
      */
-    public static function getFirst($field = null)
+    public static function getFirst($field = null): ?self
     {
         return static::select()
             ->getFirst(($field ?? static::getPrimaryKey()));
@@ -908,9 +922,9 @@ class Model implements ModelInterface
      *
      * @param string|null $field
      * 
-     * @return object|null
+     * @return self|null
      */
-    public static function getLast($field = null)
+    public static function getLast($field = null): ?self
     {
         return static::select()
             ->getLast(($field ?? static::getPrimaryKey()));
@@ -933,7 +947,7 @@ class Model implements ModelInterface
      */
     public static function getPrimaryKey()
     {
-        return static::$primary_key;
+        return static::getModelField(static::$primary_key);
     }
 
     /**
@@ -944,7 +958,7 @@ class Model implements ModelInterface
      */
     public static function getSumByField(string $field)
     {
-        return self::query()->sum($field);
+        return self::query()->sum(static::getDatabaseField($field));
     }
 
     /**
@@ -981,7 +995,7 @@ class Model implements ModelInterface
             perpage: $limit
         );
 
-        $query2->orderByDesc(static::$primary_key);
+        $query2->orderByDesc(static::getPrimaryKey());
 
         /** @var ModelCollection */
         $result = $query2->fetch(
@@ -1004,7 +1018,8 @@ class Model implements ModelInterface
     {
         return new DBTable(
             static::$schema,
-            static::getConnection()
+            static::getConnection(),
+            static::getFieldAliases()
         );
     }
 
@@ -1016,7 +1031,7 @@ class Model implements ModelInterface
      */
     public static function update(array $fields)
     {
-        return self::query()->update($fields);
+        return self::query()->update(static::getDatabasePayload($fields));
     }
 
     /**
@@ -1031,7 +1046,7 @@ class Model implements ModelInterface
         $query = self::update($data);
 
         array_walk($fields, function ($value, $name) use ($query) {
-            $query->where($name, $value);
+            $query->where(static::getDatabaseField($name), $value);
         });
 
         $rows = $query->fulfil();
@@ -1065,7 +1080,10 @@ class Model implements ModelInterface
         }
 
         return self::query()
-            ->insert($fields, $matching);
+            ->insert(
+                static::getDatabasePayload($fields),
+                static::getDatabasePayload($matching)
+            );
     }
 
     /**
@@ -1077,7 +1095,7 @@ class Model implements ModelInterface
     {
         $select = new DBSelect(
             static::query(),
-            count($args) ? $args : self::fields(),
+            count($args) ? static::getDatabaseSelectFields($args) : self::fields(),
             new static()
         );
 
@@ -1093,7 +1111,8 @@ class Model implements ModelInterface
     public static function selectExcept(...$fields): DBSelect
     {
         $all_fields = static::fields();
-        $selectable_fields = array_diff($all_fields, $fields);
+        $db_fields = static::getDatabaseSelectFields($fields);
+        $selectable_fields = array_diff($all_fields, $db_fields);
 
         $select = new DBSelect(
             static::query(),
@@ -1111,9 +1130,9 @@ class Model implements ModelInterface
      * @param int|null $offset Offset
      * @param int|null $limit Limit
      * 
-     * @return object[]|null
+     * @return self[]|null
      */
-    public static function search($field, $keyword, $limit = null, $offset = null)
+    public static function search(string $field, mixed $keyword, ?int $limit = null, ?int $offset = null)
     {
         $query = static::select()
             ->whereLike($field, $keyword);
@@ -1135,7 +1154,7 @@ class Model implements ModelInterface
     public static function sum(string $field)
     {
         return self::query()
-            ->select([concat('SUM(', $field, ') total')]);
+            ->select(['SUM(' . static::getDatabaseField($field) . ') total']);
     }
 
     /**
@@ -1161,6 +1180,38 @@ class Model implements ModelInterface
             static::$fields,
             $fields
         );
+    }
+
+    /**
+     * Get model field aliases keyed by model-facing field name.
+     *
+     * @return array<string, string>
+     */
+    public static function getFieldAliases(): array
+    {
+        return static::$field_aliases;
+    }
+
+    /**
+     * Convert a model-facing field name to its database column name.
+     *
+     * @param string $field Model-facing field name
+     * @return string
+     */
+    public static function getDatabaseField(string $field): string
+    {
+        return static::mapField($field, static::$field_aliases);
+    }
+
+    /**
+     * Convert a database column name to its model-facing field name.
+     *
+     * @param string $field Database column name
+     * @return string
+     */
+    public static function getModelField(string $field): string
+    {
+        return static::mapField($field, array_flip(static::$field_aliases));
     }
 
     /**
@@ -1236,10 +1287,11 @@ class Model implements ModelInterface
      * @param string $field
      * @return mixed
      */
-    private function checkCast($params, $field)
+    private function checkCast($params, $field, ?string $model_field = null)
     {
         $cast = $this->cast;
         $value = isset($params[$field]) ? $params[$field] : null;
+        $model_field ??= $field;
 
         if (!count($cast)) {
             return $value;
@@ -1267,7 +1319,7 @@ class Model implements ModelInterface
             });
         }
 
-        $selected_cast_type = $cast[$field] ?? null;
+        $selected_cast_type = $cast[$model_field] ?? $cast[$field] ?? null;
 
         if (!$selected_cast_type) {
             return $value;
@@ -1308,6 +1360,83 @@ class Model implements ModelInterface
             return ['*'];
         }
 
-        return array_prepend_all($rows, self::getSchemaName() . '.');
+        return static::getDatabaseSelectFields($rows);
+    }
+
+    /**
+     * Convert model-facing payload keys to database column keys.
+     *
+     * @param array $data Model-facing payload
+     * @return array
+     */
+    protected static function getDatabasePayload(array $data): array
+    {
+        $payload = [];
+
+        foreach ($data as $field => $value) {
+            $payload[static::getDatabaseField($field)] = $value;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Convert fields to database select expressions with aliases where needed.
+     *
+     * @param array $fields Model-facing select fields
+     * @return array
+     */
+    protected static function getDatabaseSelectFields(array $fields): array
+    {
+        return every($fields, function ($field) {
+            if (!is_string($field)) {
+                return $field;
+            }
+
+            if ($field === '*' || preg_match('/\s|\(/', $field)) {
+                return $field;
+            }
+
+            $database_field = static::getDatabaseField($field);
+            $model_field = static::getModelField($field);
+            $qualified_database_field = str_contains($database_field, '.')
+                ? $database_field
+                : concat(static::getSchemaName(), '.', $database_field);
+
+            if ($database_field === $model_field || $field === $database_field) {
+                return $qualified_database_field;
+            }
+
+            $model_alias = str_contains($model_field, '.')
+                ? substr($model_field, strrpos($model_field, '.') + 1)
+                : $model_field;
+
+            return concat($qualified_database_field, ' AS ', $model_alias);
+        });
+    }
+
+    /**
+     * Apply simple field-name mappings while preserving table qualifiers.
+     *
+     * @param string $field Field name
+     * @param array<string, string> $map Field map
+     * @return string
+     */
+    private static function mapField(string $field, array $map): string
+    {
+        if ($field === '' || $field === '*' || preg_match('/\s|\(/', $field)) {
+            return $field;
+        }
+
+        $prefix = '';
+        $name = $field;
+        $separator_position = strrpos($field, '.');
+
+        if ($separator_position !== false) {
+            $prefix = substr($field, 0, $separator_position + 1);
+            $name = substr($field, $separator_position + 1);
+        }
+
+        return $prefix . ($map[$name] ?? $name);
     }
 }
