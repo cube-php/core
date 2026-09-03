@@ -27,10 +27,10 @@ class RouteParser
      * @var array
      */
     private static $regex_opt = array(
-        '*int' => '([0-9]?+)',
-        '*string' => '([\w]?+)',
+        '*int' => '([0-9]*)',
+        '*string' => '([\w]*)',
         '*bool' => '(true|false)?',
-        '*any' => '(.*?)',
+        '*any' => '([^\/]*)',
         '*all' => '(.*?)'
     );
 
@@ -44,7 +44,7 @@ class RouteParser
     /**
      * Class constructor
      * 
-     * @param Route
+     * @param Route $route
      */
     public function __construct(Route $route)
     {
@@ -167,7 +167,11 @@ class RouteParser
             throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
         }
 
-        if (@preg_match('#^(' . $regex . ')$#', '') === false) {
+        set_error_handler(fn() => true);
+        $is_valid = preg_match('#^(' . $regex . ')$#', '') !== false;
+        restore_error_handler();
+
+        if (!$is_valid) {
             throw new InvalidArgumentException('Invalid route path for route "' . $path . '"');
         }
 
