@@ -183,17 +183,22 @@ class Uri implements UriInterface
     /**
      * Return query
      * 
-     * @param string $name Name fields
+     * @param string|array $fields Name fields
      * @param mixed $otherwise Another value if then query key doesn't exist
      * @return string
      */
-    public function getQuery($name, $otherwise = null)
+    public function getQuery(array | string $fields, mixed $otherwise = null)
     {
-        $name_vars = explode(',', $name);
+        $name_vars = array_map(
+            'trim',
+            is_string($fields) ? explode(',', $fields) : $fields
+        );
+
         $name_vars_count = count($name_vars);
 
         if ($name_vars_count == 1) {
-            return $this->_parsed_query[$name] ?? $otherwise;
+            $return_val = $this->_parsed_query[$name_vars[0]] ?? $otherwise;
+            return is_array($fields) ? [$return_val] : $return_val;
         }
 
         $name_vars_trimmed = array_map('trim', $name_vars);
@@ -222,11 +227,11 @@ class Uri implements UriInterface
     /**
      * Check if string is a valid url
      * 
-     * @param $str String to check
+     * @param string $str String to check
      * 
      * @return bool
      */
-    public function isUri($str)
+    public function isUri(string $str)
     {
         return filter_var($str, FILTER_VALIDATE_URL);
     }
