@@ -2,7 +2,6 @@
 
 namespace Cube\Http;
 
-use Closure;
 use InvalidArgumentException;
 use Cube\Interfaces\RequestInterface;
 
@@ -311,7 +310,7 @@ class Request implements RequestInterface
      */
     public function hasInput($name)
     {
-        return !!$this->input($name);
+        return $this->inputExists($name);
     }
 
     /**
@@ -324,28 +323,28 @@ class Request implements RequestInterface
     public function input(string | array $name, string $defaults = '')
     {
         $names = is_string($name) ? explode(',', $name) : $name;
+        $names = array_map('trim', $names);
+        $inputs = $this->inputs()->all();
 
         if (count($names) == 1) {
-            $raw_value = $this->inputs()->get($name);
-            $value = is_array($raw_value) ? $raw_value : $raw_value->getValue();
-            $input = $this->inputExists($name) ? $value : $defaults;
-            return new Input($input, $name);
+            $field = $names[0];
+            $resolved = $this->resolveInput($inputs, $field);
+            $input = $resolved['exists'] ? $resolved['value'] : $defaults;
+            return new Input($input, $field);
         }
 
-        $names = array_map('trim', $names);
-        $defaults_vars = explode(',', $defaults);
+        $defaults_vars = array_map('trim', explode(',', $defaults));
         $single_default = count($defaults_vars) == 1;
-        $inputs = [];
+        $values = [];
 
         foreach ($names as $index => $rname) {
-            $default = $single_default ? $defaults : $defaults_vars[$index];
-            $raw_value = $this->inputs()->get($rname);
-            $value = is_array($raw_value) ? $raw_value : $raw_value->getValue();
-            $input = $this->inputExists($rname) ? $value : $default;
-            $inputs[] = new Input($input, $rname);
+            $default = $single_default ? $defaults : ($defaults_vars[$index] ?? '');
+            $resolved = $this->resolveInput($inputs, $rname);
+            $input = $resolved['exists'] ? $resolved['value'] : $default;
+            $values[] = new Input($input, $rname);
         }
 
-        return $inputs;
+        return $values;
     }
 
     /**
@@ -360,17 +359,35 @@ class Request implements RequestInterface
 
     private function inputExists(string $name): bool
     {
-        $value = $this->inputs()->all();
+        return $this->resolveInput($this->inputs()->all(), $name)['exists'];
+    }
+
+    /**
+     * Resolve an input value and existence flag in one traversal.
+     *
+     * @param array $inputs Parsed input data
+     * @param string $name Dot-notated input field name
+     * @return array{exists: bool, value: mixed}
+     */
+    private function resolveInput(array $inputs, string $name): array
+    {
+        $value = $inputs;
 
         foreach (explode('.', trim($name)) as $part) {
             if (!is_array($value) || !array_key_exists($part, $value)) {
-                return false;
+                return [
+                    'exists' => false,
+                    'value' => null,
+                ];
             }
 
             $value = $value[$part];
         }
 
-        return true;
+        return [
+            'exists' => true,
+            'value' => $value,
+        ];
     }
 
     /**
@@ -514,7 +531,9 @@ class Request implements RequestInterface
     private function parseBody()
     {
         if (strtoupper($this->getMethod()) === 'GET') {
-            return $this->_body = '';
+            $this->_body = '';
+            $this->_processed_body = new Inputs([]);
+            return;
         }
 
         $content = $this->content;

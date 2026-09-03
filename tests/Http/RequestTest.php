@@ -42,6 +42,9 @@ it('parses json request bodies and exposes nested inputs', function () {
         ->and($request->getParsedBody()->profile->email)->toBe('ada@example.test')
         ->and($request->input('name')->getValue())->toBe('Ada')
         ->and($request->input('profile.email')->getValue())->toBe('ada@example.test')
+        ->and($request->input('profile')->getValue())->toBe(['email' => 'ada@example.test'])
+        ->and($request->hasInput('profile.email'))->toBeTrue()
+        ->and($request->hasInput('profile.missing'))->toBeFalse()
         ->and($request->input('active')->toBoolean())->toBeTrue();
 });
 
@@ -62,6 +65,7 @@ it('returns defaults and multiple requested inputs', function () {
 
     expect($name->getValue())->toBe('Ada')
         ->and($missing->getValue())->toBe('fallback')
+        ->and($request->input(['name', 'missing'], 'fallback')[1]->getValue())->toBe('fallback')
         ->and($request->input('unknown', 'default')->getValue())->toBe('default');
 });
 
@@ -73,7 +77,10 @@ it('ignores request bodies for get requests', function () {
     );
 
     expect($request->getMethod())->toBe('get')
-        ->and($request->getBody())->toBeNull();
+        ->and($request->getBody())->toBeNull()
+        ->and($request->inputs()->all())->toBe([])
+        ->and($request->hasInput('ignored'))->toBeFalse()
+        ->and($request->input('ignored', 'fallback')->getValue())->toBe('fallback');
 });
 
 it('stores attributes and custom request methods', function () {
