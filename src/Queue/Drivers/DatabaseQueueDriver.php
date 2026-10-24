@@ -175,8 +175,7 @@ class DatabaseQueueDriver implements QueueDriverInterface
      */
     protected static function getConnectionName(): string
     {
-        return App::getConfig('queue.database_connection')
-            ?: App::getConfig('app.queue.database_connection')
+        return App::getConfig('queue.database.connection')
             ?: DBConnector::DEFAULT_CONNECTION_NAME;
     }
 

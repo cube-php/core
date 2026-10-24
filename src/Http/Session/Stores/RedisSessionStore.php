@@ -79,8 +79,7 @@ class RedisSessionStore implements SessionStoreInterface
     protected static function getConnection(): RedisConnection
     {
         return RedisConnector::connection(
-            App::getConfig('app.session.redis_connection')
-                ?: App::getConfig('app.session_redis_connection')
+            App::getConfig('app.session.redis.connection')
                 ?: 'default'
         );
     }
@@ -93,8 +92,7 @@ class RedisSessionStore implements SessionStoreInterface
      */
     protected static function key(string $id): string
     {
-        $prefix = App::getConfig('app.session.redis_prefix')
-            ?: App::getConfig('app.session_redis_prefix')
+        $prefix = App::getConfig('app.session.redis.prefix')
             ?: static::$prefix;
 
         return $prefix . ':' . $id;

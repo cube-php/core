@@ -48,8 +48,7 @@ class SessionManagerFactory
      */
     public static function getStore(): string
     {
-        $store = App::getConfig('app.session.store');
-        $store = $store ?: App::getConfig('app.session');
+        $store = App::getConfig('app.session.handler');
 
         return strtolower((string) ($store ?: static::STORE_FILE));
     }

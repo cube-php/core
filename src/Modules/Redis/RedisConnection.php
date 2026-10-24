@@ -3,7 +3,9 @@
 namespace Cube\Modules\Redis;
 
 use Cube\Exceptions\RedisException;
+use Cube\Exceptions\RedisConnectionException;
 use Predis\Client as PredisClient;
+use Predis\CommunicationException;
 use Redis;
 use Throwable;
 
@@ -30,10 +32,25 @@ class RedisConnection
                 return $this->connection->rawCommand($command, ...$arguments);
             }
 
-            return $this->connection->executeRaw([
+            $error = false;
+            $response = $this->connection->executeRaw([
                 $command,
                 ...$arguments,
-            ]);
+            ], $error);
+
+            if ($error) {
+                throw new RedisException((string) $response);
+            }
+
+            return $response;
+        } catch (RedisException $e) {
+            throw $e;
+        } catch (CommunicationException $e) {
+            throw new RedisConnectionException(
+                $e->getMessage(),
+                (int) $e->getCode(),
+                $e
+            );
         } catch (Throwable $e) {
             throw new RedisException($e->getMessage(), (int) $e->getCode(), $e);
         }
