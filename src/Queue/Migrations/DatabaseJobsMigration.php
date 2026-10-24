@@ -20,7 +20,7 @@ class DatabaseJobsMigration extends Migration
     protected static function getConnection(): DBConnection
     {
         return DBConnection::connection(
-            App::getConfig('queue.connection')
+            App::getConfig('queue.database.connection')
                 ?: DBConnector::DEFAULT_CONNECTION_NAME
         );
     }

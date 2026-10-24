@@ -79,6 +79,7 @@ class RedisConnector
         return [
             'host' => static::option($options, 'host', fn() => env('redis_host', '127.0.0.1')),
             'port' => (int) static::option($options, 'port', fn() => env('redis_port', 6379)),
+            'username' => static::option($options, 'username', fn() => env('redis_username')),
             'password' => static::option($options, 'password', fn() => env('redis_password')),
             'database' => (int) static::option($options, 'database', fn() => env('redis_database', 0)),
             'timeout' => (float) static::option($options, 'timeout', fn() => env('redis_timeout', 5.0)),
@@ -115,8 +116,10 @@ class RedisConnector
                 (float) ($options['timeout'] ?? 0.0)
             );
 
-            if (!empty($options['password'])) {
-                $redis->auth($options['password']);
+            $authentication = static::getAuthentication($options);
+
+            if ($authentication !== null) {
+                $redis->auth($authentication);
             }
 
             if (isset($options['database'])) {
@@ -137,6 +140,19 @@ class RedisConnector
      */
     protected static function connectWithPredis(array $options): RedisConnection
     {
+        return new RedisConnection(
+            new PredisClient(static::getPredisParameters($options))
+        );
+    }
+
+    /**
+     * Build Predis connection parameters.
+     *
+     * @param array $options Redis connection options
+     * @return array
+     */
+    protected static function getPredisParameters(array $options): array
+    {
         $parameters = [
             'scheme' => 'tcp',
             'host' => $options['host'],
@@ -144,14 +160,40 @@ class RedisConnector
             'database' => (int) ($options['database'] ?? 0),
         ];
 
-        if (!empty($options['password'])) {
-            $parameters['password'] = $options['password'];
+        $authentication = static::getAuthentication($options);
+
+        if (is_array($authentication)) {
+            [$parameters['username'], $parameters['password']] = $authentication;
+        } elseif ($authentication !== null) {
+            $parameters['password'] = $authentication;
         }
 
         if (isset($options['timeout']) && (float) $options['timeout'] > 0) {
             $parameters['timeout'] = (float) $options['timeout'];
         }
 
-        return new RedisConnection(new PredisClient($parameters));
+        return $parameters;
+    }
+
+    /**
+     * Get authentication credentials accepted by Redis clients.
+     *
+     * @param array $options Redis connection options
+     * @return string|array|null
+     */
+    protected static function getAuthentication(array $options): string|array|null
+    {
+        $username = $options['username'] ?? null;
+        $password = $options['password'] ?? null;
+
+        if ($username !== null && $username !== '') {
+            return [(string) $username, (string) ($password ?? '')];
+        }
+
+        if ($password !== null && $password !== '') {
+            return (string) $password;
+        }
+
+        return null;
     }
 }

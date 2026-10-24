@@ -16,7 +16,6 @@ class SessionManager
     {
         $this->lifetime = (int) (
             App::getConfig('app.session.lifetime')
-                ?: App::getConfig('app.session_lifetime')
                 ?: $this->lifetime
         );
 
@@ -149,16 +148,14 @@ class SessionManager
 
     protected function getCookieSecure(): bool
     {
-        $secure = App::getConfig('app.session.secure');
-        $secure = $secure ?? App::getConfig('app.session_secure', false);
+        $secure = App::getConfig('app.session.secure', false);
 
         return filter_var($secure, FILTER_VALIDATE_BOOLEAN);
     }
 
     protected function getCookieHttpOnly(): bool
     {
-        $httponly = App::getConfig('app.session.httponly');
-        $httponly = $httponly ?? App::getConfig('app.session_httponly', true);
+        $httponly = App::getConfig('app.session.httponly', true);
 
         return filter_var($httponly, FILTER_VALIDATE_BOOLEAN);
     }
@@ -167,7 +164,7 @@ class SessionManager
     {
         return (string) (
             App::getConfig('app.session.samesite')
-                ?: App::getConfig('app.session_samesite', 'Lax')
+                ?: 'Lax'
         );
     }
 

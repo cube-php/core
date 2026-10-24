@@ -183,7 +183,7 @@ class RedisQueueDriver implements QueueDriverInterface
     protected static function getConnection(): RedisConnection
     {
         return RedisConnector::connection(
-            App::getConfig('queue.redis_connection') ?: 'default'
+            App::getConfig('queue.redis.connection') ?: 'default'
         );
     }
 
@@ -195,7 +195,7 @@ class RedisQueueDriver implements QueueDriverInterface
      */
     protected static function key(string $name): string
     {
-        $prefix = App::getConfig('queue.redis_prefix') ?: static::$prefix;
+        $prefix = App::getConfig('queue.redis.prefix') ?: static::$prefix;
         return $prefix . ':' . $name;
     }
 

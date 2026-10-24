@@ -3,6 +3,7 @@
 namespace Cube\Queue;
 
 use Cube\App\App;
+use Cube\Exceptions\RedisConnectionException;
 use Throwable;
 
 class Worker
@@ -42,7 +43,14 @@ class Worker
                 break;
             }
 
-            $job = $this->queue->pop();
+            try {
+                $job = $this->queue->pop();
+            } catch (RedisConnectionException $e) {
+                echo "Queue connection lost: {$e->getMessage()}. "
+                    . "Retrying in {$this->sleep} seconds...\n";
+                sleep($this->sleep);
+                continue;
+            }
 
             if (!$job) {
                 sleep($this->sleep);
