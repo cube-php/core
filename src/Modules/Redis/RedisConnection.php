@@ -19,6 +19,16 @@ class RedisConnection
     public function __construct(protected Redis|PredisClient $connection) {}
 
     /**
+     * Get the underlying Redis client.
+     *
+     * @return Redis|PredisClient
+     */
+    public function client(): Redis|PredisClient
+    {
+        return $this->connection;
+    }
+
+    /**
      * Execute raw Redis command.
      *
      * @param string $command Redis command name
