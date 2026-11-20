@@ -246,21 +246,26 @@ class RouteCollection
      * Bind a named route
      *
      * @param Route $route
+     * @param string|null $name New name, or null to use the route's current name
      * @return void
      */
-    public static function bindNamedRoute(Route $route)
+    public static function bindNamedRoute(Route $route, ?string $name = null)
     {
-        $name = $route->getName();
+        $name ??= $route->getName();
 
-        if (!$name) {
-            return;
-        }
-
-        if (isset(self::$_name_routes[$name])) {
+        if ($name && isset(self::$_name_routes[$name]) && self::$_name_routes[$name] !== $route) {
             throw new InvalidArgumentException("Route name '{$name}' is already in use.");
         }
 
-        self::$_name_routes[$name] = $route;
+        $previous_name = $route->getName();
+
+        if ($previous_name !== $name && (self::$_name_routes[$previous_name] ?? null) === $route) {
+            unset(self::$_name_routes[$previous_name]);
+        }
+
+        if ($name) {
+            self::$_name_routes[$name] = $route;
+        }
     }
 
     public static function reset()
