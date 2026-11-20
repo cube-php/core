@@ -875,12 +875,13 @@ class Model implements ModelInterface
      * Fetch data using passed primary key value and lock for updates
      * 
      * @param string|int $primary_key
+     * @param bool $skip_locked Whether to skip locked rows
      * 
      * @return $this
      */
-    public static function findAndLock(int|string $primary_key)
+    public static function findAndLock(int|string $primary_key, bool $skip_locked = false)
     {
-        return static::lock()
+        return static::lock($skip_locked)
             ->where(static::getPrimaryKey(), $primary_key)
             ->fetchOne();
     }
