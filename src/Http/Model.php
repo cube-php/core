@@ -6,6 +6,8 @@ use Cube\Exceptions\ModelException;
 use Cube\Modules\Db\DBTable;
 use Cube\Modules\Db\DBSelect;
 use Cube\Interfaces\ModelInterface;
+use Cube\Http\Model\RelationConfig;
+use Cube\Http\Model\RelationType;
 use Cube\Misc\ModelCollection;
 use Cube\Misc\PaginatedModelQueryResult;
 use Cube\Modules\Db\DBConnection;
@@ -53,6 +55,16 @@ class Model implements ModelInterface
      * @var array<string, string>
      */
     protected static array $field_aliases = [];
+
+    /**
+     * Relations that are joined whenever this model is selected.
+     *
+     * Each entry is keyed by the relation name and contains: type (`one` or
+     * `many`), model, local_key, and an optional foreign_key.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    protected static $relations = array();
 
     /**
      * Primary key field name
@@ -147,6 +159,13 @@ class Model implements ModelInterface
      * @var array
      */
     private $_relations = array();
+
+    /**
+     * Relations hydrated by the model's main select query.
+     *
+     * @var array<string, mixed>
+     */
+    private array $_loaded_relations = [];
 
     /**
      * Check if is new data
@@ -267,22 +286,47 @@ class Model implements ModelInterface
     /**
      * Relation
      *
+     * Pass a declared relation name as the first argument, or retain the
+     * previous model/field signature in an existing relation method.
+     *
+     * @param string $model Relation name or related model class.
+     * @param string|null $field Local model field.
+     * @param string|null $name
+     * @return ModelInterface|null
+     */
+    public function relation(string $model, ?string $field = null, ?string $name = null)
+    {
+        return $this->loadedRelation('one', $model, $field, $name);
+    }
+
+    /**
+     * Return a joined to-many relation.
+     *
+     * @param string $model Relation name or related model class.
+     * @param string|null $field Local model field.
+     * @param string|null $name Related model field.
+     * @return ModelCollection
+     */
+    public function relations(string $model, ?string $field = null, ?string $name = null)
+    {
+        return $this->loadedRelation('many', $model, $field, $name);
+    }
+
+    /**
+     * Lazily fetch one related model using the original query behaviour.
+     *
      * @param string $model
      * @param string $field
      * @param string|null $name
      * @return ModelInterface|null
      */
-    public function relation(string $model, string $field, ?string $name = null)
+    public function lazyRelation(string $model, string $field, ?string $name = null)
     {
-        $cname = concat('relation$$', $model, '$$', $field, '$$', $name);
+        $cname = $this->relationCacheKey('lazy-one', $model, $field, $name);
         return $this->once(function () use ($model, $name, $field) {
 
             $field_name = $name ?: self::$primary_key;
-            $class = new ReflectionClass($model);
-
-            if (!$class->implementsInterface(ModelInterface::class)) {
-                throw new InvalidArgumentException('Invalid model class');
-            }
+            $this->validateRelationModel($model);
 
             return $name
                 ? $model::findBy($field_name, $this->{$field})
@@ -291,28 +335,223 @@ class Model implements ModelInterface
     }
 
     /**
-     * Relations
+     * Lazily fetch related models using the original query behaviour.
      *
      * @param string $model
      * @param string $field
      * @param string|null $name
-     * @return array
+     * @return ModelCollection
      */
-    public function relations(string $model, string $field, ?string $name = null)
+    public function lazyRelations(string $model, string $field, ?string $name = null)
     {
-        $cname = concat('relations$$', $model, '$$', $field, '$$', $name);
+        $cname = $this->relationCacheKey('lazy-many', $model, $field, $name);
         return $this->once(function () use ($name, $model, $field) {
+            $this->validateRelationModel($model);
 
-            $class = new ReflectionClass($model);
+            $field_name = $name ?: $model::getPrimaryKey();
+            return $model::findAllBy($field_name, $this->{$field});
+        }, $cname);
+    }
 
-            if (!$class->implementsInterface(ModelInterface::class)) {
-                throw new InvalidArgumentException('Invalid model class');
+    /**
+     * Store a joined relation under its name and legacy signature.
+     *
+     * This method is public so the database hydrator can populate a model
+     * without exposing its internal data properties.
+     *
+     * @param string $relation_name
+     * @param mixed $value
+     * @param array<string, mixed> $definition
+     * @return void
+     */
+    public function setLoadedRelation(string $relation_name, mixed $value, array $definition): void
+    {
+        $type = $definition['type'];
+        $model = $definition['model'];
+        $field = $definition['local_key'];
+        $foreign_field = $definition['foreign_key_input'] ?? null;
+
+        $this->_loaded_relations[$this->namedRelationCacheKey($type, $relation_name)] = $value;
+
+        $signature_fields = array_unique([
+            $foreign_field ?? '',
+            $definition['foreign_key'],
+        ]);
+
+        if ($definition['foreign_key'] === $model::getPrimaryKey()) {
+            $signature_fields[] = '';
+        }
+
+        foreach (array_unique($signature_fields) as $signature_field) {
+            $this->_loaded_relations[$this->relationCacheKey($type, $model, $field, $signature_field ?: null)] = $value;
+        }
+    }
+
+    /**
+     * Return normalized relation definitions for query construction.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function getRelationDefinitions(): array
+    {
+        $relations = [];
+
+        foreach (static::$relations as $relation_name => $definition) {
+            if (!is_string($relation_name) || !preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $relation_name)) {
+                throw new ModelException('Relation names must be valid identifiers');
             }
 
-            $field_name = $name ?: self::$primary_key;
-            $result = $model::findAllBy($field_name, $this->{$field});
-            return $result;
-        }, $cname);
+            if (is_string($definition)) {
+                $definition = [RelationConfig::Model => $definition];
+            }
+
+            if (!is_array($definition)) {
+                throw new ModelException(concat('Invalid relation "', $relation_name, '"'));
+            }
+
+            $type = $definition[RelationConfig::Type] ?? RelationType::One;
+            $model = $definition[RelationConfig::Model] ?? null;
+            $local_key = $definition[RelationConfig::LocalKey] ?? static::getPrimaryKey();
+            $foreign_key_input = $definition[RelationConfig::ForeignKey] ?? null;
+
+            if ($type instanceof RelationType) {
+                $type = $type->value;
+            }
+
+            if (!in_array($type, ['one', 'many'], true)) {
+                throw new ModelException(concat('Invalid relation type for "', $relation_name, '"'));
+            }
+
+            if (!is_string($model) || !is_subclass_of($model, self::class)) {
+                throw new ModelException(concat('Invalid relation model for "', $relation_name, '"'));
+            }
+
+            if (!is_string($local_key) || $local_key === '') {
+                throw new ModelException(concat('Invalid relation local key for "', $relation_name, '"'));
+            }
+
+            if ($foreign_key_input !== null && (!is_string($foreign_key_input) || $foreign_key_input === '')) {
+                throw new ModelException(concat('Invalid relation foreign key for "', $relation_name, '"'));
+            }
+
+            $relations[$relation_name] = [
+                'type' => $type,
+                'model' => $model,
+                'local_key' => $local_key,
+                'foreign_key' => $foreign_key_input ?? $model::getPrimaryKey(),
+                'foreign_key_input' => $foreign_key_input,
+            ];
+        }
+
+        return $relations;
+    }
+
+    /**
+     * Build aliased select expressions used to hydrate a joined model.
+     *
+     * @param string $table_alias
+     * @param string $column_prefix
+     * @return string[]
+     */
+    public static function getJoinedSelectFields(string $table_alias, string $column_prefix): array
+    {
+        if (!count(static::$fields) && !count(static::$private_fields)) {
+            throw new ModelException(concat(
+                'Joined model "',
+                static::class,
+                '" must declare its selectable fields'
+            ));
+        }
+
+        $fields = array_unique([
+            static::$primary_key,
+            ...static::$fields,
+            ...static::$private_fields,
+        ]);
+
+        return array_map(function ($field) use ($table_alias, $column_prefix) {
+            if (!is_string($field) || $field === '*' || preg_match('/\s|\(/', $field)) {
+                throw new ModelException(concat(
+                    'Joined model "',
+                    static::class,
+                    '" contains an unsupported select field'
+                ));
+            }
+
+            $database_field = static::unqualifiedField(static::getDatabaseField($field));
+            $model_field = static::unqualifiedField(static::getModelField($field));
+
+            return concat(
+                $table_alias,
+                '.',
+                $database_field,
+                ' AS ',
+                $column_prefix,
+                $model_field
+            );
+        }, $fields);
+    }
+
+    /**
+     * Return a joined relation or explain how to opt into laziness.
+     *
+     * @return mixed
+     */
+    private function loadedRelation(string $type, string $model, ?string $field, ?string $name): mixed
+    {
+        $key = $field === null
+            ? $this->namedRelationCacheKey($type, $model)
+            : $this->relationCacheKey($type, $model, $field, $name);
+
+        if (array_key_exists($key, $this->_loaded_relations)) {
+            return $this->_loaded_relations[$key];
+        }
+
+        $method = $type === 'one' ? 'lazyRelation' : 'lazyRelations';
+        throw new ModelException(concat(
+            'Relation "',
+            $model,
+            '" was not joined; declare it in $relations or use ',
+            $method,
+            '()'
+        ));
+    }
+
+    /**
+     * Build a stable cache key for a relation signature.
+     */
+    private function relationCacheKey(string $type, string $model, string $field, ?string $name): string
+    {
+        return concat($type, '$$', $model, '$$', $field, '$$', $name ?? '');
+    }
+
+    /**
+     * Build a cache key for a relation accessed by its declared name.
+     */
+    private function namedRelationCacheKey(string $type, string $name): string
+    {
+        return concat($type, '$$name$$', $name);
+    }
+
+    /**
+     * Ensure lazy relations point to a model implementation.
+     */
+    private function validateRelationModel(string $model): void
+    {
+        $class = new ReflectionClass($model);
+
+        if (!$class->implementsInterface(ModelInterface::class)) {
+            throw new InvalidArgumentException('Invalid model class');
+        }
+    }
+
+    /**
+     * Remove a table qualifier from a model or database field.
+     */
+    private static function unqualifiedField(string $field): string
+    {
+        $position = strrpos($field, '.');
+        return $position === false ? $field : substr($field, $position + 1);
     }
 
     /**
@@ -396,7 +635,11 @@ class Model implements ModelInterface
 
                     foreach ($iterable_values as $value) {
                         $data = (array) $nested_value;
-                        $nested_value = $data[$value] ?? null;
+                        $nested_value = match (true) {
+                            is_array($nested_value) && array_key_exists($value, $data) => $data[$value],
+                            is_object($nested_value) => $nested_value->{$value} ?? null,
+                            default => null
+                        };
 
                         if (!$nested_value && !$is_optional) {
                             throw new ModelException(
@@ -464,7 +707,7 @@ class Model implements ModelInterface
      *
      * @return $this
      */
-    public function refresh(): self
+    public function refresh()
     {
         $key = static::getPrimaryKey();
         $this->_data = self::find($this->{$key})->_data;

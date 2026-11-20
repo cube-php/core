@@ -52,9 +52,13 @@ interface ModelInterface
 
     public function save(): bool;
 
-    public function relation(string $model, string $field, ?string $name = null);
+    public function relation(string $model, ?string $field = null, ?string $name = null);
 
-    public function relations(string $model, string $field, ?string $name = null);
+    public function relations(string $model, ?string $field = null, ?string $name = null);
+
+    public function lazyRelation(string $model, string $field, ?string $name = null);
+
+    public function lazyRelations(string $model, string $field, ?string $name = null);
 
     public function data(): array;
 
