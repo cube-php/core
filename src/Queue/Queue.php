@@ -10,9 +10,13 @@ class Queue
 {
     protected QueueDriverInterface $driver;
 
-    public function __construct(protected ?string $group = null)
+    public function __construct(
+        protected ?string $group = null,
+        protected array $groups = [],
+        protected array $excludedGroups = [],
+    )
     {
-        $this->driver = QueueDriverFactory::make($this->group);
+        $this->driver = QueueDriverFactory::make($this->group, $this->groups, $this->excludedGroups);
     }
 
     /**

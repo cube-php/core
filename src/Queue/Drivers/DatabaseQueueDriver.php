@@ -7,6 +7,7 @@ use Cube\Interfaces\JobsInterface;
 use Cube\Interfaces\QueueDriverInterface;
 use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBConnector;
+use Cube\Modules\Db\DBQueryBuilder;
 use Cube\Modules\Db\DBTable;
 use Cube\Queue\Job;
 
@@ -14,7 +15,11 @@ class DatabaseQueueDriver implements QueueDriverInterface
 {
     protected static string $schema = 'cube_jobs';
 
-    public function __construct(protected ?string $group = null) {}
+    public function __construct(
+        protected ?string $group = null,
+        protected array $groups = [],
+        protected array $excludedGroups = [],
+    ) {}
 
     /**
      * Push a job into the database-backed queue.
@@ -57,9 +62,11 @@ class DatabaseQueueDriver implements QueueDriverInterface
                 ->whereNull('reserved_at')
                 ->where('available_at', '<=', gettime());
 
-            if ($this->group) {
+            if ($this->group !== null) {
                 $query->where('group_name', $this->group);
             }
+
+            $this->applyGroupFilters($query);
 
             $query->orderByAsc('id')
                 ->lock(true);
@@ -80,6 +87,30 @@ class DatabaseQueueDriver implements QueueDriverInterface
                 $row->attempts + 1
             );
         });
+    }
+
+    /**
+     * Restrict eligible jobs by group before reservation, with exclusions taking precedence.
+     *
+     * @param DBQueryBuilder $query
+     * @return void
+     */
+    protected function applyGroupFilters(DBQueryBuilder $query): void
+    {
+        if ($this->groups) {
+            $query->whereRaw(
+                'group_name IN (' . implode(',', array_fill(0, count($this->groups), '?')) . ')',
+                $this->groups
+            );
+        }
+        if ($this->excludedGroups) {
+            // NULL represents an ungrouped job and must remain eligible.
+            $query->whereRaw(
+                '(group_name IS NULL OR group_name NOT IN ('
+                    . implode(',', array_fill(0, count($this->excludedGroups), '?')) . '))',
+                $this->excludedGroups
+            );
+        }
     }
 
     /**

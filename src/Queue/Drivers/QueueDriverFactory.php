@@ -18,11 +18,11 @@ class QueueDriverFactory
      * @param string|null $group
      * @return QueueDriverInterface
      */
-    public static function make(?string $group = null): QueueDriverInterface
+    public static function make(?string $group = null, array $groups = [], array $excludedGroups = []): QueueDriverInterface
     {
         return match (static::getDriver()) {
-            static::DRIVER_REDIS => new RedisQueueDriver($group),
-            static::DRIVER_DATABASE => new DatabaseQueueDriver($group),
+            static::DRIVER_REDIS => new RedisQueueDriver($group, $groups, $excludedGroups),
+            static::DRIVER_DATABASE => new DatabaseQueueDriver($group, $groups, $excludedGroups),
             default => throw new InvalidArgumentException(
                 'Unsupported queue driver "' . static::getDriver() . '"'
             ),
