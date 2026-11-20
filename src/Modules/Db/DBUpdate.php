@@ -6,6 +6,8 @@ use Cube\Modules\Db\DBQueryBuilder;
 
 class DBUpdate extends DBQueryBuilder
 {
+    use DBWriteJoins;
+
     private DBTable $table;
 
     /**
@@ -16,7 +18,7 @@ class DBUpdate extends DBQueryBuilder
     public function __construct(DBTable $table)
     {
         $this->table = $table;
-        $this->joinSql('UPDATE', $table->name);
+        $this->joinSql($this->writeQueryHeader());
     }
 
     /**
@@ -75,5 +77,15 @@ class DBUpdate extends DBQueryBuilder
     protected function fieldName(string $field): string
     {
         return $this->table->getDatabaseField($field);
+    }
+
+    /**
+     * Return the original statement header used to locate the join insertion point.
+     *
+     * @return string
+     */
+    protected function writeQueryHeader(): string
+    {
+        return 'UPDATE ' . $this->table->name;
     }
 }
