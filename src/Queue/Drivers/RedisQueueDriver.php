@@ -13,7 +13,11 @@ class RedisQueueDriver implements QueueDriverInterface
 {
     protected static string $prefix = 'cube_jobs';
 
-    public function __construct(protected ?string $group = null) {}
+    public function __construct(
+        protected ?string $group = null,
+        protected array $groups = [],
+        protected array $excludedGroups = [],
+    ) {}
 
     /**
      * Push a job into the Redis-backed queue.
@@ -68,7 +72,7 @@ class RedisQueueDriver implements QueueDriverInterface
         $result = static::getConnection()->eval(
             static::popScript(),
             [static::key('available'), static::key('job')],
-            [time(), $this->group ?? '']
+            [time(), $this->group ?? '', json_encode($this->groups), json_encode($this->excludedGroups)]
         );
 
         if (!$result) {
@@ -384,18 +388,37 @@ class RedisQueueDriver implements QueueDriverInterface
     protected static function popScript(): string
     {
         return <<<'LUA'
-local ids = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, 100)
+local included = cjson.decode(ARGV[3])
+local excluded = cjson.decode(ARGV[4])
+-- Check whether a job's group appears in an inclusion or exclusion list.
+local function contains(groups, value)
+    for _, group in ipairs(groups) do
+        if group == value then return true end
+    end
+    return false
+end
+
+-- Page past unmatched jobs so a busy group cannot starve other workers.
+local offset = 0
+while true do
+local ids = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', offset, 100)
 
 for _, id in ipairs(ids) do
     local job_key = KEYS[2] .. ':' .. id
     local group_name = redis.call('HGET', job_key, 'group_name') or ''
 
-    if ARGV[2] == '' or group_name == ARGV[2] then
+    if (ARGV[2] == '' or group_name == ARGV[2])
+        and (#included == 0 or contains(included, group_name))
+        and not contains(excluded, group_name) then
         redis.call('ZREM', KEYS[1], id)
         redis.call('HINCRBY', job_key, 'attempts', 1)
         redis.call('HSET', job_key, 'reserved_at', ARGV[1])
         return redis.call('HGETALL', job_key)
     end
+end
+
+if #ids < 100 then break end
+offset = offset + #ids
 end
 
 return nil
