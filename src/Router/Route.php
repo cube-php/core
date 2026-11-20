@@ -463,11 +463,16 @@ class Route
      */
     public function name(string $name): self
     {
-
         $names = $this->parent_names;
         $names[] = $name;
+        $name = implode(self::ROUTE_NAME_IMPODER, $names);
 
-        $this->_name = implode(self::ROUTE_NAME_IMPODER, $names);
+        // Router routes are attached before their fluent name() call.
+        if (in_array($this, RouteCollection::all(), true)) {
+            RouteCollection::bindNamedRoute($this, $name);
+        }
+
+        $this->_name = $name;
         return $this;
     }
 

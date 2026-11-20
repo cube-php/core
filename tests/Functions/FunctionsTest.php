@@ -14,6 +14,7 @@ use Cube\Modules\Db\DBSelect;
 use Cube\Modules\Db\DBTable;
 use Cube\Router\Route;
 use Cube\Router\RouteCollection;
+use Cube\Router\Router;
 use Cube\Tools\Str;
 
 class FunctionMapClassTarget
@@ -295,6 +296,23 @@ it('covers app, env, asset, route, and response helper functions', function () {
         ->and($response)->toBeInstanceOf(Response::class)
         ->and($redirect->getHttpStatusCode())->toBe(Response::HTTP_FOUND)
         ->and($redirect->getHeaders()->get('location'))->toBe('http://example.test/next?page=2');
+});
+
+it('generates URLs and redirects for routes named after router registration', function () {
+    bindFunctionHttp();
+    resetRouteCollection();
+
+    (new Router())->group('/api')->name('api')->register(function (Router $router) {
+        $router->get('/users/{id}', 'Users.show')->name('users.show');
+    });
+
+    expect(route('api.users.show', ['id' => 42], ['tab' => 'profile']))
+        ->toBe('http://example.test/api/users/42?tab=profile');
+
+    $response = response()->route('api.users.show', ['id' => 42]);
+
+    expect($response->getHttpStatusCode())->toBe(Response::HTTP_FOUND)
+        ->and($response->getHeaders()->get('location'))->toBe('http://example.test/api/users/42');
 });
 
 it('covers back, view, component, csrf, cli, and db helper functions', function () {
