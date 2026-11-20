@@ -355,6 +355,12 @@ class DBSchemaBuilder
         return $this;
     }
 
+    public function money()
+    {
+        $this->decimal(10, 2);
+        return $this;
+    }
+
     /**
      * Set schema attribute to unsigned
      * 

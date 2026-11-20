@@ -19,7 +19,7 @@ trait Onceable
         $method_name = $name ?: get_called_class_method();
         $key = concat($class, '::', $method_name);
 
-        if(isset($this->onceable_caches[$key])) {
+        if (array_key_exists($key, $this->onceable_caches)) {
             return $this->onceable_caches[$key];
         }
 

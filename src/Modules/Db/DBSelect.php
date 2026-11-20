@@ -2,6 +2,7 @@
 
 namespace Cube\Modules\Db;
 
+use Cube\Exceptions\ModelException;
 use Cube\Http\Model;
 use Cube\Interfaces\ModelInterface;
 use Cube\Misc\ModelCollection;
@@ -9,7 +10,23 @@ use Cube\Modules\Db\DBQueryBuilder;
 
 class DBSelect extends DBQueryBuilder
 {
+    use DBJoins;
+
+    private const JOINED_PARENT_KEY = '__cube_relation_parent_key';
+
     private DBTable $table;
+
+    /**
+     * Normalized joined relations, including SQL hydration metadata.
+     *
+     * @var array<string, array<string, mixed>>
+     */
+    private array $joined_relations = [];
+
+    /**
+     * Whether joined rows must be grouped into a to-many relation.
+     */
+    private bool $has_joined_many = false;
 
     /**
      * Model class name
@@ -41,12 +58,15 @@ class DBSelect extends DBQueryBuilder
      */
     public function __construct(DBTable $table, array $fields = [], ?ModelInterface $model = null)
     {
+        $this->table = $table;
         $this->model = $model;
 
-        if ($table) {
-            $this->table = $table;
-            $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table->name);
+        if ($model instanceof Model) {
+            $fields = $this->prepareJoinedRelations($fields, $model);
         }
+
+        $this->joinSql('SELECT', implode(', ', $fields), 'FROM', $table->name);
+        $this->joinRelations();
     }
 
     /**
@@ -74,6 +94,17 @@ class DBSelect extends DBQueryBuilder
         #the offset argument should be passed as limit
         $offset_id = (int) ($limit ? (int) $offset : 0);
         $limit_id = (int) ($limit ? $limit : $offset);
+
+        // Applying LIMIT directly to a to-many join truncates child rows and
+        // counts joined rows instead of parent models. Group first, then slice.
+        if ($this->has_joined_many) {
+            $results = $this->get();
+            $items = $results instanceof ModelCollection
+                ? $results->getArrayCopy()
+                : $results;
+
+            return ModelCollection::new(array_slice($items, $offset_id, $limit_id));
+        }
 
         $this->joinSql(
             null,
@@ -153,66 +184,6 @@ class DBSelect extends DBQueryBuilder
     public function groupBy($field)
     {
         $this->joinSql(null, 'GROUP BY', $this->fieldName($field));
-        return $this;
-    }
-
-    /**
-     * Join On query
-     * 
-     * @param callable $fn
-     * @return self
-     */
-    public function crossJoin(callable $fn)
-    {
-        $fn(new DBJoin($this, 'CROSS JOIN'));
-        return $this;
-    }
-
-    /**
-     * Join On query
-     * 
-     * @param callable $fn
-     * @return self
-     */
-    public function join(callable $fn)
-    {
-        $fn(new DBJoin($this));
-        return $this;
-    }
-
-    /**
-     * Inner Join On query
-     * 
-     * @param callable $fn
-     * @return self
-     */
-    public function innerJoin(callable $fn)
-    {
-        $fn(new DBJoin($this, 'INNER JOIN'));
-        return $this;
-    }
-
-    /**
-     * Left Join On query
-     * 
-     * @param callable $fn
-     * @return self
-     */
-    public function leftJoin(callable $fn)
-    {
-        $fn(new DBJoin($this, 'LEFT JOIN'));
-        return $this;
-    }
-
-    /**
-     * Right Join On query
-     * 
-     * @param callable $fn
-     * @return self
-     */
-    public function rightJoin(callable $fn)
-    {
-        $fn(new DBJoin($this, 'RIGHT JOIN'));
         return $this;
     }
 
@@ -371,19 +342,18 @@ class DBSelect extends DBQueryBuilder
         $stmt = $this->table->connection->query($sql, $params);
         $wrapper = $this->bundle;
 
-        if (!$stmt->rowCount()) {
+        $fetched_data = $stmt->fetchAll();
+
+        if (!count($fetched_data)) {
             return $wrapper ? ModelCollection::new([]) : [];
         }
 
-        $fetched_data = $stmt->fetchAll();
-
         if ($wrapper && is_array($fetched_data)) {
-
-            $content = array_map(function ($item) use ($wrapper) {
-                return $wrapper::wrapData($item);
-            }, $fetched_data);
-
-            return new ModelCollection($content);
+            return count($this->joined_relations)
+                ? $this->hydrateJoinedModels($fetched_data, $wrapper)
+                : new ModelCollection(array_map(function ($item) use ($wrapper) {
+                    return $wrapper::wrapData($item);
+                }, $fetched_data));
         }
 
         return $fetched_data;
@@ -407,6 +377,209 @@ class DBSelect extends DBQueryBuilder
     }
 
     /**
+     * Add joined select fields and retain the metadata needed for hydration.
+     *
+     * @param string[] $fields
+     * @param Model $model
+     * @return string[]
+     */
+    private function prepareJoinedRelations(array $fields, Model $model): array
+    {
+        $definitions = $model::getRelationDefinitions();
+
+        if (!count($definitions)) {
+            return $fields;
+        }
+
+        $fields = array_map(
+            fn($field) => $field === '*' ? $this->table->name . '.*' : $field,
+            $fields
+        );
+
+        $parent_key = $this->unqualifiedField(
+            $model::getDatabaseField($model::getPrimaryKey())
+        );
+        $fields[] = concat(
+            $this->table->name,
+            '.',
+            $parent_key,
+            ' AS ',
+            self::JOINED_PARENT_KEY
+        );
+
+        foreach ($definitions as $relation_name => $definition) {
+            /** @var class-string<Model> $related_model */
+            $related_model = $definition['model'];
+            $related_table = $related_model::query();
+
+            if ($related_table->connection->getConnection() !== $this->table->connection->getConnection()) {
+                throw new ModelException(concat(
+                    'Relation "',
+                    $relation_name,
+                    '" cannot join models from different database connections'
+                ));
+            }
+
+            $index = count($this->joined_relations);
+            $table_alias = concat('__cube_relation_', $index);
+            $column_prefix = concat('__cube_relation_', $index, '__');
+            $definition['table_name'] = $related_table->name;
+            $definition['table_alias'] = $table_alias;
+            $definition['column_prefix'] = $column_prefix;
+
+            $fields = array_merge(
+                $fields,
+                $related_model::getJoinedSelectFields($table_alias, $column_prefix)
+            );
+            $this->joined_relations[$relation_name] = $definition;
+            $this->has_joined_many = $this->has_joined_many || $definition['type'] === 'many';
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Append LEFT JOIN clauses for every declared relation.
+     */
+    private function joinRelations(): void
+    {
+        if (!$this->model instanceof Model) {
+            return;
+        }
+
+        foreach ($this->joined_relations as $definition) {
+            /** @var class-string<Model> $related_model */
+            $related_model = $definition['model'];
+            $base_field = $this->unqualifiedField(
+                $this->model::getDatabaseField($definition['local_key'])
+            );
+            $related_field = $this->unqualifiedField(
+                $related_model::getDatabaseField($definition['foreign_key'])
+            );
+            $table_expression = concat(
+                $definition['table_name'],
+                ' AS ',
+                $definition['table_alias']
+            );
+
+            $this->leftJoin(function (DBJoin $join) use ($definition, $base_field, $related_field, $table_expression) {
+                $join->table($table_expression)->on(
+                    $this->table->name . '.' . $base_field,
+                    '=',
+                    $definition['table_alias'] . '.' . $related_field
+                );
+            });
+        }
+    }
+
+    /**
+     * Collapse joined rows into parent models and their loaded relations.
+     *
+     * @param object[] $rows
+     * @param ModelInterface $wrapper
+     * @return ModelCollection
+     */
+    private function hydrateJoinedModels(array $rows, ModelInterface $wrapper): ModelCollection
+    {
+        $groups = [];
+        $order = [];
+
+        foreach ($rows as $row_index => $row) {
+            $parent_data = (array) $row;
+            $parent_key = $parent_data[self::JOINED_PARENT_KEY] ?? $row_index;
+            unset($parent_data[self::JOINED_PARENT_KEY]);
+            $group_key = serialize($parent_key);
+            $related_payloads = [];
+
+            foreach ($this->joined_relations as $relation_name => $definition) {
+                $payload = [];
+                $prefix = $definition['column_prefix'];
+
+                foreach (array_keys($parent_data) as $field) {
+                    if (!str_starts_with($field, $prefix)) {
+                        continue;
+                    }
+
+                    $payload[substr($field, strlen($prefix))] = $parent_data[$field];
+                    unset($parent_data[$field]);
+                }
+
+                $related_payloads[$relation_name] = $payload;
+            }
+
+            if (!isset($groups[$group_key])) {
+                $relations = [];
+
+                foreach ($this->joined_relations as $relation_name => $definition) {
+                    $relations[$relation_name] = $definition['type'] === 'many'
+                        ? ModelCollection::new([])
+                        : null;
+                }
+
+                $groups[$group_key] = [
+                    'model' => $wrapper::wrapData((object) $parent_data),
+                    'relations' => $relations,
+                    'seen' => [],
+                ];
+                $order[] = $group_key;
+            }
+
+            foreach ($this->joined_relations as $relation_name => $definition) {
+                /** @var class-string<Model> $related_model */
+                $related_model = $definition['model'];
+                $payload = $related_payloads[$relation_name];
+                $primary_key = $related_model::getPrimaryKey();
+
+                if (!array_key_exists($primary_key, $payload) || $payload[$primary_key] === null) {
+                    continue;
+                }
+
+                $identity = serialize($payload[$primary_key]);
+                if (isset($groups[$group_key]['seen'][$relation_name][$identity])) {
+                    continue;
+                }
+
+                $related = $related_model::wrapData((object) $payload);
+                $groups[$group_key]['seen'][$relation_name][$identity] = true;
+
+                if ($definition['type'] === 'many') {
+                    $groups[$group_key]['relations'][$relation_name][] = $related;
+                    continue;
+                }
+
+                $groups[$group_key]['relations'][$relation_name] ??= $related;
+            }
+        }
+
+        $models = [];
+        foreach ($order as $group_key) {
+            /** @var Model $model */
+            $model = $groups[$group_key]['model'];
+
+            foreach ($this->joined_relations as $relation_name => $definition) {
+                $model->setLoadedRelation(
+                    $relation_name,
+                    $groups[$group_key]['relations'][$relation_name],
+                    $definition
+                );
+            }
+
+            $models[] = $model;
+        }
+
+        return ModelCollection::new($models);
+    }
+
+    /**
+     * Remove a table qualifier from a model or database field.
+     */
+    private function unqualifiedField(string $field): string
+    {
+        $position = strrpos($field, '.');
+        return $position === false ? $field : substr($field, $position + 1);
+    }
+
+    /**
      * Normalize model-facing field names before adding them to SQL.
      *
      * @param string $field Field name
@@ -420,6 +593,14 @@ class DBSelect extends DBQueryBuilder
             return $field;
         }
 
-        return $model::getDatabaseField($field);
+        $database_field = $model::getDatabaseField($field);
+
+        if (count($this->joined_relations)
+            && !str_contains($database_field, '.')
+            && !preg_match('/\s|\(/', $database_field)) {
+            return $this->table->name . '.' . $database_field;
+        }
+
+        return $database_field;
     }
 }

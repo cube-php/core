@@ -6,6 +6,8 @@ use Cube\Modules\Db\DBQueryBuilder;
 
 class DBDelete extends DBQueryBuilder
 {
+    use DBWriteJoins;
+
     private DBTable $table;
 
     /**
@@ -16,7 +18,7 @@ class DBDelete extends DBQueryBuilder
     public function __construct(DBTable $table)
     {
         $this->table = $table;
-        $this->joinSql('DELETE FROM', $table->name);
+        $this->joinSql($this->writeQueryHeader());
     }
 
     /**
@@ -43,5 +45,27 @@ class DBDelete extends DBQueryBuilder
     protected function fieldName(string $field): string
     {
         return $this->table->getDatabaseField($field);
+    }
+
+    /**
+     * Return the original statement header used to locate the join insertion point.
+     *
+     * @return string
+     */
+    protected function writeQueryHeader(): string
+    {
+        return 'DELETE FROM ' . $this->table->name;
+    }
+
+    /**
+     * Target only the base table in MySQL's joined DELETE syntax.
+     *
+     * Joined tables select matching rows but are not themselves deleted from.
+     *
+     * @return string
+     */
+    protected function joinedQueryHeader(): string
+    {
+        return 'DELETE ' . $this->table->name . ' FROM ' . $this->table->name;
     }
 }
