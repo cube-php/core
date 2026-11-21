@@ -59,10 +59,11 @@ class Model implements ModelInterface
     /**
      * Relations that are joined whenever this model is selected.
      *
-     * Each entry is keyed by the relation name and contains: type (`one` or
-     * `many`), model, local_key, and an optional foreign_key.
+     * A class name defaults both sides to their primary keys. A positional
+     * array accepts model, local key, and an optional foreign key. Associative
+     * declarations can additionally select one-to-one or one-to-many.
      *
-     * @var array<string, array<string, mixed>>
+     * @var array<string, string|array<mixed>>
      */
     protected static $relations = array();
 
@@ -407,6 +408,14 @@ class Model implements ModelInterface
 
             if (!is_array($definition)) {
                 throw new ModelException(concat('Invalid relation "', $relation_name, '"'));
+            }
+
+            if (array_is_list($definition)) {
+                $definition = [
+                    RelationConfig::Model => $definition[0] ?? null,
+                    RelationConfig::LocalKey => $definition[1] ?? static::getPrimaryKey(),
+                    RelationConfig::ForeignKey => $definition[2] ?? null,
+                ];
             }
 
             $type = $definition[RelationConfig::Type] ?? RelationType::One;
