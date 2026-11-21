@@ -2,8 +2,6 @@
 
 use Cube\Exceptions\ModelException;
 use Cube\Http\Model;
-use Cube\Http\Model\RelationConfig;
-use Cube\Http\Model\RelationType;
 use Cube\Misc\ModelCollection;
 use Cube\Modules\Db\DBConnection;
 use Cube\Modules\Db\DBConnectorItem;
@@ -85,11 +83,7 @@ class RelationPostModel extends Model
     protected static $fields = ['author_id', 'title'];
 
     protected static $relations = [
-        'author' => [
-            RelationConfig::Type => RelationType::One,
-            RelationConfig::Model => RelationAuthorModel::class,
-            RelationConfig::LocalKey => 'author_id',
-        ],
+        'author' => [RelationAuthorModel::class, 'author_id'],
         'comments' => [
             'type' => 'many',
             'model' => RelationCommentModel::class,
